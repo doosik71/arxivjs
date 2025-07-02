@@ -3,6 +3,11 @@ const menuTopicManagement = document.getElementById('menu-topic-management');
 const menuPaperSearch = document.getElementById('menu-paper-search');
 const menuPaperAnalysis = document.getElementById('menu-paper-analysis');
 
+let lastSearchQuery = '';
+let lastMaxResults = '100';
+let lastSearchResults = [];
+
+
 const topicManagementContent = `
     <h2>주제 관리</h2>
     <div id="topic-list"></div>
@@ -17,7 +22,23 @@ menuTopicManagement.addEventListener('click', () => {
 });
 
 menuPaperSearch.addEventListener('click', () => {
-    content.innerHTML = '<h2>논문 검색</h2><p>구현 예정</p>';
+    const paperSearchContent = `
+        <h2>논문 검색</h2>
+        <input type="text" id="search-query-input" placeholder="검색어 입력 (제목 또는 저자)" value="${lastSearchQuery}">
+        <select id="max-results-select">
+            <option value="100" ${lastMaxResults === '100' ? 'selected' : ''}>100개</option>
+            <option value="200" ${lastMaxResults === '200' ? 'selected' : ''}>200개</option>
+            <option value="500" ${lastMaxResults === '500' ? 'selected' : ''}>500개</option>
+        </select>
+        <button id="search-btn">검색</button>
+        <div id="search-results"></div>
+    `;
+    content.innerHTML = paperSearchContent;
+    document.getElementById('search-btn').addEventListener('click', searchPapers);
+
+    if (lastSearchResults.length > 0) {
+        displaySearchResults(lastSearchResults);
+    }
 });
 
 menuPaperAnalysis.addEventListener('click', () => {
@@ -105,3 +126,37 @@ async function deleteTopic(topic) {
 
 // 초기 화면 로딩
 menuTopicManagement.click();
+
+async function searchPapers() {
+    const query = document.getElementById('search-query-input').value;
+    const maxResults = document.getElementById('max-results-select').value;
+
+    if (!query) {
+        alert('검색어를 입력하세요.');
+        return;
+    }
+
+    const response = await fetch(`/api/search?query=${encodeURIComponent(query)}&maxResults=${maxResults}`);
+    const results = await response.json();
+
+    const resultsDiv = document.getElementById('search-results');
+    resultsDiv.innerHTML = '';
+
+    if (results.error) {
+        resultsDiv.innerHTML = `<p>오류: ${results.error}</p>`;
+        return;
+    }
+
+    if (results.length === 0) {
+        resultsDiv.innerHTML = '<p>검색 결과가 없습니다.</p>';
+        return;
+    }
+
+    const ul = document.createElement('ul');
+    results.forEach(paper => {
+        const li = document.createElement('li');
+        li.innerHTML = `<span style="color:dodgerblue">${paper.author}</span> - <span style="color:crimson">${paper.title}</span> (<span style="color:green">${paper.year}</span>)`;
+        ul.appendChild(li);
+    });
+    resultsDiv.appendChild(ul);
+}
