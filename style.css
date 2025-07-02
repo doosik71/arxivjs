@@ -32,6 +32,10 @@ h1, h2 {
     margin: 0.5em;
 }
 
+h3, h4, h5, h6, h7 {
+    margin: 0.2em;
+}
+
 .topic-table {
     width: 100%;
     max-width: 80em;
@@ -57,4 +61,8 @@ h1, h2 {
 button {
     margin-left: 0.2em;
     margin-right: 0.2em;
+}
+
+p {
+    margin: 0.2em;
 }

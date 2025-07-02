@@ -77,7 +77,7 @@ async function loadTopics() {
     topicList.innerHTML = '';
     topics.forEach(topic => {
         const row = document.createElement('tr');
-        
+
         const topicCell = document.createElement('td');
         topicCell.textContent = topic;
         row.appendChild(topicCell);
@@ -95,7 +95,7 @@ async function loadTopics() {
         const deleteButton = document.createElement('button');
         deleteButton.textContent = 'Delete';
         deleteButton.addEventListener('click', () => deleteTopic(topic));
-        
+
         actionCell.appendChild(renameButton);
         actionCell.appendChild(deleteButton);
         row.appendChild(actionCell);
@@ -199,6 +199,12 @@ async function searchPapers() {
     displaySearchResults(results);
 }
 
+/**
+ * Renders the list of search results (papers) to the page.
+ * Each paper entry includes author, title (clickable), and publication year.
+ * 
+ * @param {Array<Object>} results - Array of paper objects returned from arXiv.
+ */
 function displaySearchResults(results) {
     const resultsDiv = document.getElementById('search-results');
     resultsDiv.innerHTML = '';
@@ -216,36 +222,122 @@ function displaySearchResults(results) {
     const ul = document.createElement('ul');
     results.forEach(paper => {
         const li = document.createElement('li');
+
+        const authorSpan = document.createElement('span');
+        authorSpan.style.color = 'black';
+        authorSpan.textContent = paper.author;
+
         const titleSpan = document.createElement('span');
         titleSpan.style.color = 'dodgerblue';
         titleSpan.style.cursor = 'pointer';
         titleSpan.textContent = paper.title;
         titleSpan.addEventListener('click', () => showPaperDetails(paper));
 
-        li.innerHTML = `<span style="color:black">${paper.author}</span> - `;
+        const yearSpan = document.createElement('span');
+        yearSpan.style.color = 'black';
+        yearSpan.textContent = ` (${paper.year})`;
+
+        li.appendChild(authorSpan);
+        li.appendChild(document.createTextNode(' - '));
         li.appendChild(titleSpan);
-        li.innerHTML += ` (<span style="color:black">${paper.year}</span>)`;
+        li.appendChild(yearSpan);
+
         ul.appendChild(li);
     });
+
     resultsDiv.appendChild(ul);
 }
 
 /**
  * Displays detailed information for a selected paper.
- * Includes title, author(s), publication year, summary, and a link to the original paper.
+ * Includes title, author(s), publication year, abstract, and a link to the original paper.
  * 
  * @param {Object} paper - The selected paper object.
  */
-function showPaperDetails(paper) {
+async function showPaperDetails(paper) {
     selectedPaper = paper;
+    const paperId = paper.id.split('/').pop();
+    const summaryFileName = `${paperId}.json`;
+    const response = await fetch(`/api/summary/${summaryFileName}`);
+
+    let summaryContent;
+    let showSummarizeButton = true;
+
+    if (response.ok) {
+        const savedPaper = await response.json();
+        summaryContent = `<p>${savedPaper.summary}</p>`;
+        showSummarizeButton = false;
+    } else {
+        summaryContent = '';
+    }
+
     const paperAnalysisContent = `
         <h2>Paper Analysis</h2>
         <h3>${paper.title}</h3>
         <p><strong>Author(s):</strong> ${paper.author}</p>
         <p><strong>Publication Year:</strong> ${paper.year}</p>
-        <p><strong>Summary:</strong></p>
-        <p>${paper.summary}</p>
+        <p><strong>Abstract:</strong></p>
+        <p>${paper.abstract}</p>
         <a href="${paper.id}" target="_blank">View Full Paper on arXiv</a>
+        ${showSummarizeButton ? '<button id="summarize-btn">Summarize the paper</button>' : ''}
+        <div id="summary-container">${summaryContent}</div>
     `;
     content.innerHTML = paperAnalysisContent;
+
+    if (showSummarizeButton) {
+        document.getElementById('summarize-btn').addEventListener('click', () => summarizePaper(paper));
+    }
+}
+
+/**
+ * Sends a paper to the server to be summarized using the Gemini model,
+ * streams and displays the summary result, and saves the final summary
+ * along with the paper metadata back to the server.
+ * 
+ * @param {Object} paper - The paper object to summarize.
+ */
+async function summarizePaper(paper) {
+    const summarizeBtn = document.getElementById('summarize-btn');
+    summarizeBtn.disabled = true;
+    summarizeBtn.textContent = 'Summarizing...';
+
+    const summaryContainer = document.getElementById('summary-container');
+    summaryContainer.innerHTML = '';
+
+    const response = await fetch('/api/summarize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paper),
+    });
+
+    if (!response.body) {
+        summaryContainer.innerHTML = '<p>Error: Could not get summary stream.</p>';
+        return;
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let summaryText = '';
+
+    while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        const chunk = decoder.decode(value, { stream: true });
+        summaryText += chunk;
+        summaryContainer.innerHTML = `<p>${summaryText}</p>`;
+    }
+
+    summarizeBtn.style.display = 'none';
+
+    const finalPaperData = { ...paper, summary: summaryText };
+
+    await fetch('/api/paper', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(finalPaperData),
+    });
 }

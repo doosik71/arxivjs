@@ -14,9 +14,12 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
+    "@google/generative-ai": "^0.24.1",
     "axios": "^1.10.0",
+    "dotenv": "^17.0.1",
     "express": "^5.1.0",
     "nodemon": "^3.1.10",
+    "pdf-parse": "^1.1.1",
     "xml2js": "^0.6.2"
   }
 }
