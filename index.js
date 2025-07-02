@@ -240,7 +240,9 @@ app.post('/api/summarize', async (req, res) => {
         const textContent = data.text;
 
         const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-        const prompt = `Please summarize the following research paper text:\n\n${textContent}`;
+        const userPromptPath = path.join(__dirname, 'data', 'userprompt.txt');
+        const userPrompt = fs.readFileSync(userPromptPath, 'utf8');
+        const prompt = userPrompt.replace('{context}', textContent);
 
         const result = await model.generateContentStream(prompt);
 
@@ -328,6 +330,126 @@ app.post('/api/paper', (req, res) => {
             return res.status(500).send('Error saving paper data');
         }
         res.status(200).send('Paper data saved');
+    });
+});
+
+/**
+ * POST /api/topics/:topic/papers
+ *
+ * Saves paper identification information to a specific topic folder.
+ *
+ * Path parameters:
+ * - topic: string - The name of the topic folder.
+ *
+ * Request body:
+ * - id: string - The arXiv ID of the paper.
+ * - title: string - The title of the paper.
+ * - author: string - The author(s) of the paper.
+ * - year: number - The publication year of the paper.
+ *
+ * Response:
+ * - 200: Paper saved to topic successfully.
+ * - 400: Invalid paper data or topic not found.
+ * - 500: Error saving paper to topic.
+ */
+app.post('/api/topics/:topic/papers', (req, res) => {
+    const topic = req.params.topic;
+    const paper = req.body;
+
+    if (!paper || !paper.id || !paper.title || !paper.author || !paper.year || !paper.abstract) {
+        return res.status(400).send('Invalid paper data provided.');
+    }
+
+    const topicPath = path.join(topicDir, topic);
+    if (!fs.existsSync(topicPath)) {
+        return res.status(400).send('Topic not found.');
+    }
+
+    const paperId = paper.id.split('/').pop();
+    const filePath = path.join(topicPath, `${paperId}.json`);
+
+    fs.writeFile(filePath, JSON.stringify(paper, null, 2), (err) => {
+        if (err) {
+            console.error(`Error saving paper to topic ${topic}:`, err);
+            return res.status(500).send('Error saving paper to topic.');
+        }
+        res.status(200).send('Paper saved to topic successfully.');
+    });
+});
+
+/**
+ * GET /api/topics/:topic/papers
+ *
+ * Retrieves a list of paper identification files from a specific topic folder.
+ *
+ * Path parameters:
+ * - topic: string - The name of the topic folder.
+ *
+ * Response:
+ * - 200: JSON array of paper objects (id, title, author, year).
+ * - 404: Topic not found.
+ * - 500: Error reading topic directory or parsing paper files.
+ */
+app.get('/api/topics/:topic/papers', (req, res) => {
+    const topic = req.params.topic;
+    const topicPath = path.join(topicDir, topic);
+
+    if (!fs.existsSync(topicPath)) {
+        return res.status(404).send('Topic not found.');
+    }
+
+    fs.readdir(topicPath, async (err, files) => {
+        if (err) {
+            console.error(`Error reading topic directory ${topic}:`, err);
+            return res.status(500).send('Error reading topic directory.');
+        }
+
+        const papers = [];
+        for (const file of files) {
+            if (file.endsWith('.json')) {
+                const filePath = path.join(topicPath, file);
+                try {
+                    const data = await fs.promises.readFile(filePath, 'utf8');
+                    papers.push(JSON.parse(data));
+                } catch (readErr) {
+                    console.error(`Error reading or parsing paper file ${file} in topic ${topic}:`, readErr);
+                    // Continue to next file even if one fails
+                }
+            }
+        }
+        res.json(papers);
+    });
+});
+
+/**
+ * GET /api/papers
+ *
+ * Retrieves a list of all summarized papers from the "data/summary" folder.
+ *
+ * Response:
+ * - 200: JSON array of paper objects.
+ * - 500: If directory reading or file parsing fails.
+ */
+app.get('/api/papers', (req, res) => {
+    fs.readdir(summaryDir, async (err, files) => {
+        if (err) {
+            return res.status(500).send('Error reading summary directory');
+        }
+
+        const papers = [];
+        for (const file of files) {
+            if (file.endsWith('.json')) {
+                const filePath = path.join(summaryDir, file);
+                try {
+                    const data = await fs.promises.readFile(filePath, 'utf8');
+                    papers.push(JSON.parse(data));
+                } catch (readErr) {
+                    console.error(`Error reading or parsing file ${file}:`, readErr);
+                    // Continue to next file even if one fails
+                }
+            }
+        }
+        res.json(papers);
     });
 });
 

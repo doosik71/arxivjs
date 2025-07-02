@@ -1,11 +1,13 @@
 const content = document.getElementById('content');
 const menuTopicManagement = document.getElementById('menu-topic-management');
 const menuPaperSearch = document.getElementById('menu-paper-search');
+const menuPaperList = document.getElementById('menu-paper-list');
 const menuPaperAnalysis = document.getElementById('menu-paper-analysis');
 
 let lastSearchQuery = '';
 let lastMaxResults = '100';
 let lastSearchResults = [];
+let lastSelectedTopic = '';
 
 
 const topicManagementContent = `
@@ -53,6 +55,30 @@ menuPaperSearch.addEventListener('click', () => {
     if (lastSearchResults.length > 0) {
         displaySearchResults(lastSearchResults);
     }
+});
+
+menuPaperList.addEventListener('click', async () => {
+    content.innerHTML = `
+        <h2>Paper List</h2>
+        <div class="topic-selector center">
+            <label for="topic-select-paper-list">Select Topic:</label>
+            <select id="topic-select-paper-list"></select>
+        </div>
+        <div id="paper-list-results"></div>
+    `;
+    const topicSelectPaperList = document.getElementById('topic-select-paper-list');
+    await populateTopicSelect(topicSelectPaperList);
+
+    // Set the last selected topic if available
+    if (lastSelectedTopic) {
+        topicSelectPaperList.value = lastSelectedTopic;
+        loadPaperListByTopic(lastSelectedTopic);
+    }
+
+    topicSelectPaperList.addEventListener('change', () => {
+        lastSelectedTopic = topicSelectPaperList.value;
+        loadPaperListByTopic(lastSelectedTopic);
+    });
 });
 
 let selectedPaper = null;
@@ -223,23 +249,23 @@ function displaySearchResults(results) {
     results.forEach(paper => {
         const li = document.createElement('li');
 
-        const authorSpan = document.createElement('span');
-        authorSpan.style.color = 'black';
-        authorSpan.textContent = paper.author;
-
         const titleSpan = document.createElement('span');
         titleSpan.style.color = 'dodgerblue';
         titleSpan.style.cursor = 'pointer';
         titleSpan.textContent = paper.title;
         titleSpan.addEventListener('click', () => showPaperDetails(paper));
 
+        const authorSpan = document.createElement('span');
+        authorSpan.style.color = 'black';
+        authorSpan.textContent = paper.author;
+
         const yearSpan = document.createElement('span');
         yearSpan.style.color = 'black';
         yearSpan.textContent = ` (${paper.year})`;
 
-        li.appendChild(authorSpan);
-        li.appendChild(document.createTextNode(' - '));
         li.appendChild(titleSpan);
+        li.appendChild(document.createTextNode(' by '));
+        li.appendChild(authorSpan);
         li.appendChild(yearSpan);
 
         ul.appendChild(li);
@@ -265,27 +291,134 @@ async function showPaperDetails(paper) {
 
     if (response.ok) {
         const savedPaper = await response.json();
-        summaryContent = `<p>${savedPaper.summary}</p>`;
+        summaryContent = marked.parse(savedPaper.summary);
         showSummarizeButton = false;
     } else {
         summaryContent = '';
     }
 
     const paperAnalysisContent = `
-        <h2>Paper Analysis</h2>
-        <h3>${paper.title}</h3>
-        <p><strong>Author(s):</strong> ${paper.author}</p>
-        <p><strong>Publication Year:</strong> ${paper.year}</p>
-        <p><strong>Abstract:</strong></p>
-        <p>${paper.abstract}</p>
-        <a href="${paper.id}" target="_blank">View Full Paper on arXiv</a>
-        ${showSummarizeButton ? '<button id="summarize-btn">Summarize the paper</button>' : ''}
-        <div id="summary-container">${summaryContent}</div>
+        <h2 id="paper-analysis-title">Paper Analysis</h2>
+        <div id="paper-info-container">
+            <h3>${paper.title}</h3>
+            <p><strong>Author(s):</strong> ${paper.author}</p>
+            <p><strong>Publication Year:</strong> ${paper.year}</p>
+            <p><strong>Abstract:</strong></p>
+            <p>${paper.abstract}</p>
+            <a href="${paper.id}" target="_blank">View Full Paper on arXiv</a>
+            <div class="topic-selector">
+                <label for="topic-select-paper-analysis">Add to Topic:</label>
+                <select id="topic-select-paper-analysis"></select>
+                <button id="add-paper-to-topic-btn">Add Paper</button>
+            </div>
+            <span class="summarize-button-container">
+                ${showSummarizeButton ? '<button id="summarize-btn">Summarize the paper</button>' : ''}
+            </span>
+        </div>
+        <div class="paper-info-toggle-container">
+            <button id="toggle-paper-info-btn">Hide paper info</button>
+        </div>
+        <table class="paper-analysis-layout" height="100%">
+            <tr>
+                <td class="pdf-viewer-cell">
+                    <iframe id="pdf-viewer" src="${paper.id.replace('/abs/', '/pdf/')}.pdf" width="100%" height="100%"></iframe>
+                </td>
+                <td class="summary-content-cell">
+                    <div id="summary-container" height="100%">${summaryContent}</div>
+                </td>
+            </tr>
+        </table>
     `;
     content.innerHTML = paperAnalysisContent;
 
     if (showSummarizeButton) {
         document.getElementById('summarize-btn').addEventListener('click', () => summarizePaper(paper));
+    }
+
+    const paperAnalysisTitle = document.getElementById('paper-analysis-title');
+    const toggleButton = document.getElementById('toggle-paper-info-btn');
+    const paperInfoContainer = document.getElementById('paper-info-container');
+    let isPaperInfoVisible = true;
+
+    toggleButton.addEventListener('click', () => {
+        if (isPaperInfoVisible) {
+            paperAnalysisTitle.style.display = 'none';
+            paperInfoContainer.style.display = 'none';
+            toggleButton.textContent = 'Show paper info';
+        } else {
+            paperAnalysisTitle.style.display = 'block';
+            paperInfoContainer.style.display = 'block';
+            toggleButton.textContent = 'Hide paper info';
+        }
+        isPaperInfoVisible = !isPaperInfoVisible;
+    });
+
+    // Populate topic select and add event listener for saving paper
+    const topicSelectPaperAnalysis = document.getElementById('topic-select-paper-analysis');
+    const addPaperToTopicBtn = document.getElementById('add-paper-to-topic-btn');
+
+    await populateTopicSelect(topicSelectPaperAnalysis);
+
+    addPaperToTopicBtn.addEventListener('click', async () => {
+        const selectedTopic = topicSelectPaperAnalysis.value;
+        if (selectedTopic) {
+            await savePaperToTopic(paper, selectedTopic);
+        } else {
+            alert('Please select a topic.');
+        }
+    });
+
+    // Typeset MathJax after content is loaded
+    if (window.MathJax) {
+        MathJax.typesetPromise(['#summary-container']);
+    }
+}
+
+/**
+ * Populates a given select element with topics fetched from the server.
+ * @param {HTMLSelectElement} selectElement - The select element to populate.
+ */
+async function populateTopicSelect(selectElement) {
+    const response = await fetch('/api/topics');
+    const topics = await response.json();
+    selectElement.innerHTML = '<option value="">--No Topic Specified--</option>'; // Default option
+    topics.sort((a, b) => a.localeCompare(b));
+    topics.forEach(topic => {
+        const option = document.createElement('option');
+        option.value = topic;
+        option.textContent = topic;
+        selectElement.appendChild(option);
+    });
+}
+
+/**
+ * Saves paper details to a specific topic folder on the server.
+ * @param {Object} paper - The paper object to save.
+ * @param {string} topic - The topic name to save the paper under.
+ */
+async function savePaperToTopic(paper, topic) {
+    const paperId = paper.id.split('/').pop();
+    const paperFileName = `${paperId}.json`;
+    const paperData = {
+        id: paper.id,
+        title: paper.title,
+        author: paper.author,
+        year: paper.year,
+        abstract: paper.abstract
+    };
+
+    const response = await fetch(`/api/topics/${topic}/papers`, {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(paperData),
+    });
+
+    if (response.ok) {
+        alert(`Paper added to topic "${topic}" successfully!`);
+    } else {
+        alert('Failed to add paper to topic: ' + await response.text());
     }
 }
 
@@ -326,7 +459,10 @@ async function summarizePaper(paper) {
         if (done) break;
         const chunk = decoder.decode(value, { stream: true });
         summaryText += chunk;
-        summaryContainer.innerHTML = `<p>${summaryText}</p>`;
+        summaryContainer.innerHTML = marked.parse(summaryText);
+        if (window.MathJax) {
+            MathJax.typesetPromise(['#summary-container']);
+        }
     }
 
     summarizeBtn.style.display = 'none';
@@ -340,4 +476,52 @@ async function summarizePaper(paper) {
         },
         body: JSON.stringify(finalPaperData),
     });
+}
+
+/**
+ * Loads the list of papers for a selected topic and displays them.
+ * @param {string} topic - The selected topic name.
+ */
+async function loadPaperListByTopic(topic) {
+    const paperListResults = document.getElementById('paper-list-results');
+    paperListResults.innerHTML = '';
+
+    if (!topic) {
+        paperListResults.innerHTML = '<p>Please select a topic to view papers.</p>';
+        return;
+    }
+
+    const response = await fetch(`/api/topics/${topic}/papers`);
+    const papers = await response.json();
+
+    if (papers.length === 0) {
+        paperListResults.innerHTML = '<p>No papers found for this topic.</p>';
+        return;
+    }
+
+    const ul = document.createElement('ul');
+    papers.forEach(paper => {
+        const li = document.createElement('li');
+
+        const titleSpan = document.createElement('span');
+        titleSpan.style.color = 'dodgerblue';
+        titleSpan.style.cursor = 'pointer';
+        titleSpan.textContent = paper.title;
+        titleSpan.addEventListener('click', () => showPaperDetails(paper));
+
+        const authorSpan = document.createElement('span');
+        authorSpan.style.color = 'black';
+        authorSpan.textContent = ` by ${paper.author}`;
+
+        const yearSpan = document.createElement('span');
+        yearSpan.style.color = 'black';
+        yearSpan.textContent = ` (${paper.year})`;
+
+        li.appendChild(titleSpan);
+        li.appendChild(authorSpan);
+        li.appendChild(yearSpan);
+
+        ul.appendChild(li);
+    });
+    paperListResults.appendChild(ul);
 }
