@@ -1,0 +1,20 @@
+{
+  "name": "arxivjs",
+  "version": "1.0.0",
+  "description": "ArxivJs",
+  "keywords": [
+    "ArxivJs"
+  ],
+  "license": "ISC",
+  "author": "Doosik Kim",
+  "type": "commonjs",
+  "main": "index.js",
+  "scripts": {
+    "dev": "nodemon app.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "nodemon": "^3.1.10"
+  }
+}
