@@ -117,3 +117,7 @@ p {
 .paper-info-toggle-container {
     text-align: center;
 }
+
+.paper-analysis-topic-selector {
+    margin-left: 2em;
+}

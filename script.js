@@ -306,11 +306,11 @@ async function showPaperDetails(paper) {
             <p><strong>Abstract:</strong></p>
             <p>${paper.abstract}</p>
             <a href="${paper.id}" target="_blank">View Full Paper on arXiv</a>
-            <div class="topic-selector">
+            <span class="paper-analysis-topic-selector">
                 <label for="topic-select-paper-analysis">Add to Topic:</label>
                 <select id="topic-select-paper-analysis"></select>
                 <button id="add-paper-to-topic-btn">Add Paper</button>
-            </div>
+            </span>
             <span class="summarize-button-container">
                 ${showSummarizeButton ? '<button id="summarize-btn">Summarize the paper</button>' : ''}
             </span>

@@ -85,10 +85,6 @@ arxivjs는 arXiv API와 상호작용하는 Node 기반 웹 앱이다.
 
 * 사용자가 콤보 리스트에서 `--No Topic Specified--`를 선택하면, 논문 주제에 할당되지 않은 논문 목록을 찾아서 화면에 출력한다.
 
-#### 기타
-
-* `script.js` 파일이 너무 크다.
-
 ## Setup
 
 1. Clone the repository.
