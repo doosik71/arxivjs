@@ -10,7 +10,7 @@
   "type": "commonjs",
   "main": "index.js",
   "scripts": {
-    "dev": "nodemon index.js --verbose",
+    "dev": "nodemon index.js --verbose --ignore data/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {

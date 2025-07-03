@@ -201,7 +201,7 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    function showPaperDetail(paper, fromSearch = false) {
+    async function showPaperDetail(paper, fromSearch = false) {
         paperDetailView.dataset.paper = JSON.stringify(paper);
         showView(paperDetailView);
 
@@ -223,8 +223,21 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryContent.innerHTML = '';
         } else {
             summarizeButton.style.display = 'none';
-            summaryContent.innerHTML = marked.parse(paper.summary || '');
-            MathJax.typeset();
+            summaryContent.innerHTML = 'Loading summary...';
+            const paperId = btoa(paper.url);
+            try {
+                const response = await fetch(`/paper-summary/${currentTopic}/${paperId}`);
+                if (response.ok) {
+                    const data = await response.json();
+                    summaryContent.innerHTML = marked.parse(data.summary);
+                    // MathJax.typeset();
+                } else {
+                    summaryContent.innerHTML = '';
+                    summarizeButton.style.display = 'block';
+                }
+            } catch (error) {
+                summaryContent.innerHTML = `Error loading summary: ${error}`;
+            }
         }
     }
 
@@ -233,11 +246,18 @@ document.addEventListener('DOMContentLoaded', () => {
         const summaryContent = document.getElementById('summary-content');
         summaryContent.innerHTML = 'Summarizing...';
 
-        const response = await fetch('/summarize', {
+        const response = await fetch('/summarize-and-save', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ url: paper.url })
+            body: JSON.stringify({ paper, topicName: currentTopic })
         });
+
+        if (!response.ok || !response.body) {
+            const text = await response.text();
+            console.error('Failed to fetch summary:', text);
+            summaryContent.innerHTML = 'Error: Invalid response!';
+            return;
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
@@ -250,19 +270,16 @@ document.addEventListener('DOMContentLoaded', () => {
             const lines = chunk.split('\n\n');
             for (const line of lines) {
                 if (line.startsWith('data: ')) {
-                    summary += JSON.parse(line.substring(6));
-                    summaryContent.innerHTML = marked.parse(summary);
-                    MathJax.typeset();
+                    try {
+                        summary += JSON.parse(line.substring(6));
+                        summaryContent.innerHTML = marked.parse(summary);
+                        MathJax.typeset();
+                    } catch (e) {
+                        // Ignore empty data chunks
+                    }
                 }
             }
         }
-
-        paper.summary = summary;
-        await fetch(`/papers/${currentTopic}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ paper })
-        });
     });
 
     loadTopics();

@@ -7,7 +7,12 @@ const xml2js = require('xml2js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
-const genAI = new GoogleGenerativeAI(process.env.API_KEY);
+if (!process.env.GEMINI_API_KEY) {
+    console.error("Error: GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+    process.exit(1);
+}
+
+const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
 app.use(express.json());
 app.use(express.static(__dirname));
@@ -121,6 +126,17 @@ app.put('/papers/:topicName/:paperId', async (req, res) => {
         const oldPath = path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.json');
         const newPath = path.join(__dirname, 'data', newTopicName, req.params.paperId + '.json');
         await fs.rename(oldPath, newPath);
+
+        const oldMdPath = path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.md');
+        const newMdPath = path.join(__dirname, 'data', newTopicName, req.params.paperId + '.md');
+        try {
+            await fs.rename(oldMdPath, newMdPath);
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+
         res.json({ message: 'Paper moved successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -130,6 +146,13 @@ app.put('/papers/:topicName/:paperId', async (req, res) => {
 app.delete('/papers/:topicName/:paperId', async (req, res) => {
     try {
         await fs.unlink(path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.json'));
+        try {
+            await fs.unlink(path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.md'));
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
         res.json({ message: 'Paper deleted successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -169,29 +192,79 @@ app.get('/search', async (req, res) => {
     }
 });
 
-app.post('/summarize', async (req, res) => {
+app.get('/paper-summary/:topicName/:paperId', async (req, res) => {
     try {
-        const { url } = req.body;
+        const { topicName, paperId } = req.params;
+        const mdPath = path.join(__dirname, 'data', topicName, paperId + '.md');
+        const summary = await fs.readFile(mdPath, 'utf-8');
+        res.json({ summary });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ message: 'Summary not found.' });
+        } else {
+            res.status(500).json({ message: error.message });
+        }
+    }
+});
+
+app.post('/summarize-and-save', async (req, res) => {
+    try {
+        const { paper, topicName } = req.body;
+        const { url, title, authors, year, abstract } = paper;
+
+        const fileName = Buffer.from(url).toString('base64');
+        const topicPath = path.join(__dirname, 'data', topicName);
+        await fs.mkdir(topicPath, { recursive: true });
+
+        const jsonFilePath = path.join(topicPath, fileName + '.json');
+        const mdFilePath = path.join(topicPath, fileName + '.md');
+
+        console.error('Writing paper info to json.\n')
+        const paperDetails = { url, title, authors, year, abstract };
+        await fs.writeFile(jsonFilePath, JSON.stringify(paperDetails, null, 2));
+
+        console.error('Reading paper from PDF.\n')
         const pdfUrl = url.replace('/abs/', '/pdf/');
         const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
         const pdfParser = require('pdf-parse');
+
+        console.error('Parsing PDF.\n')
         const data = await pdfParser(response.data);
         const userPrompt = await fs.readFile(path.join(__dirname, 'data', 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', data.text);
 
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
+        console.error('Requesting summary to gemini.\n')
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContentStream(prompt);
 
         res.setHeader('Content-Type', 'text/event-stream');
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
 
+        console.error('Flushing header.\n')
+
+        let summaryContent = '';
         for await (const chunk of result.stream) {
-            res.write(`data: ${JSON.stringify(chunk.text())}\n\n`);
+            const textChunk = chunk.text?.();
+            if (textChunk) {
+                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
+                summaryContent += textChunk;
+            }
         }
+
+        console.error('End response.\n')
+
         res.end();
+
+        await fs.writeFile(mdFilePath, summaryContent);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.error('Error in /summarize-and-save:', error);
+        if (!res.headersSent) {
+            res.status(500).json({ message: error.message });
+        } else {
+            res.end();
+        }
     }
 });
 
