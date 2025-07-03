@@ -1,37 +1,117 @@
 <!DOCTYPE html>
-<html lang="ko">
+<html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>arxivjs</title>
     <link rel="stylesheet" href="style.css">
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-    <script>
-        MathJax = {
-            tex: {
-                inlineMath: [['$', '$'], ['\(', '\)']]
-            },
-            svg: {
-                fontCache: 'global'
-            }
-        };
-    </script>
-    <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
+
 <body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="#" id="menu-topic-management">Topic Management</a></li>
-                <li><a href="#" id="menu-paper-search">Paper Search</a></li>
-                <li><a href="#" id="menu-paper-list">Paper List</a></li>
-                <li><a href="#" id="menu-paper-analysis">Paper Analysis</a></li>
-            </ul>
-        </nav>
-    </header>
-    <main id="content">
-        <!-- Content will be displayed here -->
-    </main>
+    <div id="sidebar" class="wide">
+        <button id="hide-menu">-</button>
+        <button id="show-menu">+</button>
+        <ul id="menu-items">
+            <li><a href="#" id="topic-list-menu">Topic List</a></li>
+            <li><a href="#" id="paper-list-menu">Paper List</a></li>
+            <li><a href="#" id="paper-detail-menu">Paper Detail</a></li>
+        </ul>
+    </div>
+    <div id="main-content">
+        <div id="topic-list-view">
+            <h2>Topic List</h2>
+            <form id="add-topic-form">
+                <label for="new-topic-name">Name:</label>
+                <input type="text" id="new-topic-name" placeholder="New topic name" required>
+                <button type="submit">Add Topic</button>
+            </form>
+            <table id="topic-list-table">
+                <thead>
+                    <tr>
+                        <th>Topic Name</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div id="paper-list-view">
+            <h2 id="paper-list-topic-name"></h2>
+            <table id="paper-list-table">
+                <thead>
+                    <tr>
+                        <th width="50%">Title</th>
+                        <th width="30%" class="cell-authors">Authors</th>
+                        <th width="10%">Actions</th>
+                        <th width="5%">Year</th>
+                        <th width="5%">URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+            <form id="search-paper-form">
+                <label for="search-keyword">Keyword:</label>
+                <input type="text" id="search-keyword" placeholder="Search keyword">
+                <label for="search-year">Year:</label>
+                <select id="search-year"></select>
+                <label for="search-count">Count:</label>
+                <select id="search-count">
+                    <option value="100">100</option>
+                    <option value="200">200</option>
+                    <option value="500">500</option>
+                    <option value="1000">1000</option>
+                </select>
+                <button type="submit">Search</button>
+            </form>
+            <table id="search-results-table">
+                <thead>
+                    <tr>
+                        <th width="50%">Title</th>
+                        <th width="40%" class="cell-authors">Authors</th>
+                        <th width="5%">Year</th>
+                        <th width="5%">URL</th>
+                    </tr>
+                </thead>
+                <tbody>
+                </tbody>
+            </table>
+        </div>
+        <div id="paper-detail-view">
+            <table id="paper-detail-info-table" border="1" cellspacing="0" cellpadding="6">
+                <tbody>
+                    <tr>
+                        <th>Title</th>
+                        <td id="paper-detail-info-table-title"></td>
+                        <th>Authors</th>
+                        <td id="paper-detail-info-table-authors"></td>
+                        <th>Year</th>
+                        <td id="paper-detail-info-table-year"></td>
+                        <th>URL</th>
+                        <td id="paper-detail-info-table-url"></td>
+                    </tr>
+                    <tr>
+                        <th>Abstract</th>
+                        <td id="paper-detail-info-table-abstract" colspan="7"></td>
+                    </tr>
+                </tbody>
+            </table>
+            <table id="paper-detail-table">
+                <tr>
+                    <td id="pdf-view"></td>
+                    <td id="summary-view">
+                        <button id="summarize-button">Summarize</button>
+                        <div id="summary-content"></div>
+                    </td>
+                </tr>
+            </table>
+        </div>
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.12/marked.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
     <script src="script.js"></script>
 </body>
+
 </html>
