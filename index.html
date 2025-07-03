@@ -1,6 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -19,7 +18,6 @@
     </script>
     <script id="MathJax-script" async src="https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js"></script>
 </head>
-
 <body>
     <div id="sidebar" class="wide">
         <button id="hide-menu">-</button>
@@ -69,13 +67,6 @@
                 <input type="text" id="search-keyword" placeholder="Search keyword">
                 <label for="search-year">Year:</label>
                 <select id="search-year"></select>
-                <label for="search-count">Count:</label>
-                <select id="search-count">
-                    <option value="100">100</option>
-                    <option value="200">200</option>
-                    <option value="500">500</option>
-                    <option value="1000">1000</option>
-                </select>
                 <button type="submit">Search</button>
             </form>
             <table id="search-results-table">
@@ -93,7 +84,7 @@
         </div>
         <div id="paper-detail-view">
             <table id="paper-detail-info-table" border="1" cellspacing="0" cellpadding="6">
-                <tbody>
+                <tbody height="100%">
                     <tr>
                         <th>Title</th>
                         <td id="paper-detail-info-table-title"></td>
@@ -108,22 +99,19 @@
                         <th>Abstract</th>
                         <td id="paper-detail-info-table-abstract" colspan="7"></td>
                     </tr>
+                    <tr>
+                        <td id="summary-view" width="40%" height="100%" colspan="2">
+                            <button id="summarize-button">Summarize</button>
+                            <div id="summary-content"></div>
+                        </td>
+                        <td id="pdf-view" width="60%" height="100%" colspan="6">
+                            <iframe title="PDF view frame" id="pdf-view-frame" width="100%" height="100%"></iframe>
+                        </td>
+                    </tr>
                 </tbody>
-            </table>
-            <table id="paper-detail-table">
-                <tr>
-                    <td id="pdf-view"></td>
-                    <td id="summary-view">
-                        <button id="summarize-button">Summarize</button>
-                        <div id="summary-content"></div>
-                    </td>
-                </tr>
             </table>
         </div>
     </div>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/marked/4.0.12/marked.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/mathjax/3.2.2/es5/tex-mml-chtml.js"></script>
     <script src="script.js"></script>
 </body>
-
 </html>

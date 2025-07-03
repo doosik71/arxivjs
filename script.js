@@ -142,8 +142,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
-        const count = document.getElementById('search-count').value;
-        const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
+        const response = await fetch(`/search?keyword=${keyword}&year=${year}`);
         const papers = await response.json();
         const tbody = document.querySelector('#search-results-table tbody');
         tbody.innerHTML = '';
@@ -211,9 +210,8 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('paper-detail-info-table-url').innerHTML = `<a href="${paper.url}" target="_blank">Link</a>`;
         document.getElementById('paper-detail-info-table-abstract').innerText = paper.abstract.replaceAll('\n', ' ');
 
-        const pdfView = document.getElementById('pdf-view');
         const pdfUrl = paper.url.replace('/abs/', '/pdf/');
-        pdfView.innerHTML = `<iframe src="${pdfUrl}" width="100%" height="100%"></iframe>`;
+        document.getElementById('pdf-view-frame').src = pdfUrl;
 
         const summarizeButton = document.getElementById('summarize-button');
         const summaryContent = document.getElementById('summary-content');
@@ -230,7 +228,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (response.ok) {
                     const data = await response.json();
                     summaryContent.innerHTML = marked.parse(data.summary);
-                    // MathJax.typeset();
+                    MathJax.typeset();
                 } else {
                     summaryContent.innerHTML = '';
                     summarizeButton.style.display = 'block';
@@ -242,6 +240,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     document.getElementById('summarize-button').addEventListener('click', async () => {
+        const summarizeButton = document.getElementById('summarize-button');
         const paper = JSON.parse(paperDetailView.dataset.paper);
         const summaryContent = document.getElementById('summary-content');
         summaryContent.innerHTML = 'Summarizing...';
@@ -280,6 +279,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+
+        summarizeButton.style.display = 'none';
     });
 
     loadTopics();

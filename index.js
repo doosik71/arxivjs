@@ -161,31 +161,41 @@ app.delete('/papers/:topicName/:paperId', async (req, res) => {
 
 app.get('/search', async (req, res) => {
     try {
-        const { keyword, year, count } = req.query;
-        let query = `search_query=ti:"${keyword}"+OR+au:"${keyword}"+OR+abs:"${keyword}"`;
-        if (year) {
-            const [start, end] = year.split('~');
-            query += `&start_date=${start}&end_date=${end}`;
-        }
-        query += `&max_results=${count}`;
-
+        const { keyword, year } = req.query;
+        let query = `search_query=ti:"${keyword}"+OR+au:"${keyword}"+OR+abs:"${keyword}"&max_results=1000`;
         const response = await axios.get(`http://export.arxiv.org/api/query?${query}`);
         const parser = new xml2js.Parser({ explicitArray: false });
         const result = await parser.parseStringPromise(response.data);
         const entries = result.feed.entry;
-        const papers = entries.map(entry => ({
+
+        if (!entries) {
+            return res.json([]);
+        }
+
+        if (!Array.isArray(entries)) {
+            entries = [entries];
+        }
+
+        let papers = entries.map(entry => ({
             title: entry.title,
             authors: Array.isArray(entry.author) ? entry.author.map(a => a.name).join(', ') : entry.author.name,
             year: new Date(entry.published).getFullYear(),
             url: entry.id,
             abstract: entry.summary.trim()
         }));
+
+        if (year) {
+            const [start, end] = year.split('~').map(Number);
+            papers = papers.filter(p => p.year >= start && p.year <= end);
+        }
+
         papers.sort((a, b) => {
             if (b.year !== a.year) {
                 return b.year - a.year;
             }
             return a.title.localeCompare(b.title);
         });
+
         res.json(papers);
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -218,22 +228,14 @@ app.post('/summarize-and-save', async (req, res) => {
 
         const jsonFilePath = path.join(topicPath, fileName + '.json');
         const mdFilePath = path.join(topicPath, fileName + '.md');
-
-        console.error('Writing paper info to json.\n')
         const paperDetails = { url, title, authors, year, abstract };
         await fs.writeFile(jsonFilePath, JSON.stringify(paperDetails, null, 2));
-
-        console.error('Reading paper from PDF.\n')
         const pdfUrl = url.replace('/abs/', '/pdf/');
         const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
         const pdfParser = require('pdf-parse');
-
-        console.error('Parsing PDF.\n')
         const data = await pdfParser(response.data);
         const userPrompt = await fs.readFile(path.join(__dirname, 'data', 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', data.text);
-
-        console.error('Requesting summary to gemini.\n')
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContentStream(prompt);
 
@@ -241,8 +243,6 @@ app.post('/summarize-and-save', async (req, res) => {
         res.setHeader('Cache-Control', 'no-cache');
         res.setHeader('Connection', 'keep-alive');
         res.flushHeaders();
-
-        console.error('Flushing header.\n')
 
         let summaryContent = '';
         for await (const chunk of result.stream) {
@@ -252,8 +252,6 @@ app.post('/summarize-and-save', async (req, res) => {
                 summaryContent += textChunk;
             }
         }
-
-        console.error('End response.\n')
 
         res.end();
 
