@@ -10,6 +10,21 @@ document.addEventListener('DOMContentLoaded', () => {
     const topicListView = document.getElementById('topic-list-view');
     const paperListView = document.getElementById('paper-list-view');
     const paperDetailView = document.getElementById('paper-detail-view');
+    const hideAbstractButton = document.getElementById('hide-abstract');
+    const showAbstractButton = document.getElementById('show-abstract');
+    const abstractCell = document.getElementById('paper-detail-info-table-abstract');
+
+    hideAbstractButton.addEventListener('click', () => {
+        abstractCell.style.display = 'none';
+        hideAbstractButton.style.display = 'none';
+        showAbstractButton.style.display = 'inline';
+    });
+
+    showAbstractButton.addEventListener('click', () => {
+        abstractCell.style.display = 'table-cell';
+        hideAbstractButton.style.display = 'inline';
+        showAbstractButton.style.display = 'none';
+    });
 
     let currentTopic = null;
 

@@ -4,9 +4,13 @@ html {
 
 body {
     height: 100%;
-    font-family: sans-serif;
+    font-family: "Noto Sans", "Noto Sans KR", sans-serif, "Malgun Gothic", Arial;
     margin: 0;
     display: flex;
+}
+
+code, pre {
+    font-family: 'D2Coding', 'Courier New', Courier, monospace;
 }
 
 #sidebar {
@@ -106,9 +110,18 @@ th {
     width: 1px;
 }
 
+#show-abstract {
+    display: none;
+}
+
 #summary-content {
     height: 100%;
     max-height: 100%;
     overflow: auto;
     box-sizing: border-box;
+}
+
+#summary-content ul,
+#summary-content ol {
+    padding-left: 1.5em;
 }
