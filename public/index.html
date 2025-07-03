@@ -38,16 +38,7 @@
                 <input type="text" id="new-topic-name" placeholder="New topic name" required>
                 <button type="submit">Add Topic</button>
             </form>
-            <table id="topic-list-table">
-                <thead>
-                    <tr>
-                        <th>Topic Name</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                </tbody>
-            </table>
+            <div id="topic-list-cards"></div>
         </div>
         <div id="paper-list-view">
             <h2 id="paper-list-topic-name"></h2>
@@ -99,8 +90,8 @@
                     </tr>
                     <tr>
                         <th>Abstract
-                            <button id="hide-abstract">Hide</button>
-                            <button id="show-abstract">Show</button>
+                            <button id="hide-abstract" class="card-button">Hide</button>
+                            <button id="show-abstract" class="card-button">Show</button>
                         </th>
                         <td id="paper-detail-info-table-abstract" colspan="7"></td>
                     </tr>

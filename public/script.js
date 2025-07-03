@@ -71,18 +71,25 @@ document.addEventListener('DOMContentLoaded', () => {
     async function loadTopics() {
         const response = await fetch('/topics');
         const topics = await response.json();
-        const tbody = document.querySelector('#topic-list-table tbody');
-        tbody.innerHTML = '';
+        const cardsContainer = document.getElementById('topic-list-cards');
+        cardsContainer.innerHTML = '';
         topics.forEach(topic => {
-            const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td class="topic-name">${topic}</td>
-                <td>
-                    <button class="rename-topic">Rename</button>
-                    <button class="delete-topic">Delete</button>
-                </td>
+            const card = document.createElement('div');
+            card.className = 'topic-card';
+            card.innerHTML = `
+                <div class="topic-name">${topic}</div>
+                <div class="topic-actions" style="display: none;">
+                    <button class="rename-topic card-button">Rename</button>
+                    <button class="delete-topic card-button">Delete</button>
+                </div>
             `;
-            tbody.appendChild(tr);
+            card.addEventListener('mouseenter', () => {
+                card.querySelector('.topic-actions').style.display = 'flex';
+            });
+            card.addEventListener('mouseleave', () => {
+                card.querySelector('.topic-actions').style.display = 'none';
+            });
+            cardsContainer.appendChild(card);
         });
     }
 
@@ -98,14 +105,19 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('new-topic-name').value = '';
     });
 
-    document.querySelector('#topic-list-table tbody').addEventListener('click', async (e) => {
-        const topicName = e.target.closest('tr').querySelector('.topic-name').textContent;
-        if (e.target.classList.contains('topic-name')) {
+    document.getElementById('topic-list-cards').addEventListener('click', async (e) => {
+        const target = e.target;
+        const card = target.closest('.topic-card');
+        if (!card) return;
+
+        const topicName = card.querySelector('.topic-name').textContent;
+
+        if (target.classList.contains('topic-name')) {
             currentTopic = topicName;
             showView(paperListView);
             loadPapers(currentTopic);
             document.querySelector('#search-results-table tbody').innerHTML = "";
-        } else if (e.target.classList.contains('rename-topic')) {
+        } else if (target.classList.contains('rename-topic')) {
             const newName = prompt('Enter new topic name:', topicName);
             if (newName) {
                 await fetch(`/topics/${topicName}`, {
@@ -115,7 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 });
                 loadTopics();
             }
-        } else if (e.target.classList.contains('delete-topic')) {
+        } else if (target.classList.contains('delete-topic')) {
             if (confirm(`Are you sure you want to delete topic "${topicName}"?`)) {
                 const response = await fetch(`/topics/${topicName}`, { method: 'DELETE' });
                 if (response.ok) {
@@ -143,11 +155,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="paper-title">${paper.title}</td>
                 <td>${paper.authors}</td>
                 <td>
-                    <button class="move-paper">Move</button>
-                    <button class="delete-paper">Delete</button>
+                    <button class="move-paper card-button">Move</button>
+                    <button class="delete-paper card-button">Delete</button>
                 </td>
                 <td>${paper.year}</td>
-                <td><a href="${paper.url}" target="_blank">Link</a></td>
+                <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
             `;
             tbody.appendChild(tr);
         });
@@ -168,7 +180,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td class="paper-title">${paper.title}</td>
                 <td>${paper.authors}</td>
                 <td>${paper.year}</td>
-                <td><a href="${paper.url}" target="_blank">Link</a></td>
+                <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
             `;
             tbody.appendChild(tr);
         });
@@ -222,7 +234,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('paper-detail-info-table-title').innerText = paper.title;
         document.getElementById('paper-detail-info-table-authors').innerText = paper.authors;
         document.getElementById('paper-detail-info-table-year').innerText = paper.year;
-        document.getElementById('paper-detail-info-table-url').innerHTML = `<a href="${paper.url}" target="_blank">Link</a>`;
+        document.getElementById('paper-detail-info-table-url').innerHTML = `<a href="${paper.url}" target="_blank" class="card-button">Link</a>`;
         document.getElementById('paper-detail-info-table-abstract').innerText = paper.abstract.replaceAll('\n', ' ');
 
         const pdfUrl = paper.url.replace('/abs/', '/pdf/');
