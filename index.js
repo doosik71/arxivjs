@@ -48,7 +48,7 @@ app.get('/topics', async (req, res) => {
 app.post('/topics', async (req, res) => {
     try {
         const { topicName } = req.body;
-        if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s]+$/.test(topicName)) {
+        if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s()\-]+$/.test(topicName)) {
             return res.status(400).json({ message: 'Invalid topic name.' });
         }
         await fs.mkdir(path.join(__dirname, 'data', topicName));

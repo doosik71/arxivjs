@@ -63,6 +63,12 @@ table {
     margin-top: 20px;
 }
 
+table#topic-list-table tr:hover,
+table#paper-list-table tr:hover,
+table#search-results-table tr:hover {
+    background-color: lightgoldenrodyellow;
+}
+
 th, td {
     border: 1px solid #ddd;
     padding: 8px;

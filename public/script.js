@@ -216,26 +216,22 @@ document.addEventListener('DOMContentLoaded', () => {
         const summarizeButton = document.getElementById('summarize-button');
         const summaryContent = document.getElementById('summary-content');
 
-        if (fromSearch) {
-            summarizeButton.style.display = 'block';
-            summaryContent.innerHTML = '';
-        } else {
-            summarizeButton.style.display = 'none';
-            summaryContent.innerHTML = 'Loading summary...';
-            const paperId = btoa(paper.url);
-            try {
-                const response = await fetch(`/paper-summary/${currentTopic}/${paperId}`);
-                if (response.ok) {
-                    const data = await response.json();
-                    summaryContent.innerHTML = marked.parse(data.summary);
-                    MathJax.typeset();
-                } else {
-                    summaryContent.innerHTML = '';
-                    summarizeButton.style.display = 'block';
-                }
-            } catch (error) {
-                summaryContent.innerHTML = `Error loading summary: ${error}`;
+        summarizeButton.style.display = 'none';
+        summaryContent.innerHTML = 'Loading summary...';
+        const paperId = btoa(paper.url);
+        try {
+            const response = await fetch(`/paper-summary/${currentTopic}/${paperId}`);
+            if (response.ok) {
+                const data = await response.json();
+                summaryContent.innerHTML = marked.parse(data.summary);
+                MathJax.typeset();
+            } else {
+                summaryContent.innerHTML = '';
+                summarizeButton.style.display = 'block';
             }
+        } catch (error) {
+            summaryContent.innerHTML = `Error loading summary: ${error}`;
+            summarizeButton.style.display = 'block';
         }
     }
 
