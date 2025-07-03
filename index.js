@@ -28,14 +28,17 @@ app.get('/topics', async (req, res) => {
         const topics = [];
 
         for (const file of files) {
+            if (file.startsWith('.')) continue;
+
             const fullPath = path.join(dataDir, file);
+
             try {
                 const stat = await fs.stat(fullPath);
                 if (stat.isDirectory()) {
                     topics.push(file);
                 }
             } catch (e) {
-                console.warn(`무시된 항목: ${file}`, e.message);
+                console.warn(`Ignored: ${file}`, e.message);
             }
         }
 
