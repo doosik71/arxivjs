@@ -98,11 +98,13 @@ th {
 
 #paper-detail-view {
     height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 #paper-detail-info-table {
-    height: 100%;
     margin: 0;
+    flex-shrink: 0;
 }
 
 #paper-detail-view td {
@@ -119,9 +121,9 @@ th {
 }
 
 #summary-content {
-    height: 100%;
-    max-height: 100%;
-    overflow: auto;
+    flex-grow: 1;
+    overflow-y: auto;
+    padding: 1em;
     box-sizing: border-box;
 }
 
@@ -168,4 +170,63 @@ th {
 
 .card-button:hover {
     color: #23527c;
+}
+
+#splitter-container {
+    display: flex;
+    flex-grow: 1;
+    height: 100%;
+    border: none;
+    padding-bottom: 0.5em;
+}
+
+#splitter-container>div {
+    height: 100%;
+}
+
+#splitter-panel {
+    padding: 0;
+}
+
+#summary-view {
+    flex: 0 0 40%;
+    padding: 1em;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+#pdf-view {
+    flex: 1 1 60%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+#pdf-view-frame {
+    height: 100%;
+}
+
+#splitter {
+    flex: 0 0 4px;
+    background: whitesmoke;
+    cursor: col-resize;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+#splitter:hover {
+    background: #e0e0e0;
+}
+
+#splitter::before {
+    content: '...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    font-size: 1.5em;
+    color: #555;
+    letter-spacing: -2px;
 }

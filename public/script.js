@@ -309,4 +309,33 @@ document.addEventListener('DOMContentLoaded', () => {
     loadTopics();
     populateYearFilter();
     showView(topicListView);
+
+    const splitter = document.getElementById('splitter');
+    const summaryView = document.getElementById('summary-view');
+
+    const onPointerMove = (e) => {
+        requestAnimationFrame(() => {
+            const container = document.getElementById('splitter-container');
+            const containerRect = container.getBoundingClientRect();
+            const newSummaryWidth = e.clientX - containerRect.left;
+            const newPdfWidth = containerRect.right - e.clientX;
+
+            if (newSummaryWidth > 50 && newPdfWidth > 50) {
+                summaryView.style.flexBasis = `${newSummaryWidth}px`;
+            }
+        });
+    };
+
+    const onPointerUp = (e) => {
+        splitter.releasePointerCapture(e.pointerId);
+        splitter.removeEventListener('pointermove', onPointerMove);
+        splitter.removeEventListener('pointerup', onPointerUp);
+    };
+
+    splitter.addEventListener('pointerdown', (e) => {
+        e.preventDefault();
+        splitter.setPointerCapture(e.pointerId);
+        splitter.addEventListener('pointermove', onPointerMove);
+        splitter.addEventListener('pointerup', onPointerUp);
+    });
 });

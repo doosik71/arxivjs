@@ -77,7 +77,7 @@
         </div>
         <div id="paper-detail-view">
             <table id="paper-detail-info-table" border="1" cellspacing="0" cellpadding="6">
-                <tbody height="100%">
+                <tbody>
                     <tr>
                         <th>Title</th>
                         <td id="paper-detail-info-table-title"></td>
@@ -95,17 +95,18 @@
                         </th>
                         <td id="paper-detail-info-table-abstract" colspan="7"></td>
                     </tr>
-                    <tr>
-                        <td id="summary-view" width="40%" height="100%" colspan="2">
-                            <button id="summarize-button">Summarize</button>
-                            <div id="summary-content"></div>
-                        </td>
-                        <td id="pdf-view" width="60%" height="100%" colspan="6">
-                            <iframe title="PDF view frame" id="pdf-view-frame" width="100%" height="100%"></iframe>
-                        </td>
-                    </tr>
                 </tbody>
             </table>
+            <div id="splitter-container">
+                <div id="summary-view" class="splitter-panel">
+                    <button id="summarize-button">Summarize</button>
+                    <div id="summary-content"></div>
+                </div>
+                <div id="splitter"></div>
+                <div id="pdf-view" class="splitter-panel">
+                    <iframe title="PDF view frame" id="pdf-view-frame" width="100%" height="100%"></iframe>
+                </div>
+            </div>
         </div>
     </div>
     <script src="script.js"></script>
