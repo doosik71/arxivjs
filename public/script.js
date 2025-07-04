@@ -169,21 +169,34 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
-        const response = await fetch(`/search?keyword=${keyword}&year=${year}`);
-        const papers = await response.json();
+        const loadingMessage = document.getElementById('search-loading-message');
         const tbody = document.querySelector('#search-results-table tbody');
+
         tbody.innerHTML = '';
-        papers.forEach(paper => {
-            const tr = document.createElement('tr');
-            tr.dataset.paper = JSON.stringify(paper);
-            tr.innerHTML = `
-                <td class="paper-title">${paper.title}</td>
-                <td>${paper.authors}</td>
-                <td>${paper.year}</td>
-                <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
-            `;
-            tbody.appendChild(tr);
-        });
+        loadingMessage.innerText = 'Searching for papers... Please wait.';
+        loadingMessage.style.display = 'block';
+
+        try {
+            const response = await fetch(`/search?keyword=${keyword}&year=${year}`);
+            const papers = await response.json();
+            
+            papers.forEach(paper => {
+                const tr = document.createElement('tr');
+                tr.dataset.paper = JSON.stringify(paper);
+                tr.innerHTML = `
+                    <td class="paper-title">${paper.title}</td>
+                    <td>${paper.authors}</td>
+                    <td>${paper.year}</td>
+                    <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
+                `;
+                tbody.appendChild(tr);
+            });
+        } catch (error) {
+            console.error('Search failed:', error);
+            tbody.innerHTML = '<tr><td colspan="4">Failed to load search results.</td></tr>';
+        } finally {
+            loadingMessage.style.display = 'none';
+        }
     });
 
     function populateYearFilter() {

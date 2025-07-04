@@ -27,6 +27,8 @@ Create a `.env` file in the root of the project and add your Gemini API key:
 GEMINI_API_KEY=YOUR_API_KEY
 ```
 
+You can use the Gemini API key by creating a project at <https://console.cloud.google.com/projectselector2/home/dashboard>, generating an API key at <https://aistudio.google.com/apikey>, and then activating the `Generative Language API` at <https://console.cloud.google.com/apis/dashboard>.
+
 ### 4. Write user prompt
 
 Write a user prompt to `data/userprompt.txt` file.
