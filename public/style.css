@@ -38,7 +38,7 @@ pre {
 
 #sidebar ul li a {
     display: block;
-    padding: 10px;
+    padding: 0.2em 0;
     text-decoration: none;
     color: #333;
 }
