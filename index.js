@@ -160,8 +160,9 @@ app.delete('/papers/:topicName/:paperId', async (req, res) => {
 
 app.get('/search', async (req, res) => {
     try {
-        const { keyword, year } = req.query;
-        let query = `search_query=ti:"${keyword}"+OR+au:"${keyword}"+OR+abs:"${keyword}"&max_results=1000`;
+        const { keyword, year, count } = req.query;
+        let query = `search_query=ti:"${keyword}"+OR+au:"${keyword}"+OR+abs:"${keyword}"`;
+        query += `&max_results=${count}`;
         const response = await axios.get(`http://export.arxiv.org/api/query?${query}`);
         const parser = new xml2js.Parser({ explicitArray: false });
         const result = await parser.parseStringPromise(response.data);

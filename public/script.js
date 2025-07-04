@@ -169,6 +169,7 @@ document.addEventListener('DOMContentLoaded', () => {
         e.preventDefault();
         const keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
+        const count = document.getElementById('search-count').value;
         const loadingMessage = document.getElementById('search-loading-message');
         const tbody = document.querySelector('#search-results-table tbody');
 
@@ -177,7 +178,7 @@ document.addEventListener('DOMContentLoaded', () => {
         loadingMessage.style.display = 'block';
 
         try {
-            const response = await fetch(`/search?keyword=${keyword}&year=${year}`);
+            const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
             const papers = await response.json();
 
             papers.forEach(paper => {
@@ -298,7 +299,8 @@ document.addEventListener('DOMContentLoaded', () => {
 
         return parsed
             .replace(/\$\$([\s\S]*?)\$\$/g, (_, inner) => `$$${base64Decode(inner)}$$`)
-            .replace(/\$([^\n\r$]+?)\$/g, (_, inner) => `$${base64Decode(inner)}$`);
+            .replace(/\$([^\n\r$]+?)\$/g, (_, inner) => `$${base64Decode(inner)}$`)
+            .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     }
 
     document.getElementById('summarize-button').addEventListener('click', async () => {
