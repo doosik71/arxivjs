@@ -179,7 +179,7 @@ document.addEventListener('DOMContentLoaded', () => {
         try {
             const response = await fetch(`/search?keyword=${keyword}&year=${year}`);
             const papers = await response.json();
-            
+
             papers.forEach(paper => {
                 const tr = document.createElement('tr');
                 tr.dataset.paper = JSON.stringify(paper);
@@ -263,7 +263,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const response = await fetch(`/paper-summary/${currentTopic}/${paperId}`);
             if (response.ok) {
                 const data = await response.json();
-                summaryContent.innerHTML = marked.parse(data.summary);
+                summaryContent.innerHTML = markdown2html(data.summary);
                 MathJax.typeset();
             } else {
                 summaryContent.innerHTML = '';
@@ -273,6 +273,32 @@ document.addEventListener('DOMContentLoaded', () => {
             summaryContent.innerHTML = `Error loading summary: ${error}`;
             summarizeButton.style.display = 'block';
         }
+    }
+
+    function base64Encode(str) {
+        return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
+            String.fromCharCode(parseInt(p1, 16))
+        ));
+    }
+
+    function base64Decode(str) {
+        return decodeURIComponent(
+            Array.prototype.map.call(atob(str), c =>
+                '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+            ).join('')
+        );
+    }
+
+    function markdown2html(text) {
+        const encoded = text
+            .replace(/\$\$([\s\S]*?)\$\$/g, (_, inner) => `$$${base64Encode(inner)}$$`)
+            .replace(/\$([^\n\r$]+?)\$/g, (_, inner) => `$${base64Encode(inner)}$`);
+
+        const parsed = marked.parse(encoded);
+
+        return parsed
+            .replace(/\$\$([\s\S]*?)\$\$/g, (_, inner) => `$$${base64Decode(inner)}$$`)
+            .replace(/\$([^\n\r$]+?)\$/g, (_, inner) => `$${base64Decode(inner)}$`);
     }
 
     document.getElementById('summarize-button').addEventListener('click', async () => {
@@ -307,7 +333,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (line.startsWith('data: ')) {
                     try {
                         summary += JSON.parse(line.substring(6));
-                        summaryContent.innerHTML = marked.parse(summary);
+                        summaryContent.innerHTML = markdown2html(summary);
                         MathJax.typeset();
                     } catch (e) {
                         // Ignore empty data chunks
