@@ -22,14 +22,44 @@
 </head>
 
 <body>
-    <div id="sidebar" class="wide">
-        <button id="hide-menu">-</button>
-        <button id="show-menu">+</button>
-        <ul id="menu-items">
-            <li><a href="#" id="topic-list-menu">Topic List</a></li>
-            <li><a href="#" id="paper-list-menu">Paper List</a></li>
-            <li><a href="#" id="paper-detail-menu">Paper Detail</a></li>
-        </ul>
+    <div id="sidebar">
+        <button id="toggle-menu" class="menu-button">
+            <span id="toggle-menu-icon" class="arrow-left"></span>
+        </button>
+        <div id="menu-container">
+            <ul id="menu-items">
+                <li><a href="#" id="topic-list-menu">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver"
+                            stroke-width="2" width="1em">
+                            <polyline points="6.4,20 16,20" />
+                            <rect x="17.6" y="16.8" width="38.4" height="6.4" rx="1" fill="gray" />
+                            <polyline points="6.4,20 6.4,34.4 16,34.4" />
+                            <rect x="17.6" y="31.2" width="38.4" height="6.4" rx="1" fill="gray" />
+                            <polyline points="6.4,34.4 6.4,48.8 16,48.8 25.6,48.8" />
+                            <rect x="27.2" y="45.6" width="28.8" height="6.4" rx="1" fill="gray" />
+                        </svg> Topic List</a></li>
+                <li><a href="#" id="paper-list-menu">
+                        <svg viewBox="0 0 64 64" fill="gray" xmlns="http://www.w3.org/2000/svg" width="1em">
+                            <rect x="8" y="12" width="8" height="8" fill="silver" />
+                            <rect x="8" y="28" width="8" height="8" fill="silver" />
+                            <rect x="8" y="44" width="8" height="8" fill="silver" />
+                            <rect x="20" y="12" width="36" height="8" />
+                            <rect x="20" y="28" width="36" height="8" />
+                            <rect x="20" y="44" width="36" height="8" />
+                        </svg> Paper List</a></li>
+                <li><a href="#" id="paper-detail-menu">
+                        <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver"
+                            stroke-width="4" width="1em">
+                            <path
+                                d="M12,12 H52 A4,4 0 0 1 56,16 V56 A4,4 0 0 1 52,60 H12 A4,4 0 0 1 8,56 V16 A4,4 0 0 1 12,12 Z"
+                                fill="none" stroke="gray" />
+                            <line x1="16" y1="28" x2="48" y2="28" />
+                            <line x1="16" y1="34" x2="48" y2="34" />
+                            <line x1="16" y1="40" x2="42" y2="40" />
+                            <line x1="16" y1="46" x2="38" y2="46" />
+                        </svg> Paper Detail</a></li>
+            </ul>
+        </div>
     </div>
     <div id="main-content">
         <div id="topic-list-view">
@@ -97,10 +127,7 @@
                         <td id="paper-detail-info-table-url"></td>
                     </tr>
                     <tr>
-                        <th>Abstract
-                            <button id="hide-abstract" class="card-button">Hide</button>
-                            <button id="show-abstract" class="card-button">Show</button>
-                        </th>
+                        <th>Abstract</th>
                         <td id="paper-detail-info-table-abstract" colspan="7"></td>
                     </tr>
                 </tbody>

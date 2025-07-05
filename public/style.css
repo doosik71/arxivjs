@@ -15,16 +15,18 @@ pre {
 }
 
 #sidebar {
-    width: 1.5em;
+    width: 7em;
     height: 100vh;
     background: #f4f4f4;
     padding: 15px;
     position: fixed;
     overflow-y: auto;
+    display: flex;
+    flex-direction: column;
 }
 
-#sidebar.wide {
-    width: 7em;
+#sidebar.hidden {
+    width: 1em;
 }
 
 #sidebar button#show-menu {
@@ -41,6 +43,30 @@ pre {
     padding: 0.2em 0;
     text-decoration: none;
     color: #333;
+}
+
+.menu-button {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.5em;
+    align-self: flex-end;
+}
+
+.arrow-left,
+.arrow-right {
+    border: solid black;
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+}
+
+.arrow-left {
+    transform: rotate(135deg);
+}
+
+.arrow-right {
+    transform: rotate(-45deg);
 }
 
 #main-content {

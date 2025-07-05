@@ -1,33 +1,78 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const sidebar = document.getElementById('sidebar');
-    const mainContent = document.getElementById('main-content');
-    const hideMenu = document.getElementById('hide-menu');
-    const showMenu = document.getElementById('show-menu');
-    const menuItems = document.getElementById('menu-items');
-    const topicListMenu = document.getElementById('topic-list-menu');
-    const paperListMenu = document.getElementById('paper-list-menu');
-    const paperDetailMenu = document.getElementById('paper-detail-menu');
-    const topicListView = document.getElementById('topic-list-view');
-    const paperListView = document.getElementById('paper-list-view');
-    const paperDetailView = document.getElementById('paper-detail-view');
-    const hideAbstractButton = document.getElementById('hide-abstract');
-    const showAbstractButton = document.getElementById('show-abstract');
-    const abstractCell = document.getElementById('paper-detail-info-table-abstract');
+/**
+ * @file script.js
+ * @description This file contains the client-side logic for the arxivjs application.
+ * It handles user interactions, fetches data from the server, and dynamically updates the UI.
+ */
 
-    hideAbstractButton.addEventListener('click', () => {
-        abstractCell.style.display = 'none';
-        hideAbstractButton.style.display = 'none';
-        showAbstractButton.style.display = 'inline';
-    });
+document.addEventListener('DOMContentLoaded', handleDOMContentLoaded);
 
-    showAbstractButton.addEventListener('click', () => {
-        abstractCell.style.display = 'table-cell';
-        hideAbstractButton.style.display = 'inline';
-        showAbstractButton.style.display = 'none';
-    });
+/**
+ * Main function that runs when the DOM is fully loaded.
+ * Initializes the application by setting up constants, variables, and event listeners.
+ */
+function handleDOMContentLoaded() {
+    // Helper function to get an element by ID and log an error if not found.
+    const getElement = (id, container = document) => {
+        const el = container.getElementById(id);
+        if (!el) {
+            console.error(`Initialization failed: Element with ID '${id}' not found.`);
+        }
+        return el;
+    };
 
+    // Helper function to get an element by selector and log an error if not found.
+    const querySelector = (selector, container = document) => {
+        const el = container.querySelector(selector);
+        if (!el) {
+            console.error(`Initialization failed: Element with selector '${selector}' not found.`);
+        }
+        return el;
+    };
+
+    // DOM Element Constants
+    const sidebar = getElement('sidebar');
+    const mainContent = getElement('main-content');
+    const toggleMenuButton = getElement('toggle-menu');
+    const toggleMenuIcon = getElement('toggle-menu-icon');
+    const menuContainer = getElement('menu-container');
+    const topicListMenu = getElement('topic-list-menu');
+    const paperListMenu = getElement('paper-list-menu');
+    const paperDetailMenu = getElement('paper-detail-menu');
+    const topicListView = getElement('topic-list-view');
+    const paperListView = getElement('paper-list-view');
+    const paperDetailView = getElement('paper-detail-view');
+    const addTopicForm = getElement('add-topic-form');
+    const topicListCards = getElement('topic-list-cards');
+    const searchPaperForm = getElement('search-paper-form');
+    const paperListTableBody = querySelector('#paper-list-table tbody');
+    const searchResultsTableBody = querySelector('#search-results-table tbody');
+    const summarizeButton = getElement('summarize-button');
+    const splitter = getElement('splitter');
+    const summaryView = getElement('summary-view');
+    const abstractCell = getElement('paper-detail-info-table-abstract');
+
+    // Validate that all critical elements were found before proceeding.
+    const criticalElements = [
+        sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
+        topicListMenu, paperListMenu, paperDetailMenu, topicListView, paperListView,
+        paperDetailView, addTopicForm, topicListCards, searchPaperForm, paperListTableBody,
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell
+    ];
+
+    if (criticalElements.some(el => !el)) {
+        console.error("Stopping script execution due to missing critical elements.");
+        return;
+    }
+
+    // State Variables
     let currentTopic = null;
 
+    // --- Function Definitions ---
+
+    /**
+     * Shows a specific view (topic list, paper list, or paper detail) and hides the others.
+     * @param {HTMLElement} view - The view element to display.
+     */
     function showView(view) {
         topicListView.style.display = 'none';
         paperListView.style.display = 'none';
@@ -35,44 +80,101 @@ document.addEventListener('DOMContentLoaded', () => {
         view.style.display = 'block';
     }
 
-    hideMenu.addEventListener('click', () => {
-        sidebar.classList.remove("wide");
-        hideMenu.style.display = 'none';
-        showMenu.style.display = 'block';
-        menuItems.style.display = 'none';
-        mainContent.classList.add("wide");
-    });
+    /**
+     * Toggles the visibility of the sidebar menu.
+     * Expands or collapses the sidebar, and updates the menu item text accordingly.
+     */
+    function handleToggleMenuClick() {
+        const isHidden = sidebar.classList.contains('hidden');
+        sidebar.classList.toggle('hidden');
+        mainContent.classList.toggle('wide');
+        toggleMenuIcon.classList.toggle('arrow-left');
+        toggleMenuIcon.classList.toggle('arrow-right');
 
-    showMenu.addEventListener('click', () => {
-        sidebar.classList.add("wide");
-        hideMenu.style.display = 'block';
-        showMenu.style.display = 'none';
-        menuItems.style.display = 'block';
-        mainContent.classList.remove("wide");
-    });
+        const menuTopicList = document.getElementById('topic-list-menu');
+        const menuPaperList = document.getElementById('paper-list-menu');
+        const menuPaperDetail = document.getElementById('paper-detail-menu');
+        const topicListIcon = `
+            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver" stroke-width="2" width="1em">
+            <polyline points="6.4,20 16,20" />
+            <rect x="17.6" y="16.8" width="38.4" height="6.4" rx="1" fill="gray"/>
+            <polyline points="6.4,20 6.4,34.4 16,34.4" />
+            <rect x="17.6" y="31.2" width="38.4" height="6.4" rx="1" fill="gray"/>
+            <polyline points="6.4,34.4 6.4,48.8 16,48.8 25.6,48.8" />
+            <rect x="27.2" y="45.6" width="28.8" height="6.4" rx="1" fill="gray"/>
+            </svg>`;
+        const paperListIcon = `
+            <svg viewBox="0 0 64 64" fill="gray" xmlns="http://www.w3.org/2000/svg" width="1em">
+            <rect x="8" y="12" width="8" height="8" fill="silver"/>
+            <rect x="8" y="28" width="8" height="8" fill="silver"/>
+            <rect x="8" y="44" width="8" height="8" fill="silver"/>
+            <rect x="20" y="12" width="36" height="8"/>
+            <rect x="20" y="28" width="36" height="8"/>
+            <rect x="20" y="44" width="36" height="8"/>
+            </svg>`;
+        const paperDetailIcon = `
+            <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver" stroke-width="4" width="1em">
+            <path d="M12,12 H52 A4,4 0 0 1 56,16 V56 A4,4 0 0 1 52,60 H12 A4,4 0 0 1 8,56 V16 A4,4 0 0 1 12,12 Z" fill="none" stroke="gray"/>
+            <line x1="16" y1="28" x2="48" y2="28"/>
+            <line x1="16" y1="34" x2="48" y2="34"/>
+            <line x1="16" y1="40" x2="42" y2="40"/>
+            <line x1="16" y1="46" x2="38" y2="46"/>
+            </svg>`;
 
-    topicListMenu.addEventListener('click', () => showView(topicListView));
-    paperListMenu.addEventListener('click', () => {
+        // The state before the toggle is in `isHidden`.
+        // If it was hidden, it is now visible.
+        if (isHidden) {
+            menuTopicList.innerHTML = topicListIcon + ' Topic List';
+            menuPaperList.innerHTML = paperListIcon + ' Paper List';
+            menuPaperDetail.innerHTML = paperDetailIcon + ' Paper Detail';
+        } else {
+            menuTopicList.innerHTML = topicListIcon;
+            menuPaperList.innerHTML = paperListIcon;
+            menuPaperDetail.innerHTML = paperDetailIcon;
+        }
+    }
+
+    /**
+     * Handles the click event on the "Topic List" menu item.
+     * Shows the topic list view.
+     */
+    function handleTopicListMenuClick() {
+        showView(topicListView);
+    }
+
+    /**
+     * Handles the click event on the "Paper List" menu item.
+     * Shows the paper list view for the currently selected topic.
+     */
+    function handlePaperListMenuClick() {
         if (currentTopic) {
             showView(paperListView);
             loadPapers(currentTopic);
         } else {
             alert('Please select a topic first.');
         }
-    });
-    paperDetailMenu.addEventListener('click', () => {
+    }
+
+    /**
+     * Handles the click event on the "Paper Detail" menu item.
+     * Shows the paper detail view if a paper has been selected.
+     */
+    function handlePaperDetailMenuClick() {
         if (paperDetailView.dataset.paper) {
             showView(paperDetailView);
-        } else {
+        }
+        else {
             alert('Please select a paper first.');
         }
-    });
+    }
 
+    /**
+     * Fetches topics from the server and displays them as cards.
+     */
     async function loadTopics() {
         const response = await fetch('/topics');
         const topics = await response.json();
-        const cardsContainer = document.getElementById('topic-list-cards');
-        cardsContainer.innerHTML = '';
+        topicListCards.innerHTML = '';
         topics.forEach(topic => {
             const card = document.createElement('div');
             card.className = 'topic-card';
@@ -83,29 +185,52 @@ document.addEventListener('DOMContentLoaded', () => {
                     <button class="delete-topic card-button">Delete</button>
                 </div>
             `;
-            card.addEventListener('mouseenter', () => {
-                card.querySelector('.topic-actions').style.display = 'flex';
-            });
-            card.addEventListener('mouseleave', () => {
-                card.querySelector('.topic-actions').style.display = 'none';
-            });
-            cardsContainer.appendChild(card);
+            card.addEventListener('mouseenter', handleTopicCardMouseEnter);
+            card.addEventListener('mouseleave', handleTopicCardMouseLeave);
+            topicListCards.appendChild(card);
         });
     }
 
-    document.getElementById('add-topic-form').addEventListener('submit', async (e) => {
+    /**
+     * Shows the action buttons on a topic card when the mouse enters.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    function handleTopicCardMouseEnter(e) {
+        e.currentTarget.querySelector('.topic-actions').style.display = 'flex';
+    }
+
+    /**
+     * Hides the action buttons on a topic card when the mouse leaves.
+     * @param {MouseEvent} e - The mouse event.
+     */
+    function handleTopicCardMouseLeave(e) {
+        e.currentTarget.querySelector('.topic-actions').style.display = 'none';
+    }
+
+    /**
+     * Handles the submission of the "add topic" form.
+     * Sends a request to the server to create a new topic.
+     * @param {SubmitEvent} e - The form submission event.
+     */
+    async function handleAddTopicFormSubmit(e) {
         e.preventDefault();
-        const newTopicName = document.getElementById('new-topic-name').value;
+        const newTopicNameInput = document.getElementById('new-topic-name');
+        const newTopicName = newTopicNameInput.value;
         await fetch('/topics', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ topicName: newTopicName })
         });
         loadTopics();
-        document.getElementById('new-topic-name').value = '';
-    });
+        newTopicNameInput.value = '';
+    }
 
-    document.getElementById('topic-list-cards').addEventListener('click', async (e) => {
+    /**
+     * Handles click events within the topic list container.
+     * Manages selecting, renaming, and deleting topics.
+     * @param {MouseEvent} e - The click event.
+     */
+    async function handleTopicListCardsClick(e) {
         const target = e.target;
         const card = target.closest('.topic-card');
         if (!card) return;
@@ -138,16 +263,19 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
-    });
+    }
 
+    /**
+     * Fetches and displays the list of papers for a given topic.
+     * @param {string} topicName - The name of the topic to load papers for.
+     */
     async function loadPapers(topicName) {
         document.getElementById('paper-list-topic-name').textContent = topicName;
         document.getElementById('search-keyword').value = topicName;
 
         const response = await fetch(`/papers/${topicName}`);
         const papers = await response.json();
-        const tbody = document.querySelector('#paper-list-table tbody');
-        tbody.innerHTML = '';
+        paperListTableBody.innerHTML = '';
         papers.forEach(paper => {
             const tr = document.createElement('tr');
             tr.dataset.paper = JSON.stringify(paper);
@@ -161,19 +289,23 @@ document.addEventListener('DOMContentLoaded', () => {
                 <td>${paper.year}</td>
                 <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
             `;
-            tbody.appendChild(tr);
+            paperListTableBody.appendChild(tr);
         });
     }
 
-    document.getElementById('search-paper-form').addEventListener('submit', async (e) => {
+    /**
+     * Handles the submission of the paper search form.
+     * Fetches search results from the server and displays them.
+     * @param {SubmitEvent} e - The form submission event.
+     */
+    async function handleSearchPaperFormSubmit(e) {
         e.preventDefault();
         const keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
         const count = document.getElementById('search-count').value;
         const loadingMessage = document.getElementById('search-loading-message');
-        const tbody = document.querySelector('#search-results-table tbody');
 
-        tbody.innerHTML = '';
+        searchResultsTableBody.innerHTML = '';
         loadingMessage.innerText = 'Searching for papers... Please wait.';
         loadingMessage.style.display = 'block';
 
@@ -190,16 +322,19 @@ document.addEventListener('DOMContentLoaded', () => {
                     <td>${paper.year}</td>
                     <td><a href="${paper.url}" target="_blank" class="card-button">Link</a></td>
                 `;
-                tbody.appendChild(tr);
+                searchResultsTableBody.appendChild(tr);
             });
         } catch (error) {
             console.error('Search failed:', error);
-            tbody.innerHTML = '<tr><td colspan="4">Failed to load search results.</td></tr>';
+            searchResultsTableBody.innerHTML = '<tr><td colspan="4">Failed to load search results.</td></tr>';
         } finally {
             loadingMessage.style.display = 'none';
         }
-    });
+    }
 
+    /**
+     * Populates the year filter dropdown with recent year ranges.
+     */
     function populateYearFilter() {
         const select = document.getElementById('search-year');
         const currentYear = new Date().getFullYear();
@@ -211,9 +346,18 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
-    document.querySelector('#paper-list-table tbody').addEventListener('click', async (e) => {
-        const paperData = JSON.parse(e.target.closest('tr').dataset.paper);
+    /**
+     * Handles click events on the main paper list table.
+     * Manages showing paper details, moving papers, and deleting papers.
+     * @param {MouseEvent} e - The click event.
+     */
+    async function handlePaperListTableClick(e) {
+        const tr = e.target.closest('tr');
+        if (!tr || !tr.dataset.paper) return;
+
+        const paperData = JSON.parse(tr.dataset.paper);
         const paperId = btoa(paperData.url);
+
         if (e.target.classList.contains('paper-title')) {
             showPaperDetail(paperData);
         } else if (e.target.classList.contains('move-paper')) {
@@ -232,15 +376,25 @@ document.addEventListener('DOMContentLoaded', () => {
                 loadPapers(currentTopic);
             }
         }
-    });
+    }
 
-    document.querySelector('#search-results-table tbody').addEventListener('click', (e) => {
+    /**
+     * Handles click events on the search results table.
+     * Shows the paper detail view for the clicked paper.
+     * @param {MouseEvent} e - The click event.
+     */
+    function handleSearchResultsTableClick(e) {
         if (e.target.classList.contains('paper-title')) {
             const paperData = JSON.parse(e.target.closest('tr').dataset.paper);
             showPaperDetail(paperData, true);
         }
-    });
+    }
 
+    /**
+     * Displays the detailed view for a selected paper.
+     * @param {object} paper - The paper data object.
+     * @param {boolean} [fromSearch=false] - Indicates if the paper was selected from search results.
+     */
     async function showPaperDetail(paper, fromSearch = false) {
         paperDetailView.dataset.paper = JSON.stringify(paper);
         showView(paperDetailView);
@@ -254,7 +408,6 @@ document.addEventListener('DOMContentLoaded', () => {
         const pdfUrl = paper.url.replace('/abs/', '/pdf/');
         document.getElementById('pdf-view-frame').src = pdfUrl;
 
-        const summarizeButton = document.getElementById('summarize-button');
         const summaryContent = document.getElementById('summary-content');
 
         summarizeButton.style.display = 'none';
@@ -276,12 +429,22 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    /**
+     * Encodes a string to a Base64 string, compatible with URL-safe encoding.
+     * @param {string} str - The string to encode.
+     * @returns {string} The Base64 encoded string.
+     */
     function base64Encode(str) {
         return btoa(encodeURIComponent(str).replace(/%([0-9A-F]{2})/g, (_, p1) =>
             String.fromCharCode(parseInt(p1, 16))
         ));
     }
 
+    /**
+     * Decodes a Base64 string that was encoded with `base64Encode`.
+     * @param {string} str - The Base64 string to decode.
+     * @returns {string} The decoded string.
+     */
     function base64Decode(str) {
         return decodeURIComponent(
             Array.prototype.map.call(atob(str), c =>
@@ -290,6 +453,12 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    /**
+     * Converts a Markdown string to HTML, handling MathJax expressions.
+     * It protects MathJax delimiters ($...$ and $$...$$) during Markdown parsing.
+     * @param {string} text - The Markdown text to convert.
+     * @returns {string} The resulting HTML string.
+     */
     function markdown2html(text) {
         const encoded = text
             .replace(/\$\$([\s\S]*?)\$\$/g, (_, inner) => `$$${base64Encode(inner)}$$`)
@@ -303,11 +472,15 @@ document.addEventListener('DOMContentLoaded', () => {
             .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
     }
 
-    document.getElementById('summarize-button').addEventListener('click', async () => {
-        const summarizeButton = document.getElementById('summarize-button');
+    /**
+     * Handles the click event for the "Summarize" button.
+     * Sends the paper data to the server for summarization and streams the result.
+     */
+    async function handleSummarizeButtonClick() {
         const paper = JSON.parse(paperDetailView.dataset.paper);
         const summaryContent = document.getElementById('summary-content');
         summaryContent.innerHTML = 'Summarizing...';
+        summarizeButton.style.display = 'none';
 
         const response = await fetch('/summarize-and-save', {
             method: 'POST',
@@ -343,18 +516,14 @@ document.addEventListener('DOMContentLoaded', () => {
                 }
             }
         }
+    }
 
-        summarizeButton.style.display = 'none';
-    });
-
-    loadTopics();
-    populateYearFilter();
-    showView(topicListView);
-
-    const splitter = document.getElementById('splitter');
-    const summaryView = document.getElementById('summary-view');
-
-    const onPointerMove = (e) => {
+    /**
+     * Handles the pointer move event on the splitter.
+     * Resizes the summary and PDF view panels.
+     * @param {PointerEvent} e - The pointer event.
+     */
+    function onPointerMove(e) {
         requestAnimationFrame(() => {
             const container = document.getElementById('splitter-container');
             const containerRect = container.getBoundingClientRect();
@@ -367,16 +536,44 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     };
 
-    const onPointerUp = (e) => {
+    /**
+     * Handles the pointer up event on the splitter.
+     * Stops the resizing operation.
+     * @param {PointerEvent} e - The pointer event.
+     */
+    function onPointerUp(e) {
         splitter.releasePointerCapture(e.pointerId);
         splitter.removeEventListener('pointermove', onPointerMove);
         splitter.removeEventListener('pointerup', onPointerUp);
     };
 
-    splitter.addEventListener('pointerdown', (e) => {
+    /**
+     * Handles the pointer down event on the splitter.
+     * Starts the resizing operation.
+     * @param {PointerEvent} e - The pointer event.
+     */
+    function handleSplitterPointerDown(e) {
         e.preventDefault();
         splitter.setPointerCapture(e.pointerId);
         splitter.addEventListener('pointermove', onPointerMove);
         splitter.addEventListener('pointerup', onPointerUp);
-    });
-});
+    };
+
+    // --- Event Listener Assignments ---
+    toggleMenuButton.addEventListener('click', handleToggleMenuClick);
+    topicListMenu.addEventListener('click', handleTopicListMenuClick);
+    paperListMenu.addEventListener('click', handlePaperListMenuClick);
+    paperDetailMenu.addEventListener('click', handlePaperDetailMenuClick);
+    addTopicForm.addEventListener('submit', handleAddTopicFormSubmit);
+    topicListCards.addEventListener('click', handleTopicListCardsClick);
+    searchPaperForm.addEventListener('submit', handleSearchPaperFormSubmit);
+    paperListTableBody.addEventListener('click', handlePaperListTableClick);
+    searchResultsTableBody.addEventListener('click', handleSearchResultsTableClick);
+    summarizeButton.addEventListener('click', handleSummarizeButtonClick);
+    splitter.addEventListener('pointerdown', handleSplitterPointerDown);
+
+    // --- Initial Application Setup ---
+    loadTopics();
+    populateYearFilter();
+    showView(topicListView);
+}
