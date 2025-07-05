@@ -142,10 +142,6 @@ th {
     width: 1px;
 }
 
-#show-abstract {
-    display: none;
-}
-
 #summary-content {
     flex-grow: 1;
     overflow-y: auto;
