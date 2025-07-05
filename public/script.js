@@ -300,7 +300,7 @@ function handleDOMContentLoaded() {
      */
     async function handleSearchPaperFormSubmit(e) {
         e.preventDefault();
-        const keyword = document.getElementById('search-keyword').value || currentTopic;
+        let keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
         const count = document.getElementById('search-count').value;
         const loadingMessage = document.getElementById('search-loading-message');
@@ -310,6 +310,7 @@ function handleDOMContentLoaded() {
         loadingMessage.style.display = 'block';
 
         try {
+            keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
             const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
             const papers = await response.json();
 

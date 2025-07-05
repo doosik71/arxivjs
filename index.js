@@ -160,13 +160,27 @@ app.delete('/papers/:topicName/:paperId', async (req, res) => {
 
 app.get('/search', async (req, res) => {
     try {
-        const { keyword, year, count } = req.query;
-        let query = `search_query=ti:"${keyword}"+OR+au:"${keyword}"+OR+abs:"${keyword}"`;
-        query += `&max_results=${count}`;
-        const response = await axios.get(`http://export.arxiv.org/api/query?${query}`);
+        let { keyword, year, count } = req.query;
+
+        if (!keyword) {
+            return res.json([]);
+        }
+
+        if (!count || isNaN(parseInt(count))) {
+            count = 100;
+        }
+
+        keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+");
+        let query = `http://export.arxiv.org/api/query?search_query=all:`
+            + keyword
+            + `&max_results=${count}&sortBy=relevance&sortOrder=descending`;
+
+        const response = await axios.get(query);
         const parser = new xml2js.Parser({ explicitArray: false });
         const result = await parser.parseStringPromise(response.data);
         const entries = result.feed.entry;
+
+        console.log('Searching with keyword = ' + keyword);
 
         if (!entries) {
             return res.json([]);
@@ -198,7 +212,8 @@ app.get('/search', async (req, res) => {
 
         res.json(papers);
     } catch (error) {
-        res.status(500).json({ message: error.message });
+        console.log(error.message);
+        return res.json([]);
     }
 });
 
