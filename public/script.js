@@ -240,7 +240,7 @@ function handleDOMContentLoaded() {
         if (target.classList.contains('topic-name')) {
             currentTopic = topicName;
             showView(paperListView);
-            loadPapers(currentTopic);
+            loadPapers(currentTopic, true);
             document.querySelector('#search-results-table tbody').innerHTML = "";
         } else if (target.classList.contains('rename-topic')) {
             const newName = prompt('Enter new topic name:', topicName);
@@ -269,9 +269,12 @@ function handleDOMContentLoaded() {
      * Fetches and displays the list of papers for a given topic.
      * @param {string} topicName - The name of the topic to load papers for.
      */
-    async function loadPapers(topicName) {
+    async function loadPapers(topicName, updateKeyword=false) {
         document.getElementById('paper-list-topic-name').textContent = topicName;
-        document.getElementById('search-keyword').value = topicName;
+
+        if (updateKeyword) {
+            document.getElementById('search-keyword').value = topicName;
+        }
 
         const response = await fetch(`/papers/${topicName}`);
         const papers = await response.json();

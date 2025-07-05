@@ -144,7 +144,7 @@ th {
 }
 
 #paper-detail-view td {
-    vertical-align: top;
+    vertical-align: middle;
 }
 
 #paper-detail-info-table th {
@@ -152,9 +152,12 @@ th {
     width: 1px;
 }
 
+#summary-view {
+    overflow: auto;
+}
+
 #summary-content {
     flex-grow: 1;
-    overflow-y: auto;
     padding: 1em;
     box-sizing: border-box;
 }
