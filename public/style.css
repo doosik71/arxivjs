@@ -4,14 +4,24 @@ html {
 
 body {
     height: 100%;
-    font-family: "Noto Sans", "Noto Sans KR", sans-serif, "Malgun Gothic", Arial;
+    font-family: "Noto Sans KR", sans-serif, "Malgun Gothic", Arial;
     margin: 0;
     display: flex;
 }
 
 code,
 pre {
-    font-family: 'D2Coding', 'Courier New', Courier, monospace;
+    font-family: "Noto Sans Mono", "D2Coding", Courier, monospace;
+}
+
+pre {    
+    background-color: lightgoldenrodyellow;
+    padding: 1em;
+    border-radius: 0.5em;
+}
+
+p, li {
+    line-height: 1.6em;
 }
 
 #sidebar {
@@ -55,7 +65,7 @@ pre {
 
 .arrow-left,
 .arrow-right {
-    border: solid black;
+    border: solid gray;
     border-width: 0 3px 3px 0;
     display: inline-block;
     padding: 3px;
@@ -152,6 +162,19 @@ th {
 #summary-content ul,
 #summary-content ol {
     padding-left: 1.5em;
+}
+
+#summary-content h2::before,
+#summary-content h3::before,
+#summary-content h4::before {
+    content: "";
+    display: inline-block;
+    margin-right: 0.4em;
+    vertical-align: bottom;
+    width: 0.2em;
+    height: 1.2em;
+    background-color: lightgray;
+    border-radius: 0.2em;
 }
 
 #topic-list-cards {
