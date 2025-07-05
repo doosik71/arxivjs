@@ -31,7 +31,7 @@ You can use the Gemini API key by creating a project at <https://console.cloud.g
 
 ### 4. Write user prompt
 
-Write a user prompt to `data/userprompt.txt` file.
+Write a user prompt to `arxivjsdata/userprompt.txt` file.
 Following shows an example.
 
 ```text

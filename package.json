@@ -8,9 +8,11 @@
   "license": "ISC",
   "author": "Doosik Kim",
   "type": "commonjs",
-  "main": "index.js",
+  "main": "main.js",
   "scripts": {
-    "dev": "nodemon index.js --verbose --ignore data/",
+    "start": "electron .",
+    "package": "electron-packager . arxivjs --platform=win32 --arch=x64 --out=dist --overwrite --ignore=arxivjsdata",
+    "dev": "nodemon index.js --verbose --ignore arxivjsdata/",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -21,5 +23,9 @@
     "nodemon": "^3.1.10",
     "pdf-parse": "^1.1.1",
     "xml2js": "^0.6.2"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-packager": "^17.1.2"
   }
 }

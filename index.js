@@ -14,19 +14,36 @@ if (!process.env.GEMINI_API_KEY) {
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
+const { app: electronApp } = require('electron');
+const dataPath = electronApp ? path.join(electronApp.getPath('userData'), 'arxivjsdata') : path.join(__dirname, 'arxivjsdata');
+
+if (electronApp) {
+    try {
+        fs.mkdir(dataPath, { recursive: true });
+    } catch (e) {
+        console.log("arxivjsdata dir already exists");
+    }
+} else {
+    try {
+        fs.mkdir(dataPath, { recursive: true });
+    } catch (e) {
+        console.log("arxivjsdata dir already exists");
+    }
+   
+}
+
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 app.get('/topics', async (req, res) => {
     try {
-        const dataDir = path.join(__dirname, 'data');
-        const files = await fs.readdir(dataDir);
+        const files = await fs.readdir(dataPath);
         const topics = [];
 
         for (const file of files) {
             if (file.startsWith('.')) continue;
 
-            const fullPath = path.join(dataDir, file);
+            const fullPath = path.join(dataPath, file);
 
             try {
                 const stat = await fs.stat(fullPath);
@@ -51,7 +68,7 @@ app.post('/topics', async (req, res) => {
         if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s()\-]+$/.test(topicName)) {
             return res.status(400).json({ message: 'Invalid topic name.' });
         }
-        await fs.mkdir(path.join(__dirname, 'data', topicName));
+        await fs.mkdir(path.join(dataPath, topicName));
         res.status(201).json({ message: 'Topic created successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -64,7 +81,7 @@ app.put('/topics/:oldName', async (req, res) => {
         if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s]+$/.test(newName)) {
             return res.status(400).json({ message: 'Invalid topic name.' });
         }
-        await fs.rename(path.join(__dirname, 'data', req.params.oldName), path.join(__dirname, 'data', newName));
+        await fs.rename(path.join(dataPath, req.params.oldName), path.join(dataPath, newName));
         res.json({ message: 'Topic renamed successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -73,7 +90,7 @@ app.put('/topics/:oldName', async (req, res) => {
 
 app.delete('/topics/:topicName', async (req, res) => {
     try {
-        const topicPath = path.join(__dirname, 'data', req.params.topicName);
+        const topicPath = path.join(dataPath, req.params.topicName);
         const files = await fs.readdir(topicPath);
         if (files.length > 0) {
             return res.status(400).json({ message: 'Topic folder is not empty.' });
@@ -87,7 +104,7 @@ app.delete('/topics/:topicName', async (req, res) => {
 
 app.get('/papers/:topicName', async (req, res) => {
     try {
-        const topicPath = path.join(__dirname, 'data', req.params.topicName);
+        const topicPath = path.join(dataPath, req.params.topicName);
         const files = await fs.readdir(topicPath);
         const papers = [];
         for (const file of files) {
@@ -112,7 +129,7 @@ app.post('/papers/:topicName', async (req, res) => {
     try {
         const { paper } = req.body;
         const fileName = Buffer.from(paper.url).toString('base64') + '.json';
-        await fs.writeFile(path.join(__dirname, 'data', req.params.topicName, fileName), JSON.stringify(paper, null, 2));
+        await fs.writeFile(path.join(dataPath, req.params.topicName, fileName), JSON.stringify(paper, null, 2));
         res.status(201).json({ message: 'Paper saved successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -122,12 +139,12 @@ app.post('/papers/:topicName', async (req, res) => {
 app.put('/papers/:topicName/:paperId', async (req, res) => {
     try {
         const { newTopicName } = req.body;
-        const oldPath = path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.json');
-        const newPath = path.join(__dirname, 'data', newTopicName, req.params.paperId + '.json');
+        const oldPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.json');
+        const newPath = path.join(dataPath, newTopicName, req.params.paperId + '.json');
         await fs.rename(oldPath, newPath);
 
-        const oldMdPath = path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.md');
-        const newMdPath = path.join(__dirname, 'data', newTopicName, req.params.paperId + '.md');
+        const oldMdPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
+        const newMdPath = path.join(dataPath, newTopicName, req.params.paperId + '.md');
         try {
             await fs.rename(oldMdPath, newMdPath);
         } catch (error) {
@@ -144,9 +161,9 @@ app.put('/papers/:topicName/:paperId', async (req, res) => {
 
 app.delete('/papers/:topicName/:paperId', async (req, res) => {
     try {
-        await fs.unlink(path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.json'));
+        await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.json'));
         try {
-            await fs.unlink(path.join(__dirname, 'data', req.params.topicName, req.params.paperId + '.md'));
+            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.md'));
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;
@@ -220,7 +237,7 @@ app.get('/search', async (req, res) => {
 app.get('/paper-summary/:topicName/:paperId', async (req, res) => {
     try {
         const { topicName, paperId } = req.params;
-        const mdPath = path.join(__dirname, 'data', topicName, paperId + '.md');
+        const mdPath = path.join(dataPath, topicName, paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
         res.json({ summary });
     } catch (error) {
@@ -238,7 +255,7 @@ app.post('/summarize-and-save', async (req, res) => {
         const { url, title, authors, year, abstract } = paper;
 
         const fileName = Buffer.from(url).toString('base64');
-        const topicPath = path.join(__dirname, 'data', topicName);
+        const topicPath = path.join(dataPath, topicName);
         await fs.mkdir(topicPath, { recursive: true });
 
         const jsonFilePath = path.join(topicPath, fileName + '.json');
@@ -249,7 +266,7 @@ app.post('/summarize-and-save', async (req, res) => {
         const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
         const pdfParser = require('pdf-parse');
         const data = await pdfParser(response.data);
-        const userPrompt = await fs.readFile(path.join(__dirname, 'data', 'userprompt.txt'), 'utf-8');
+        const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', data.text);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContentStream(prompt);
@@ -282,6 +299,9 @@ app.post('/summarize-and-save', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Data path: ${dataPath}`);
 });
+
+module.exports = server;
