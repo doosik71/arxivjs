@@ -9,10 +9,6 @@ body {
     display: flex;
 }
 
-::selection {
-    background-color: MistyRose;
-}
-
 code,
 pre {
     font-family: "Noto Sans Mono", "D2Coding", Courier, monospace;
@@ -165,6 +161,14 @@ th {
     flex-grow: 1;
     padding: 1em;
     box-sizing: border-box;
+}
+
+#summary-content::selection {
+    background-color: MistyRose;
+    text-decoration: underline;
+    text-decoration-color: SandyBrown;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.3em;
 }
 
 #summary-content ul,
