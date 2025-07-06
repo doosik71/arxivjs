@@ -335,6 +335,7 @@ function handleDOMContentLoaded() {
         let keyword = document.getElementById('search-keyword').value || currentTopic;
         const year = document.getElementById('search-year').value;
         const count = document.getElementById('search-count').value;
+        const sort = document.getElementById('search-sort').value;
         const loadingMessage = document.getElementById('search-loading-message');
 
         searchResultsTableBody.innerHTML = '';
@@ -342,8 +343,8 @@ function handleDOMContentLoaded() {
         loadingMessage.style.display = 'block';
 
         try {
-            keyword = keyword.replace(/[<>#%{}|\^~[\\]`'"`;\/?@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
-            const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
+            keyword = keyword.replace(/[<>#%{}|\^~\[\]`'"`;\/?@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
+            const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}&sort=${sort}`);
             const papers = await response.json();
 
             papers.forEach(paper => {

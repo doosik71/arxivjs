@@ -61,7 +61,7 @@ app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Establish API access points.
-app.get('/topics', async (req, res) => {
+async function getTopics(req, res) {
     try {
         const files = await fs.readdir(dataPath);
         const topics = [];
@@ -86,9 +86,9 @@ app.get('/topics', async (req, res) => {
         console.error('Error in /topics:', error);
         res.status(200).json([]);
     }
-});
+}
 
-app.post('/topics', async (req, res) => {
+async function createTopic(req, res) {
     try {
         const { topicName } = req.body;
         if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s()\-]+$/.test(topicName)) {
@@ -99,9 +99,9 @@ app.post('/topics', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.put('/topics/:oldName', async (req, res) => {
+async function renameTopic(req, res) {
     try {
         const { newName } = req.body;
         if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s]+$/.test(newName)) {
@@ -112,9 +112,9 @@ app.put('/topics/:oldName', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.delete('/topics/:topicName', async (req, res) => {
+async function deleteTopic(req, res) {
     try {
         const topicPath = path.join(dataPath, req.params.topicName);
         const files = await fs.readdir(topicPath);
@@ -126,9 +126,9 @@ app.delete('/topics/:topicName', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.get('/papers/:topicName', async (req, res) => {
+async function getPapers(req, res) {
     try {
         const topicPath = path.join(dataPath, req.params.topicName);
         const files = await fs.readdir(topicPath);
@@ -149,9 +149,9 @@ app.get('/papers/:topicName', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.post('/papers/:topicName', async (req, res) => {
+async function savePaper(req, res) {
     try {
         const { paper } = req.body;
         const fileName = Buffer.from(paper.url).toString('base64') + '.json';
@@ -160,9 +160,9 @@ app.post('/papers/:topicName', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.put('/papers/:topicName/:paperId', async (req, res) => {
+async function movePaper(req, res) {
     try {
         const { newTopicName } = req.body;
         const oldPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.json');
@@ -183,9 +183,9 @@ app.put('/papers/:topicName/:paperId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.delete('/papers/:topicName/:paperId', async (req, res) => {
+async function deletePaper(req, res) {
     try {
         await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.json'));
         try {
@@ -199,11 +199,11 @@ app.delete('/papers/:topicName/:paperId', async (req, res) => {
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
-});
+}
 
-app.get('/search', async (req, res) => {
+async function searchArxiv(req, res) {
     try {
-        let { keyword, year, count } = req.query;
+        let { keyword, year, count, sort } = req.query;
 
         if (!keyword) {
             return res.json([]);
@@ -214,26 +214,31 @@ app.get('/search', async (req, res) => {
         }
 
         keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+");
-        let query = `http://export.arxiv.org/api/query?search_query=all:`
-            + keyword
-            + `&max_results=${count}&sortBy=relevance&sortOrder=descending`;
+        let query = `http://export.arxiv.org/api/query?search_query=all:${keyword}`;
+
+        if (year) {
+            const [start, end] = year.split('~').map(Number);
+            const startDate = `${start}01010000`;
+            const endDate = `${end}12312359`;
+            query += `+AND+submittedDate:[${startDate}+TO+${endDate}]`;
+        }
+
+        query += `&max_results=${count}&sortBy=relevance&sortOrder=descending`;
 
         const response = await axios.get(query);
         const parser = new xml2js.Parser({ explicitArray: false });
         const result = await parser.parseStringPromise(response.data);
         const entries = result.feed.entry;
 
-        console.log('Searching with keyword = ' + keyword);
+        console.log('Searching with query = ' + query);
 
         if (!entries) {
             return res.json([]);
         }
 
-        if (!Array.isArray(entries)) {
-            entries = [entries];
-        }
+        let papers = Array.isArray(entries) ? entries : [entries];
 
-        let papers = entries.map(entry => ({
+        papers = papers.map(entry => ({
             title: entry.title,
             authors: Array.isArray(entry.author) ? entry.author.map(a => a.name).join(', ') : entry.author.name,
             year: new Date(entry.published).getFullYear(),
@@ -241,26 +246,23 @@ app.get('/search', async (req, res) => {
             abstract: entry.summary.trim()
         }));
 
-        if (year) {
-            const [start, end] = year.split('~').map(Number);
-            papers = papers.filter(p => p.year >= start && p.year <= end);
+        if (sort == 'submittedDate') {
+            papers.sort((a, b) => {
+                if (b.year !== a.year) {
+                    return b.year - a.year;
+                }
+                return a.title.localeCompare(b.title);
+            });
         }
-
-        papers.sort((a, b) => {
-            if (b.year !== a.year) {
-                return b.year - a.year;
-            }
-            return a.title.localeCompare(b.title);
-        });
 
         res.json(papers);
     } catch (error) {
         console.log(error.message);
         return res.json([]);
     }
-});
+}
 
-app.get('/paper-summary/:topicName/:paperId', async (req, res) => {
+async function getPaperSummary(req, res) {
     try {
         const { topicName, paperId } = req.params;
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
@@ -273,9 +275,9 @@ app.get('/paper-summary/:topicName/:paperId', async (req, res) => {
             res.status(500).json({ message: error.message });
         }
     }
-});
+}
 
-app.post('/summarize-and-save', async (req, res) => {
+async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName } = req.body;
         const { url, title, authors, year, abstract } = paper;
@@ -322,7 +324,19 @@ app.post('/summarize-and-save', async (req, res) => {
             res.end();
         }
     }
-});
+}
+
+app.get('/topics', getTopics);
+app.post('/topics', createTopic);
+app.put('/topics/:oldName', renameTopic);
+app.delete('/topics/:topicName', deleteTopic);
+app.get('/papers/:topicName', getPapers);
+app.post('/papers/:topicName', savePaper);
+app.put('/papers/:topicName/:paperId', movePaper);
+app.delete('/papers/:topicName/:paperId', deletePaper);
+app.get('/search', searchArxiv);
+app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
+app.post('/summarize-and-save', summarizeAndSave);
 
 // Start express server.
 const PORT = process.env.PORT || 3000;
