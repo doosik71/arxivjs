@@ -326,6 +326,47 @@ async function summarizeAndSave(req, res) {
     }
 }
 
+async function addPaperByUrl(req, res) {
+    try {
+        const { paperUrl, topicName } = req.body;
+        const paperId = paperUrl.split('/').pop();
+        const query = `http://export.arxiv.org/api/query?id_list=${paperId}`;
+        const response = await axios.get(query);
+        const parser = new xml2js.Parser({ explicitArray: false });
+        const result = await parser.parseStringPromise(response.data);
+        const entry = result.feed.entry;
+
+        if (!entry) {
+            return res.status(404).json({ message: 'Paper not found.' });
+        }
+
+        const paper = {
+            title: entry.title,
+            authors: Array.isArray(entry.author) ? entry.author.map(a => a.name).join(', ') : entry.author.name,
+            year: new Date(entry.published).getFullYear(),
+            url: entry.id,
+            abstract: entry.summary.trim()
+        };
+
+        const fileName = Buffer.from(paper.url).toString('base64') + '.json';
+        const topicPath = path.join(dataPath, topicName);
+        const filePath = path.join(topicPath, fileName);
+
+        try {
+            await fs.access(filePath);
+            console.log(`Paper already exists: ${filePath}`);
+            res.status(200).json(paper);
+        } catch (e) {
+            await fs.mkdir(topicPath, { recursive: true });
+            await fs.writeFile(filePath, JSON.stringify(paper, null, 2));
+            res.status(201).json(paper);
+        }
+    } catch (error) {
+        console.error(`Error with bad request in /paper-by-url:`);
+        res.status(500).json({ message: error.message });
+    }
+}
+
 app.get('/topics', getTopics);
 app.post('/topics', createTopic);
 app.put('/topics/:oldName', renameTopic);
@@ -337,6 +378,7 @@ app.delete('/papers/:topicName/:paperId', deletePaper);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/summarize-and-save', summarizeAndSave);
+app.post('/paper-by-url', addPaperByUrl);
 
 // Start express server.
 const PORT = process.env.PORT || 3000;

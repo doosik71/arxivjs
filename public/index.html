@@ -94,24 +94,31 @@
                 </tbody>
             </table>
             <div id="paper-search-controls">
-                <form id="search-paper-form">
-                    <label for="search-keyword">Keyword:</label>
-                    <input type="text" id="search-keyword" placeholder="Search keyword">
-                    <label for="search-year">Year:</label>
-                    <select id="search-year"></select>
-                    <label for="search-count">Count:</label>
-                    <select id="search-count">
-                        <option value="200">200</option>
-                        <option value="500">500</option>
-                        <option value="1000">1000</option>
-                    </select>
-                    <label for="search-sort">Sort by:</label>
-                    <select id="search-sort">
-                        <option value="relevance">Relevance</option>
-                        <option value="submittedDate">Year</option>
-                    </select>
-                    <button type="submit">Search</button>
-                </form>
+                <div style="display: flex; justify-content: space-between; align-items: center;">
+                    <form id="search-paper-form">
+                        <label for="search-keyword">Keyword:</label>
+                        <input type="text" id="search-keyword" placeholder="Search keyword">
+                        <label for="search-year">Year:</label>
+                        <select id="search-year"></select>
+                        <label for="search-count">Count:</label>
+                        <select id="search-count">
+                            <option value="200">200</option>
+                            <option value="500">500</option>
+                            <option value="1000">1000</option>
+                        </select>
+                        <label for="search-sort">Sort by:</label>
+                        <select id="search-sort">
+                            <option value="relevance">Relevance</option>
+                            <option value="submittedDate">Year</option>
+                        </select>
+                        <button type="submit">Search</button>
+                    </form>
+                    <form id="add-paper-by-url-form">
+                        <label for="paper-url">URL:</label>
+                        <input type="text" id="paper-url" placeholder="Enter paper URL">
+                        <button type="submit">Add</button>
+                    </form>
+                </div>
                 <div id="search-paper-container">
                     <input type="text" id="search-papers-input" placeholder="Filter results by title...">
                     <button id="clear-search-papers">&times;</button>

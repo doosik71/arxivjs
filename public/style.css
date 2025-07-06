@@ -129,8 +129,8 @@ th {
     cursor: pointer;
 }
 
-#search-paper-form {
-    margin-top: 1em;
+#add-paper-by-url-form {
+    margin-left: 1em;
 }
 
 #paper-detail-view {
@@ -164,11 +164,11 @@ th {
 }
 
 #summary-content::selection {
-    background-color: MistyRose;
+    background-color: #DDEEFF;
     text-decoration: underline;
-    text-decoration-color: SandyBrown;
+    text-decoration-color: #60B0FF;
     text-decoration-thickness: 1px;
-    text-underline-offset: 0.3em;
+    text-underline-offset: 0.25em;
 }
 
 #summary-content ul,
@@ -177,15 +177,21 @@ th {
 }
 
 #summary-content h1 {
-    color: Teal;
+    color: #1A73E8;
 }
 
-#summary-content h2,
+#summary-content h2 {
+    color: #3367D6;
+}
+
 #summary-content h3,
 #summary-content h4 {
-    color: DarkSlateGray;
+    color: #5F6368;
 }
 
+#summary-content strong {
+    color: #205080;
+}
 
 #summary-content h2::before,
 #summary-content h3::before,
@@ -195,8 +201,8 @@ th {
     margin-right: 0.4em;
     vertical-align: bottom;
     width: 0.2em;
-    height: 1.2em;
-    background-color: PaleTurquoise;
+    height: 1.4em;
+    background-color: #60A0FF;
     border-radius: 0.2em;
 }
 

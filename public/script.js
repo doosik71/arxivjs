@@ -46,6 +46,7 @@ function handleDOMContentLoaded() {
     const searchTopicsInput = getElement('search-topics-input');
     const clearSearchTopicsButton = getElement('clear-search-topics');
     const searchPaperForm = getElement('search-paper-form');
+    const addPaperByUrlForm = getElement('add-paper-by-url-form');
     const searchPapersInput = getElement('search-papers-input');
     const clearSearchPapersButton = getElement('clear-search-papers');
     const paperListTableBody = querySelector('#paper-list-table tbody');
@@ -60,7 +61,7 @@ function handleDOMContentLoaded() {
         sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
         topicListMenu, paperListMenu, paperDetailMenu, topicListView, paperListView,
         paperDetailView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
-        searchPaperForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
+        searchPaperForm, addPaperByUrlForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
         searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell
     ];
 
@@ -367,6 +368,46 @@ function handleDOMContentLoaded() {
     }
 
     /**
+     * Handles the submission of the "add paper by URL" form.
+     * Fetches paper data from the server, saves it, and displays the details.
+     * @param {SubmitEvent} e - The form submission event.
+     */
+    async function handleAddPaperByUrlFormSubmit(e) {
+        e.preventDefault();
+        const paperUrlInput = document.getElementById('paper-url');
+        const paperUrl = paperUrlInput.value;
+        if (!paperUrl) {
+            alert('Please enter a paper URL.');
+            return;
+        }
+        if (!currentTopic) {
+            alert('Please select a topic first.');
+            return;
+        }
+
+        try {
+            const response = await fetch('/paper-by-url', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ paperUrl, topicName: currentTopic })
+            });
+
+            if (response.ok) {
+                const paper = await response.json();
+                showPaperDetail(paper);
+                paperUrlInput.value = '';
+                loadPapers(currentTopic);
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to add paper by URL:', error);
+            alert('Failed to add paper. Please check the URL and try again.');
+        }
+    }
+
+    /**
      * Filters the displayed paper results based on the search input.
      */
     function handleSearchPapersInput() {
@@ -628,6 +669,7 @@ function handleDOMContentLoaded() {
     searchTopicsInput.addEventListener('input', handleSearchTopicsInput);
     clearSearchTopicsButton.addEventListener('click', handleClearSearchTopicsClick);
     searchPaperForm.addEventListener('submit', handleSearchPaperFormSubmit);
+    addPaperByUrlForm.addEventListener('submit', handleAddPaperByUrlFormSubmit);
     searchPapersInput.addEventListener('input', handleSearchPapersInput);
     clearSearchPapersButton.addEventListener('click', handleClearSearchPapersClick);
     paperListTableBody.addEventListener('click', handlePaperListTableClick);
