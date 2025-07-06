@@ -7,14 +7,22 @@ const xml2js = require('xml2js');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
+// Initialize electron application.
+const { app: electronApp, dialog } = require('electron');
+
+// Initialize Gemini API.
 if (!process.env.GEMINI_API_KEY) {
-    console.error("Error: GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+    if (electronApp) {
+        dialog.showErrorBox('API Key Missing', 'GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.');
+    } else {
+        console.error("Error: GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+    }
     process.exit(1);
 }
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
-const { app: electronApp } = require('electron');
+// Initialize arxivjsdata folder.
 const dataPath = electronApp ? path.join(electronApp.getPath('userData'), 'arxivjsdata') : path.join(__dirname, 'arxivjsdata');
 
 if (electronApp) {
@@ -32,9 +40,27 @@ if (electronApp) {
    
 }
 
+// Check userprompt.txt file.
+const userPromptPath = path.join(dataPath, 'userprompt.txt');
+(async () => {
+    try {
+        await fs.access(userPromptPath);
+    } catch (error) {
+        const errorMessage = `"userprompt.txt" file is missing. Please check if the file "userprompt.txt" exists in ${dataPath}.`;
+        if (electronApp) {
+            dialog.showErrorBox('User Prompt Missing', errorMessage);
+        } else {
+            console.error(`Error: ${errorMessage}`);
+        }
+        process.exit(1);
+    }
+})();
+
+// Initialize express server.
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
+// Establish API access points.
 app.get('/topics', async (req, res) => {
     try {
         const files = await fs.readdir(dataPath);
@@ -298,6 +324,7 @@ app.post('/summarize-and-save', async (req, res) => {
     }
 });
 
+// Start express server.
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);

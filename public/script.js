@@ -43,6 +43,8 @@ function handleDOMContentLoaded() {
     const paperDetailView = getElement('paper-detail-view');
     const addTopicForm = getElement('add-topic-form');
     const topicListCards = getElement('topic-list-cards');
+    const searchTopicsInput = getElement('search-topics-input');
+    const clearSearchTopicsButton = getElement('clear-search-topics');
     const searchPaperForm = getElement('search-paper-form');
     const paperListTableBody = querySelector('#paper-list-table tbody');
     const searchResultsTableBody = querySelector('#search-results-table tbody');
@@ -55,8 +57,9 @@ function handleDOMContentLoaded() {
     const criticalElements = [
         sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
         topicListMenu, paperListMenu, paperDetailMenu, topicListView, paperListView,
-        paperDetailView, addTopicForm, topicListCards, searchPaperForm, paperListTableBody,
-        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell
+        paperDetailView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
+        searchPaperForm, paperListTableBody, searchResultsTableBody, summarizeButton, splitter,
+        summaryView, abstractCell
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -266,6 +269,30 @@ function handleDOMContentLoaded() {
     }
 
     /**
+     * Filters the displayed topic cards based on the search input.
+     */
+    function handleSearchTopicsInput() {
+        const searchTerm = searchTopicsInput.value.toLowerCase();
+        const cards = topicListCards.querySelectorAll('.topic-card');
+        cards.forEach(card => {
+            const topicName = card.querySelector('.topic-name').textContent.toLowerCase();
+            if (topicName.includes(searchTerm)) {
+                card.style.display = 'flex';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Clears the topic search input and shows all topics.
+     */
+    function handleClearSearchTopicsClick() {
+        searchTopicsInput.value = '';
+        handleSearchTopicsInput();
+    }
+
+    /**
      * Fetches and displays the list of papers for a given topic.
      * @param {string} topicName - The name of the topic to load papers for.
      */
@@ -313,7 +340,7 @@ function handleDOMContentLoaded() {
         loadingMessage.style.display = 'block';
 
         try {
-            keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
+            keyword = keyword.replace(/[<>#%{}|\\^~[\]`'"`;\/?@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
             const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
             const papers = await response.json();
 
@@ -570,6 +597,8 @@ function handleDOMContentLoaded() {
     paperDetailMenu.addEventListener('click', handlePaperDetailMenuClick);
     addTopicForm.addEventListener('submit', handleAddTopicFormSubmit);
     topicListCards.addEventListener('click', handleTopicListCardsClick);
+    searchTopicsInput.addEventListener('input', handleSearchTopicsInput);
+    clearSearchTopicsButton.addEventListener('click', handleClearSearchTopicsClick);
     searchPaperForm.addEventListener('submit', handleSearchPaperFormSubmit);
     paperListTableBody.addEventListener('click', handlePaperListTableClick);
     searchResultsTableBody.addEventListener('click', handleSearchResultsTableClick);

@@ -65,11 +65,17 @@
     <div id="main-content">
         <div id="topic-list-view">
             <h2>Topic List</h2>
-            <form id="add-topic-form">
-                <label for="new-topic-name">Name:</label>
-                <input type="text" id="new-topic-name" placeholder="New topic name" required>
-                <button type="submit">Add Topic</button>
-            </form>
+            <div id="topic-list-header">
+                <form id="add-topic-form">
+                    <label for="new-topic-name">Name:</label>
+                    <input type="text" id="new-topic-name" placeholder="New topic name" required>
+                    <button type="submit">Add Topic</button>
+                </form>
+                <div id="search-topics-container">
+                    <input type="text" id="search-topics-input" placeholder="Search topics...">
+                    <button id="clear-search-topics">&times;</button>
+                </div>
+            </div>
             <div id="topic-list-cards"></div>
         </div>
         <div id="paper-list-view">
