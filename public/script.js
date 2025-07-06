@@ -46,6 +46,8 @@ function handleDOMContentLoaded() {
     const searchTopicsInput = getElement('search-topics-input');
     const clearSearchTopicsButton = getElement('clear-search-topics');
     const searchPaperForm = getElement('search-paper-form');
+    const searchPapersInput = getElement('search-papers-input');
+    const clearSearchPapersButton = getElement('clear-search-papers');
     const paperListTableBody = querySelector('#paper-list-table tbody');
     const searchResultsTableBody = querySelector('#search-results-table tbody');
     const summarizeButton = getElement('summarize-button');
@@ -58,8 +60,8 @@ function handleDOMContentLoaded() {
         sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
         topicListMenu, paperListMenu, paperDetailMenu, topicListView, paperListView,
         paperDetailView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
-        searchPaperForm, paperListTableBody, searchResultsTableBody, summarizeButton, splitter,
-        summaryView, abstractCell
+        searchPaperForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -340,7 +342,7 @@ function handleDOMContentLoaded() {
         loadingMessage.style.display = 'block';
 
         try {
-            keyword = keyword.replace(/[<>#%{}|\\^~[\]`'"`;\/?@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
+            keyword = keyword.replace(/[<>#%{}|\^~[\\]`'"`;\/?@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+")
             const response = await fetch(`/search?keyword=${keyword}&year=${year}&count=${count}`);
             const papers = await response.json();
 
@@ -361,6 +363,30 @@ function handleDOMContentLoaded() {
         } finally {
             loadingMessage.style.display = 'none';
         }
+    }
+
+    /**
+     * Filters the displayed paper results based on the search input.
+     */
+    function handleSearchPapersInput() {
+        const searchTerm = searchPapersInput.value.toLowerCase();
+        const rows = searchResultsTableBody.querySelectorAll('tr');
+        rows.forEach(row => {
+            const title = row.querySelector('.paper-title').textContent.toLowerCase();
+            if (title.includes(searchTerm)) {
+                row.style.display = '';
+            } else {
+                row.style.display = 'none';
+            }
+        });
+    }
+
+    /**
+     * Clears the paper search filter and shows all results.
+     */
+    function handleClearSearchPapersClick() {
+        searchPapersInput.value = '';
+        handleSearchPapersInput();
     }
 
     /**
@@ -601,6 +627,8 @@ function handleDOMContentLoaded() {
     searchTopicsInput.addEventListener('input', handleSearchTopicsInput);
     clearSearchTopicsButton.addEventListener('click', handleClearSearchTopicsClick);
     searchPaperForm.addEventListener('submit', handleSearchPaperFormSubmit);
+    searchPapersInput.addEventListener('input', handleSearchPapersInput);
+    clearSearchPapersButton.addEventListener('click', handleClearSearchPapersClick);
     paperListTableBody.addEventListener('click', handlePaperListTableClick);
     searchResultsTableBody.addEventListener('click', handleSearchResultsTableClick);
     summarizeButton.addEventListener('click', handleSummarizeButtonClick);

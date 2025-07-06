@@ -93,19 +93,25 @@
                 <tbody>
                 </tbody>
             </table>
-            <form id="search-paper-form">
-                <label for="search-keyword">Keyword:</label>
-                <input type="text" id="search-keyword" placeholder="Search keyword">
-                <label for="search-year">Year:</label>
-                <select id="search-year"></select>
-                <label for="search-count">Count:</label>
-                <select id="search-count">
-                    <option value="200">200</option>
-                    <option value="500">500</option>
-                    <option value="1000">1000</option>
-                </select>
-                <button type="submit">Search</button>
-            </form>
+            <div id="paper-search-controls">
+                <form id="search-paper-form">
+                    <label for="search-keyword">Keyword:</label>
+                    <input type="text" id="search-keyword" placeholder="Search keyword">
+                    <label for="search-year">Year:</label>
+                    <select id="search-year"></select>
+                    <label for="search-count">Count:</label>
+                    <select id="search-count">
+                        <option value="200">200</option>
+                        <option value="500">500</option>
+                        <option value="1000">1000</option>
+                    </select>
+                    <button type="submit">Search</button>
+                </form>
+                <div id="search-paper-container">
+                    <input type="text" id="search-papers-input" placeholder="Filter results by title...">
+                    <button id="clear-search-papers">&times;</button>
+                </div>
+            </div>
             <table id="search-results-table">
                 <thead>
                     <tr>

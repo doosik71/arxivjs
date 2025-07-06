@@ -303,6 +303,33 @@ th {
     letter-spacing: -2px;
 }
 
+#paper-search-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1em;
+}
+
+#search-paper-container {
+    position: relative;
+}
+
+#search-papers-input {
+    padding-right: 20px;
+}
+
+#clear-search-papers {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    border: none;
+    background: none;
+    cursor: pointer;
+    font-size: 1.2em;
+    color: #999;
+}
+
 #search-loading-message {
     display: none;
     max-width: 60%;
