@@ -9,18 +9,23 @@ body {
     display: flex;
 }
 
+::selection {
+    background-color: MistyRose;
+}
+
 code,
 pre {
     font-family: "Noto Sans Mono", "D2Coding", Courier, monospace;
 }
 
-pre {    
+pre {
     background-color: lightgoldenrodyellow;
     padding: 1em;
     border-radius: 0.5em;
 }
 
-p, li {
+p,
+li {
     line-height: 1.6em;
 }
 
@@ -167,6 +172,17 @@ th {
     padding-left: 1.5em;
 }
 
+#summary-content h1 {
+    color: Teal;
+}
+
+#summary-content h2,
+#summary-content h3,
+#summary-content h4 {
+    color: DarkSlateGray;
+}
+
+
 #summary-content h2::before,
 #summary-content h3::before,
 #summary-content h4::before {
@@ -176,7 +192,7 @@ th {
     vertical-align: bottom;
     width: 0.2em;
     height: 1.2em;
-    background-color: lightgray;
+    background-color: PaleTurquoise;
     border-radius: 0.2em;
 }
 
@@ -345,8 +361,13 @@ th {
 }
 
 @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+        transform: rotate(0deg);
+    }
+
+    100% {
+        transform: rotate(360deg);
+    }
 }
 
 .spinner {
