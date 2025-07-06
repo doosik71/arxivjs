@@ -316,3 +316,29 @@ th {
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
     font-style: italic;
 }
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.spinner {
+    border: 3px solid rgba(0, 0, 0, 0.1);
+    border-top-color: #337ab7;
+    border-radius: 50%;
+    width: 1.2em;
+    height: 1.2em;
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+    margin-left: 0.5em;
+}
+
+.user-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-style: italic;
+    color: #555;
+}

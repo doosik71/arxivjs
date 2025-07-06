@@ -336,7 +336,7 @@ function handleDOMContentLoaded() {
         const loadingMessage = document.getElementById('search-loading-message');
 
         searchResultsTableBody.innerHTML = '';
-        loadingMessage.innerText = 'Searching for papers... Please wait.';
+        loadingMessage.innerHTML = '<div class="user-message">Searching...<div class="spinner"></div></div>';
         loadingMessage.style.display = 'block';
 
         try {
@@ -510,7 +510,7 @@ function handleDOMContentLoaded() {
     async function handleSummarizeButtonClick() {
         const paper = JSON.parse(paperDetailView.dataset.paper);
         const summaryContent = document.getElementById('summary-content');
-        summaryContent.innerHTML = 'Summarizing...';
+        summaryContent.innerHTML = '<div class="user-message">Summarizing...<div class="spinner"></div></div>';
         summarizeButton.style.display = 'none';
 
         const response = await fetch('/summarize-and-save', {
@@ -529,6 +529,7 @@ function handleDOMContentLoaded() {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let summary = '';
+        summaryContent.innerHTML = ''; // Clear the "Summarizing..." message
 
         while (true) {
             const { done, value } = await reader.read();
