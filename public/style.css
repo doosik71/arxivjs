@@ -107,11 +107,9 @@ li {
  */
 
 #main-content {
-    max-height: calc(100vh - 2em);
-    height: 100%;
+    height: calc(100vh-1em);
     flex-grow: 1;
-    padding: 1em;
-    margin: 0 0 0 8.5em;
+    margin: 0 0 0 9em;
     transition: margin-left 0.3s;
 }
 
@@ -119,16 +117,16 @@ li {
     margin-left: 3em;
 }
 
-/*
- * Topic list view
- */
-
-#topic-list-view,
-#paper-list-view {
-    height: 100%;
+#main-content > div {
+    height: calc(100vh - 2em);
+    padding: 1em;
     display: none;
     overflow-y: auto;
 }
+
+/*
+ * Topic list view
+ */
 
 table {
     width: 100%;
@@ -305,7 +303,6 @@ th {
  */
 
 #paper-detail-view {
-    height: 100%;
     display: flex;
     flex-direction: column;
 }
@@ -380,7 +377,6 @@ th {
     flex-grow: 1;
     height: 100%;
     border: none;
-    padding-bottom: 0.5em;
 }
 
 #splitter-container>div {
