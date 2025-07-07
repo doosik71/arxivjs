@@ -57,7 +57,8 @@ button {
 }
 
 button:hover {
-    background-color: var(--color-link-hover);
+    color: var(--color-link-hover);
+    background-color: var(--color-background-secondary);
 }
 
 button:disabled {
@@ -191,7 +192,7 @@ table#search-results-table tr:hover {
 
 th,
 td {
-    border: 0.1em solid var(--color-background-primary);
+    border: 0.1em solid var(--color-border-primary);
     padding: 0.5em;
     text-align: left;
 }
@@ -370,10 +371,6 @@ th {
     width: 0.1em;
 }
 
-#summary-view {
-    overflow: auto;
-}
-
 #summary-content {
     flex-grow: 1;
     padding: 1em;
@@ -437,6 +434,7 @@ th {
 }
 
 #summary-view {
+    overflow: auto;
     flex: 0 0 40%;
     padding: 1em;
     box-sizing: border-box;
