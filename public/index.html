@@ -6,6 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>arxivjs</title>
     <link rel="icon" href="favicon.ico" type="image/x-icon">
+    <link rel="stylesheet" href="theme-red.css">
     <link rel="stylesheet" href="style.css">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@100..900&family=Noto+Sans+Mono:wght@100..900&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
@@ -38,7 +39,7 @@
                             <rect x="17.6" y="31.2" width="38.4" height="6.4" rx="1" fill="gray" />
                             <polyline points="6.4,34.4 6.4,48.8 16,48.8 25.6,48.8" />
                             <rect x="27.2" y="45.6" width="28.8" height="6.4" rx="1" fill="gray" />
-                        </svg> Topic List</a></li>
+                        </svg> <span>Topic List</span></a></li>
                 <li><a href="#" id="paper-list-menu">
                         <svg viewBox="0 0 64 64" fill="gray" xmlns="http://www.w3.org/2000/svg" width="1em">
                             <rect x="8" y="12" width="8" height="8" fill="silver" />
@@ -47,7 +48,7 @@
                             <rect x="20" y="12" width="36" height="8" />
                             <rect x="20" y="28" width="36" height="8" />
                             <rect x="20" y="44" width="36" height="8" />
-                        </svg> Paper List</a></li>
+                        </svg> <span>Paper List</span></a></li>
                 <li><a href="#" id="paper-detail-menu">
                         <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver"
                             stroke-width="4" width="1em">
@@ -58,7 +59,14 @@
                             <line x1="16" y1="34" x2="48" y2="34" />
                             <line x1="16" y1="40" x2="42" y2="40" />
                             <line x1="16" y1="46" x2="38" y2="46" />
-                        </svg> Paper Detail</a></li>
+                        </svg> <span>Paper Detail</span></a></li>
+                <li><a href="#" id="option-menu">
+                        <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver"
+                            stroke-width="4" width="1em">
+                            <circle cx="32" cy="32" r="3" fill="gray"/>
+                            <path d="M32,1 L32,7 M32,57 L32,63 M63,32 L57,32 M7,32 L1,32 M51.8,12.2 L47.4,16.6 M16.6,47.4 L12.2,51.8 M51.8,51.8 L47.4,47.4 M16.6,16.6 L12.2,12.2"/>
+                            <circle cx="32" cy="32" r="10" stroke="gray" stroke-width="2" fill="none"/>
+                        </svg> <span>Option</span></a></li>
             </ul>
         </div>
     </div>
@@ -165,6 +173,25 @@
                 <div id="splitter"></div>
                 <div id="pdf-view" class="splitter-panel">
                     <iframe title="PDF view frame" id="pdf-view-frame" width="100%" height="100%"></iframe>
+                </div>
+            </div>
+        </div>
+        <div id="option-view">
+            <h2>Option</h2>
+            <div class="option-section">
+                <h3>Theme</h3>
+                <div class="theme-selector">
+                    <label for="theme-select">Choose Theme:</label>
+                    <select id="theme-select">
+                        <option value="blue">Blue</option>
+                        <option value="red" selected>Red</option>
+                        <option value="green">Green</option>
+                        <option value="ocean">Ocean</option>
+                        <option value="winter">Winter</option>
+                        <option value="spring">Spring</option>
+                        <option value="summer">Summer</option>
+                        <option value="autumn">Autumn</option>
+                    </select>
                 </div>
             </div>
         </div>

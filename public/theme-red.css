@@ -1,0 +1,41 @@
+/*
+ * Red Theme - ArxivJS
+ * Elegant red color scheme with warm appearance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #742a2a;
+    --color-text-secondary: #4a5568;
+    --color-text-muted: #718096;
+    --color-text-disabled: #e2e8f0;
+    
+    /* Background colors */
+    --color-background-primary: #fed7d7;
+    --color-background-secondary: #fef5e7;
+    --color-background-hover: #feb2b2;
+    
+    /* Border colors */
+    --color-border-primary: #fc8181;
+    --color-border-secondary: #a0aec0;
+    --color-border-accent: #e53e3e;
+    
+    /* Link colors */
+    --color-link-primary: #c53030;
+    --color-link-secondary: #e53e3e;
+    --color-link-hover: #9b2c2c;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #7b341e;
+    --color-accent-secondary: #c05621;
+    --color-accent-tertiary: #dd6b20;
+    --color-accent-quaternary: #9c4221;
+    --color-accent-light: #f56565;
+    --color-accent-very-light: #fc8181;
+    
+    /* Special colors */
+    --color-selection-background: #fecaca;
+    --color-info-text: #c53030;
+    --color-spinner: rgba(239, 68, 68, 0.2);
+    --color-gray-border: #6b7280;
+}

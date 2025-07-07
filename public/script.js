@@ -38,9 +38,11 @@ function handleDOMContentLoaded() {
     const topicListMenu = getElement('topic-list-menu');
     const paperListMenu = getElement('paper-list-menu');
     const paperDetailMenu = getElement('paper-detail-menu');
+    const optionMenu = getElement('option-menu');
     const topicListView = getElement('topic-list-view');
     const paperListView = getElement('paper-list-view');
     const paperDetailView = getElement('paper-detail-view');
+    const optionView = getElement('option-view');
     const addTopicForm = getElement('add-topic-form');
     const topicListCards = getElement('topic-list-cards');
     const searchTopicsInput = getElement('search-topics-input');
@@ -55,14 +57,15 @@ function handleDOMContentLoaded() {
     const splitter = getElement('splitter');
     const summaryView = getElement('summary-view');
     const abstractCell = getElement('paper-detail-info-table-abstract');
+    const themeSelect = getElement('theme-select');
 
     // Validate that all critical elements were found before proceeding.
     const criticalElements = [
         sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
-        topicListMenu, paperListMenu, paperDetailMenu, topicListView, paperListView,
-        paperDetailView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
+        topicListMenu, paperListMenu, paperDetailMenu, optionMenu, topicListView, paperListView,
+        paperDetailView, optionView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
         searchPaperForm, addPaperByUrlForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
-        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -101,6 +104,7 @@ function handleDOMContentLoaded() {
         topicListView.style.display = 'none';
         paperListView.style.display = 'none';
         paperDetailView.style.display = 'none';
+        optionView.style.display = 'none';
         view.style.display = 'block';
         updateMenuState();
     }
@@ -116,47 +120,17 @@ function handleDOMContentLoaded() {
         toggleMenuIcon.classList.toggle('arrow-left');
         toggleMenuIcon.classList.toggle('arrow-right');
 
-        const menuTopicList = document.getElementById('topic-list-menu');
-        const menuPaperList = document.getElementById('paper-list-menu');
-        const menuPaperDetail = document.getElementById('paper-detail-menu');
-        const topicListIcon = `
-            <svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver" stroke-width="2" width="1em">
-            <polyline points="6.4,20 16,20" />
-            <rect x="17.6" y="16.8" width="38.4" height="6.4" rx="1" fill="gray"/>
-            <polyline points="6.4,20 6.4,34.4 16,34.4" />
-            <rect x="17.6" y="31.2" width="38.4" height="6.4" rx="1" fill="gray"/>
-            <polyline points="6.4,34.4 6.4,48.8 16,48.8 25.6,48.8" />
-            <rect x="27.2" y="45.6" width="28.8" height="6.4" rx="1" fill="gray"/>
-            </svg>`;
-        const paperListIcon = `
-            <svg viewBox="0 0 64 64" fill="gray" xmlns="http://www.w3.org/2000/svg" width="1em">
-            <rect x="8" y="12" width="8" height="8" fill="silver"/>
-            <rect x="8" y="28" width="8" height="8" fill="silver"/>
-            <rect x="8" y="44" width="8" height="8" fill="silver"/>
-            <rect x="20" y="12" width="36" height="8"/>
-            <rect x="20" y="28" width="36" height="8"/>
-            <rect x="20" y="44" width="36" height="8"/>
-            </svg>`;
-        const paperDetailIcon = `
-            <svg viewBox="0 0 64 72" xmlns="http://www.w3.org/2000/svg" fill="none" stroke="silver" stroke-width="4" width="1em">
-            <path d="M12,12 H52 A4,4 0 0 1 56,16 V56 A4,4 0 0 1 52,60 H12 A4,4 0 0 1 8,56 V16 A4,4 0 0 1 12,12 Z" fill="none" stroke="gray"/>
-            <line x1="16" y1="28" x2="48" y2="28"/>
-            <line x1="16" y1="34" x2="48" y2="34"/>
-            <line x1="16" y1="40" x2="42" y2="40"/>
-            <line x1="16" y1="46" x2="38" y2="46"/>
-            </svg>`;
-
-        // The state before the toggle is in `isHidden`.
-        // If it was hidden, it is now visible.
-        if (isHidden) {
-            menuTopicList.innerHTML = topicListIcon + ' Topic List';
-            menuPaperList.innerHTML = paperListIcon + ' Paper List';
-            menuPaperDetail.innerHTML = paperDetailIcon + ' Paper Detail';
-        } else {
-            menuTopicList.innerHTML = topicListIcon;
-            menuPaperList.innerHTML = paperListIcon;
-            menuPaperDetail.innerHTML = paperDetailIcon;
-        }
+        // Toggle menu text visibility based on sidebar state
+        const menuSpans = menuContainer.querySelectorAll('span');
+        menuSpans.forEach(span => {
+            if (isHidden) {
+                // Show text when expanding (was hidden, now showing)
+                span.style.display = 'inline';
+            } else {
+                // Hide text when collapsing (was showing, now hiding)
+                span.style.display = 'none';
+            }
+        });
     }
 
     /**
@@ -682,11 +656,49 @@ function handleDOMContentLoaded() {
         splitter.addEventListener('pointerup', onPointerUp);
     };
 
+    /**
+     * Handles the option menu click event.
+     * Shows the option view.
+     * @param {Event} e - The click event.
+     */
+    function handleOptionMenuClick(e) {
+        e.preventDefault();
+        showView(optionView);
+    }
+
+    /**
+     * Handles the theme selection change event.
+     * Changes the theme by updating the href of the theme stylesheet.
+     * @param {Event} e - The change event.
+     */
+    function handleThemeChange(e) {
+        const selectedTheme = e.target.value;
+        const themeLink = document.querySelector('link[href*="theme-"]');
+        if (themeLink) {
+            themeLink.href = `theme-${selectedTheme}.css`;
+        }
+        // Save theme preference to localStorage
+        localStorage.setItem('arxivjs-theme', selectedTheme);
+    }
+
+    /**
+     * Loads the saved theme from localStorage or sets default theme.
+     */
+    function loadSavedTheme() {
+        const savedTheme = localStorage.getItem('arxivjs-theme') || 'red';
+        themeSelect.value = savedTheme;
+        const themeLink = document.querySelector('link[href*="theme-"]');
+        if (themeLink) {
+            themeLink.href = `theme-${savedTheme}.css`;
+        }
+    }
+
     // --- Event Listener Assignments ---
     toggleMenuButton.addEventListener('click', handleToggleMenuClick);
     topicListMenu.addEventListener('click', handleTopicListMenuClick);
     paperListMenu.addEventListener('click', handlePaperListMenuClick);
     paperDetailMenu.addEventListener('click', handlePaperDetailMenuClick);
+    optionMenu.addEventListener('click', handleOptionMenuClick);
     addTopicForm.addEventListener('submit', handleAddTopicFormSubmit);
     topicListCards.addEventListener('click', handleTopicListCardsClick);
     searchTopicsInput.addEventListener('input', handleSearchTopicsInput);
@@ -699,8 +711,10 @@ function handleDOMContentLoaded() {
     searchResultsTableBody.addEventListener('click', handleSearchResultsTableClick);
     summarizeButton.addEventListener('click', handleSummarizeButtonClick);
     splitter.addEventListener('pointerdown', handleSplitterPointerDown);
+    themeSelect.addEventListener('change', handleThemeChange);
 
     // --- Initial Application Setup ---
+    loadSavedTheme();
     loadTopics();
     populateYearFilter();
     showView(topicListView);

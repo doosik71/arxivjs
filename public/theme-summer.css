@@ -1,0 +1,41 @@
+/*
+ * Summer Theme - ArxivJS
+ * Bright summer color scheme with warm and energetic appearance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #7c2d12;
+    --color-text-secondary: #92400e;
+    --color-text-muted: #a78bfa;
+    --color-text-disabled: #fef3c7;
+    
+    /* Background colors */
+    --color-background-primary: #fffbeb;
+    --color-background-secondary: #fef3c7;
+    --color-background-hover: #fed7aa;
+    
+    /* Border colors */
+    --color-border-primary: #fdba74;
+    --color-border-secondary: #d1d5db;
+    --color-border-accent: #f59e0b;
+    
+    /* Link colors */
+    --color-link-primary: #d97706;
+    --color-link-secondary: #f59e0b;
+    --color-link-hover: #92400e;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #7c2d12;
+    --color-accent-secondary: #9a3412;
+    --color-accent-tertiary: #c2410c;
+    --color-accent-quaternary: #ea580c;
+    --color-accent-light: #fb923c;
+    --color-accent-very-light: #fdba74;
+    
+    /* Special colors */
+    --color-selection-background: #fef3c7;
+    --color-info-text: #d97706;
+    --color-spinner: rgba(251, 146, 60, 0.3);
+    --color-gray-border: #6b7280;
+}

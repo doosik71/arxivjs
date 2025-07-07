@@ -19,9 +19,59 @@ pre {
 }
 
 pre {
-    background-color: whitesmoke;
+    background-color: var(--color-background-primary);
     padding: 1em;
     border-radius: 0.5em;
+}
+
+/*
+ * Form Elements
+ */
+
+input[type="text"],
+input[type="url"],
+select,
+button {
+    padding: 0.5em;
+    border: 0.1em solid var(--color-border-primary);
+    border-radius: 0.3em;
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
+    font-family: inherit;
+}
+
+input[type="text"]:focus,
+input[type="url"]:focus,
+select:focus {
+    outline: none;
+    border-color: var(--color-border-accent);
+    background-color: var(--color-background-secondary);
+}
+
+button {
+    background-color: var(--color-link-secondary);
+    color: white;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+button:hover {
+    background-color: var(--color-link-hover);
+}
+
+button:disabled {
+    background-color: var(--color-text-disabled);
+    cursor: not-allowed;
+}
+
+select {
+    cursor: pointer;
+}
+
+select option {
+    background-color: var(--color-background-primary);
+    color: var(--color-text-primary);
 }
 
 p,
@@ -35,7 +85,7 @@ li {
     justify-content: center;
     height: 100%;
     font-style: italic;
-    color: #555;
+    color: var(--color-text-secondary);
 }
 
 /*
@@ -45,7 +95,7 @@ li {
 #sidebar {
     width: 7em;
     height: 100vh;
-    background: whitesmoke;
+    background: var(--color-background-primary);
     padding: 1em;
     position: fixed;
     overflow-y: auto;
@@ -70,7 +120,7 @@ li {
     display: block;
     padding: 0.2em 0;
     text-decoration: none;
-    color: #333;
+    color: var(--color-text-primary);
 }
 
 .menu-button {
@@ -83,7 +133,7 @@ li {
 
 .arrow-left,
 .arrow-right {
-    border: solid gray;
+    border: solid var(--color-gray-border);
     border-width: 0 0.2em 0.2em 0;
     display: inline-block;
     padding: 0.2em;
@@ -98,7 +148,7 @@ li {
 }
 
 #sidebar ul li a.disabled {
-    color: lightgray;
+    color: var(--color-text-disabled);
     pointer-events: none;
 }
 
@@ -136,23 +186,23 @@ table {
 
 table#paper-list-table tr:hover,
 table#search-results-table tr:hover {
-    background-color: whitesmoke;
+    background-color: var(--color-background-primary);
 }
 
 th,
 td {
-    border: 0.1em solid whitesmoke;
+    border: 0.1em solid var(--color-background-primary);
     padding: 0.5em;
     text-align: left;
 }
 
 th {
-    background-color: whitesmoke;
+    background-color: var(--color-background-primary);
 }
 
 .topic-name,
 .paper-title {
-    color: dodgerblue;
+    color: var(--color-link-primary);
     cursor: pointer;
 }
 
@@ -180,7 +230,7 @@ th {
     background: none;
     cursor: pointer;
     font-size: 1.2em;
-    color: #999;
+    color: var(--color-text-muted);
 }
 
 #topic-list-cards {
@@ -191,14 +241,14 @@ th {
 }
 
 .topic-card {
-    border: 0.1em solid lightgray;
+    border: 0.1em solid var(--color-border-primary);
     border-radius: 0.5em;
     padding: 0.5em;
     width: 12em;
 }
 
 .topic-card:hover {
-    background-color: whitesmoke;
+    background-color: var(--color-background-primary);
 }
 
 .topic-actions {
@@ -213,11 +263,11 @@ th {
     cursor: pointer;
     padding: 0;
     text-decoration: underline;
-    color: #337ab7;
+    color: var(--color-link-secondary);
 }
 
 .card-button:hover {
-    color: #23527c;
+    color: var(--color-link-hover);
 }
 
 /*
@@ -258,7 +308,7 @@ th {
     background: none;
     cursor: pointer;
     font-size: 1.2em;
-    color: #999;
+    color: var(--color-text-muted);
 }
 
 #search-loading-message {
@@ -266,11 +316,11 @@ th {
     max-width: 60%;
     margin: 2em auto;
     padding: 1em 1.5em;
-    background-color: #f0f7fd;
-    border: 0.1em solid #cce1f4;
+    background-color: var(--color-background-secondary);
+    border: 0.1em solid var(--color-border-accent);
     border-radius: 0.5em;
     text-align: center;
-    color: #3a6a8f;
+    color: var(--color-info-text);
     box-shadow: 0 0.3em 0.5em rgba(0, 0, 0, 0.05);
     font-style: italic;
 }
@@ -286,8 +336,8 @@ th {
 }
 
 .spinner {
-    border: 0.2em solid rgba(0, 0, 0, 0.1);
-    border-top-color: #337ab7;
+    border: 0.2em solid var(--color-spinner);
+    border-top-color: var(--color-link-secondary);
     border-radius: 50%;
     width: 1.2em;
     height: 1.2em;
@@ -331,9 +381,9 @@ th {
 }
 
 #summary-content::selection {
-    background-color: #DDEEFF;
+    background-color: var(--color-selection-background);
     text-decoration: underline;
-    text-decoration-color: #60B0FF;
+    text-decoration-color: var(--color-accent-very-light);
     text-decoration-thickness: 0.1em;
     text-underline-offset: 0.25em;
 }
@@ -344,20 +394,20 @@ th {
 }
 
 #summary-content h1 {
-    color: #1A73E8;
+    color: var(--color-accent-primary);
 }
 
 #summary-content h2 {
-    color: #3367D6;
+    color: var(--color-accent-secondary);
 }
 
 #summary-content h3,
 #summary-content h4 {
-    color: #5F6368;
+    color: var(--color-accent-tertiary);
 }
 
 #summary-content strong {
-    color: #205080;
+    color: var(--color-accent-quaternary);
 }
 
 #summary-content h2::before {
@@ -367,7 +417,7 @@ th {
     vertical-align: bottom;
     width: 0.2em;
     height: 1.4em;
-    background-color: #60A0FF;
+    background-color: var(--color-accent-light);
     border-radius: 0.2em;
 }
 
@@ -390,7 +440,7 @@ th {
     flex: 0 0 40%;
     padding: 1em;
     box-sizing: border-box;
-    border: 0.1em solid #ddd;
+    border: 0.1em solid var(--color-border-secondary);
     display: flex;
     flex-direction: column;
 }
@@ -399,7 +449,7 @@ th {
     flex: 1 1 60%;
     height: 100%;
     overflow: hidden;
-    border: 0.1em solid #ddd;
+    border: 0.1em solid var(--color-border-secondary);
 }
 
 #pdf-view-frame {
@@ -408,14 +458,14 @@ th {
 
 #splitter {
     flex: 0 0 0.3em;
-    background: whitesmoke;
+    background: var(--color-background-primary);
     cursor: col-resize;
     position: relative;
     transition: background-color 0.2s;
 }
 
 #splitter:hover {
-    background: #e0e0e0;
+    background: var(--color-background-hover);
 }
 
 #splitter::before {
@@ -425,5 +475,5 @@ th {
     left: 50%;
     transform: translate(-50%, -50%) rotate(90deg);
     font-size: 1.7em;
-    color: #555;
+    color: var(--color-text-secondary);
 }

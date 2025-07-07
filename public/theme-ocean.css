@@ -1,0 +1,41 @@
+/*
+ * Ocean Theme - ArxivJS
+ * Deep ocean color scheme with cool and calming appearance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #1e293b;
+    --color-text-muted: #64748b;
+    --color-text-disabled: #cbd5e1;
+    
+    /* Background colors */
+    --color-background-primary: #ecfeff;
+    --color-background-secondary: #f0f9ff;
+    --color-background-hover: #a5f3fc;
+    
+    /* Border colors */
+    --color-border-primary: #67e8f9;
+    --color-border-secondary: #94a3b8;
+    --color-border-accent: #0891b2;
+    
+    /* Link colors */
+    --color-link-primary: #0e7490;
+    --color-link-secondary: #0891b2;
+    --color-link-hover: #164e63;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #164e63;
+    --color-accent-secondary: #0e7490;
+    --color-accent-tertiary: #0891b2;
+    --color-accent-quaternary: #155e75;
+    --color-accent-light: #22d3ee;
+    --color-accent-very-light: #67e8f9;
+    
+    /* Special colors */
+    --color-selection-background: #cffafe;
+    --color-info-text: #0e7490;
+    --color-spinner: rgba(34, 211, 238, 0.2);
+    --color-gray-border: #6b7280;
+}

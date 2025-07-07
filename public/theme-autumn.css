@@ -1,0 +1,41 @@
+/*
+ * Autumn Theme - ArxivJS
+ * Warm autumn color scheme with cozy and earthy appearance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #451a03;
+    --color-text-secondary: #78350f;
+    --color-text-muted: #a16207;
+    --color-text-disabled: #fed7aa;
+    
+    /* Background colors */
+    --color-background-primary: #fef7ed;
+    --color-background-secondary: #fed7aa;
+    --color-background-hover: #fdba74;
+    
+    /* Border colors */
+    --color-border-primary: #fb923c;
+    --color-border-secondary: #d1d5db;
+    --color-border-accent: #ea580c;
+    
+    /* Link colors */
+    --color-link-primary: #c2410c;
+    --color-link-secondary: #ea580c;
+    --color-link-hover: #9a3412;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #431407;
+    --color-accent-secondary: #7c2d12;
+    --color-accent-tertiary: #c2410c;
+    --color-accent-quaternary: #dc2626;
+    --color-accent-light: #f97316;
+    --color-accent-very-light: #fb923c;
+    
+    /* Special colors */
+    --color-selection-background: #fed7aa;
+    --color-info-text: #c2410c;
+    --color-spinner: rgba(249, 115, 22, 0.3);
+    --color-gray-border: #6b7280;
+}

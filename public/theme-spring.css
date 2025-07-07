@@ -1,0 +1,41 @@
+/*
+ * Spring Theme - ArxivJS
+ * Fresh spring color scheme with vibrant and light appearance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #1a2e1a;
+    --color-text-secondary: #2d3748;
+    --color-text-muted: #718096;
+    --color-text-disabled: #e2e8f0;
+    
+    /* Background colors */
+    --color-background-primary: #f0fff4;
+    --color-background-secondary: #f7fafc;
+    --color-background-hover: #c6f6d5;
+    
+    /* Border colors */
+    --color-border-primary: #9ae6b4;
+    --color-border-secondary: #a0aec0;
+    --color-border-accent: #48bb78;
+    
+    /* Link colors */
+    --color-link-primary: #38a169;
+    --color-link-secondary: #48bb78;
+    --color-link-hover: #2f855a;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #22543d;
+    --color-accent-secondary: #2f855a;
+    --color-accent-tertiary: #38a169;
+    --color-accent-quaternary: #276749;
+    --color-accent-light: #68d391;
+    --color-accent-very-light: #9ae6b4;
+    
+    /* Special colors */
+    --color-selection-background: #e6fffa;
+    --color-info-text: #38a169;
+    --color-spinner: rgba(72, 187, 120, 0.2);
+    --color-gray-border: #6b7280;
+}
