@@ -72,8 +72,26 @@ function handleDOMContentLoaded() {
 
     // State Variables
     let currentTopic = null;
+    let currentPaper = null;
 
     // --- Function Definitions ---
+
+    /**
+     * Updates the enabled/disabled state of the sidebar menu items.
+     */
+    function updateMenuState() {
+        if (currentTopic) {
+            paperListMenu.classList.remove('disabled');
+        } else {
+            paperListMenu.classList.add('disabled');
+        }
+
+        if (currentPaper) {
+            paperDetailMenu.classList.remove('disabled');
+        } else {
+            paperDetailMenu.classList.add('disabled');
+        }
+    }
 
     /**
      * Shows a specific view (topic list, paper list, or paper detail) and hides the others.
@@ -84,6 +102,7 @@ function handleDOMContentLoaded() {
         paperListView.style.display = 'none';
         paperDetailView.style.display = 'none';
         view.style.display = 'block';
+        updateMenuState();
     }
 
     /**
@@ -153,6 +172,9 @@ function handleDOMContentLoaded() {
      * Shows the paper list view for the currently selected topic.
      */
     function handlePaperListMenuClick() {
+        if (paperListMenu.classList.contains('disabled'))
+            return;
+
         if (currentTopic) {
             showView(paperListView);
             loadPapers(currentTopic);
@@ -166,7 +188,10 @@ function handleDOMContentLoaded() {
      * Shows the paper detail view if a paper has been selected.
      */
     function handlePaperDetailMenuClick() {
-        if (paperDetailView.dataset.paper) {
+        if (paperDetailMenu.classList.contains('disabled'))
+            return;
+
+        if (currentPaper) {
             showView(paperDetailView);
         }
         else {
@@ -299,7 +324,7 @@ function handleDOMContentLoaded() {
      * Fetches and displays the list of papers for a given topic.
      * @param {string} topicName - The name of the topic to load papers for.
      */
-    async function loadPapers(topicName, updateKeyword=false) {
+    async function loadPapers(topicName, updateKeyword = false) {
         document.getElementById('paper-list-topic-name').textContent = topicName;
 
         if (updateKeyword) {
@@ -485,17 +510,16 @@ function handleDOMContentLoaded() {
     function handleSearchResultsTableClick(e) {
         if (e.target.classList.contains('paper-title')) {
             const paperData = JSON.parse(e.target.closest('tr').dataset.paper);
-            showPaperDetail(paperData, true);
+            showPaperDetail(paperData);
         }
     }
 
     /**
      * Displays the detailed view for a selected paper.
      * @param {object} paper - The paper data object.
-     * @param {boolean} [fromSearch=false] - Indicates if the paper was selected from search results.
      */
-    async function showPaperDetail(paper, fromSearch = false) {
-        paperDetailView.dataset.paper = JSON.stringify(paper);
+    async function showPaperDetail(paper) {
+        currentPaper = JSON.stringify(paper);
         showView(paperDetailView);
 
         document.getElementById('paper-detail-info-table-title').innerText = paper.title;
@@ -523,7 +547,6 @@ function handleDOMContentLoaded() {
                 summarizeButton.style.display = 'block';
             }
         } catch (error) {
-            summaryContent.innerHTML = `Error loading summary: ${error}`;
             summarizeButton.style.display = 'block';
         }
     }
@@ -576,7 +599,7 @@ function handleDOMContentLoaded() {
      * Sends the paper data to the server for summarization and streams the result.
      */
     async function handleSummarizeButtonClick() {
-        const paper = JSON.parse(paperDetailView.dataset.paper);
+        const paper = JSON.parse(currentPaper);
         const summaryContent = document.getElementById('summary-content');
         summaryContent.innerHTML = '<div class="user-message">Summarizing...<div class="spinner"></div></div>';
         summarizeButton.style.display = 'none';

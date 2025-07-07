@@ -24,7 +24,7 @@
 
 <body>
     <div id="sidebar">
-        <button id="toggle-menu" class="menu-button">
+        <button id="toggle-menu" type="button" title="Toggle Menu" class="menu-button">
             <span id="toggle-menu-icon" class="arrow-left"></span>
         </button>
         <div id="menu-container">
@@ -73,7 +73,7 @@
                 </form>
                 <div id="search-topics-container">
                     <input type="text" id="search-topics-input" placeholder="Search topics...">
-                    <button id="clear-search-topics">&times;</button>
+                    <button id="clear-search-topics" type="button" title="Clear search Topics">&times;</button>
                 </div>
             </div>
             <div id="topic-list-cards"></div>
@@ -94,7 +94,7 @@
                 </tbody>
             </table>
             <div id="paper-search-controls">
-                <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div class="paper-search-by-api">
                     <form id="search-paper-form">
                         <label for="search-keyword">Keyword:</label>
                         <input type="text" id="search-keyword" placeholder="Search keyword">
@@ -121,7 +121,7 @@
                 </div>
                 <div id="search-paper-container">
                     <input type="text" id="search-papers-input" placeholder="Filter results by title...">
-                    <button id="clear-search-papers">&times;</button>
+                    <button type="button" id="clear-search-papers">&times;</button>
                 </div>
             </div>
             <table id="search-results-table">

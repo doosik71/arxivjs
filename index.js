@@ -381,9 +381,21 @@ app.post('/summarize-and-save', summarizeAndSave);
 app.post('/paper-by-url', addPaperByUrl);
 
 // Start express server.
-const PORT = process.env.PORT || 3000;
-const server = app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+const args = process.argv.slice(2);
+
+function getArgValue(argName) {
+    const argIndex = args.indexOf(argName);
+    if (argIndex > -1 && args[argIndex + 1]) {
+        return args[argIndex + 1];
+    }
+    return null;
+}
+
+const HOSTNAME = getArgValue('--host') || 'localhost';
+const PORT = getArgValue('--port') || process.env.PORT || 3000;
+
+const server = app.listen(PORT, HOSTNAME, () => {
+    console.log(`Server is running on http://${HOSTNAME}:${PORT}`);
     console.log(`Data path: ${dataPath}`);
 });
 

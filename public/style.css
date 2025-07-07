@@ -1,3 +1,7 @@
+/*
+ * Global style
+ */
+
 html {
     height: 100%;
 }
@@ -24,6 +28,19 @@ p,
 li {
     line-height: 1.6em;
 }
+
+.user-message {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    font-style: italic;
+    color: #555;
+}
+
+/*
+ * Sidebar
+ */
 
 #sidebar {
     width: 7em;
@@ -80,6 +97,15 @@ li {
     transform: rotate(-45deg);
 }
 
+#sidebar ul li a.disabled {
+    color: lightgray;
+    pointer-events: none;
+}
+
+/*
+ * Main content
+ */
+
 #main-content {
     max-height: calc(100vh - 2em);
     height: 100%;
@@ -92,6 +118,10 @@ li {
 #main-content.wide {
     margin-left: 3em;
 }
+
+/*
+ * Topic list view
+ */
 
 #topic-list-view,
 #paper-list-view {
@@ -127,83 +157,6 @@ th {
 .paper-title {
     color: dodgerblue;
     cursor: pointer;
-}
-
-#add-paper-by-url-form {
-    margin-left: 1em;
-}
-
-#paper-detail-view {
-    height: 100%;
-    display: flex;
-    flex-direction: column;
-}
-
-#paper-detail-info-table {
-    margin: 0;
-    flex-shrink: 0;
-}
-
-#paper-detail-view td {
-    vertical-align: middle;
-}
-
-#paper-detail-info-table th {
-    white-space: nowrap;
-    width: 1px;
-}
-
-#summary-view {
-    overflow: auto;
-}
-
-#summary-content {
-    flex-grow: 1;
-    padding: 1em;
-    box-sizing: border-box;
-}
-
-#summary-content::selection {
-    background-color: #DDEEFF;
-    text-decoration: underline;
-    text-decoration-color: #60B0FF;
-    text-decoration-thickness: 1px;
-    text-underline-offset: 0.25em;
-}
-
-#summary-content ul,
-#summary-content ol {
-    padding-left: 1.5em;
-}
-
-#summary-content h1 {
-    color: #1A73E8;
-}
-
-#summary-content h2 {
-    color: #3367D6;
-}
-
-#summary-content h3,
-#summary-content h4 {
-    color: #5F6368;
-}
-
-#summary-content strong {
-    color: #205080;
-}
-
-#summary-content h2::before,
-#summary-content h3::before,
-#summary-content h4::before {
-    content: "";
-    display: inline-block;
-    margin-right: 0.4em;
-    vertical-align: bottom;
-    width: 0.2em;
-    height: 1.4em;
-    background-color: #60A0FF;
-    border-radius: 0.2em;
 }
 
 #topic-list-header {
@@ -270,63 +223,12 @@ th {
     color: #23527c;
 }
 
-#splitter-container {
-    display: flex;
-    flex-grow: 1;
-    height: 100%;
-    border: none;
-    padding-bottom: 0.5em;
-}
+/*
+ * Paper list view
+ */
 
-#splitter-container>div {
-    height: 100%;
-}
-
-#splitter-panel {
-    padding: 0;
-}
-
-#summary-view {
-    flex: 0 0 40%;
-    padding: 1em;
-    box-sizing: border-box;
-    border: 1px solid #ddd;
-    display: flex;
-    flex-direction: column;
-}
-
-#pdf-view {
-    flex: 1 1 60%;
-    height: 100%;
-    overflow: hidden;
-    border: 1px solid #ddd;
-}
-
-#pdf-view-frame {
-    height: 100%;
-}
-
-#splitter {
-    flex: 0 0 4px;
-    background: whitesmoke;
-    cursor: col-resize;
-    position: relative;
-    transition: background-color 0.2s;
-}
-
-#splitter:hover {
-    background: #e0e0e0;
-}
-
-#splitter::before {
-    content: '...';
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%) rotate(90deg);
-    font-size: 1.5em;
-    color: #555;
-    letter-spacing: -2px;
+#add-paper-by-url-form {
+    margin-left: 1em;
 }
 
 #paper-search-controls {
@@ -334,6 +236,12 @@ th {
     justify-content: space-between;
     align-items: center;
     margin-top: 1em;
+}
+
+.paper-search-by-api {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
 }
 
 #search-paper-container {
@@ -392,11 +300,136 @@ th {
     margin-left: 0.5em;
 }
 
-.user-message {
-    display: flex;
-    align-items: center;
-    justify-content: center;
+/*
+ * Paper detail view
+ */
+
+#paper-detail-view {
     height: 100%;
-    font-style: italic;
+    display: flex;
+    flex-direction: column;
+}
+
+#paper-detail-info-table {
+    margin: 0;
+    flex-shrink: 0;
+}
+
+#paper-detail-view td {
+    vertical-align: middle;
+}
+
+#paper-detail-info-table th {
+    white-space: nowrap;
+    width: 1px;
+}
+
+#summary-view {
+    overflow: auto;
+}
+
+#summary-content {
+    flex-grow: 1;
+    padding: 1em;
+    box-sizing: border-box;
+}
+
+#summary-content::selection {
+    background-color: #DDEEFF;
+    text-decoration: underline;
+    text-decoration-color: #60B0FF;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 0.25em;
+}
+
+#summary-content ul,
+#summary-content ol {
+    padding-left: 1.5em;
+}
+
+#summary-content h1 {
+    color: #1A73E8;
+}
+
+#summary-content h2 {
+    color: #3367D6;
+}
+
+#summary-content h3,
+#summary-content h4 {
+    color: #5F6368;
+}
+
+#summary-content strong {
+    color: #205080;
+}
+
+#summary-content h2::before {
+    content: "";
+    display: inline-block;
+    margin-right: 0.4em;
+    vertical-align: bottom;
+    width: 0.2em;
+    height: 1.4em;
+    background-color: #60A0FF;
+    border-radius: 0.2em;
+}
+
+#splitter-container {
+    display: flex;
+    flex-grow: 1;
+    height: 100%;
+    border: none;
+    padding-bottom: 0.5em;
+}
+
+#splitter-container>div {
+    height: 100%;
+}
+
+#splitter-panel {
+    padding: 0;
+}
+
+#summary-view {
+    flex: 0 0 40%;
+    padding: 1em;
+    box-sizing: border-box;
+    border: 1px solid #ddd;
+    display: flex;
+    flex-direction: column;
+}
+
+#pdf-view {
+    flex: 1 1 60%;
+    height: 100%;
+    overflow: hidden;
+    border: 1px solid #ddd;
+}
+
+#pdf-view-frame {
+    height: 100%;
+}
+
+#splitter {
+    flex: 0 0 4px;
+    background: whitesmoke;
+    cursor: col-resize;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+#splitter:hover {
+    background: #e0e0e0;
+}
+
+#splitter::before {
+    content: '...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(90deg);
+    font-size: 1.5em;
     color: #555;
+    letter-spacing: -2px;
 }
