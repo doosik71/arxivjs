@@ -19,7 +19,7 @@ pre {
 }
 
 pre {
-    background-color: lightgoldenrodyellow;
+    background-color: whitesmoke;
     padding: 1em;
     border-radius: 0.5em;
 }
@@ -45,7 +45,7 @@ li {
 #sidebar {
     width: 7em;
     height: 100vh;
-    background: #f4f4f4;
+    background: whitesmoke;
     padding: 1em;
     position: fixed;
     overflow-y: auto;
@@ -134,21 +134,20 @@ table {
     margin-top: 1em;
 }
 
-table#topic-list-table tr:hover,
 table#paper-list-table tr:hover,
 table#search-results-table tr:hover {
-    background-color: lightgoldenrodyellow;
+    background-color: whitesmoke;
 }
 
 th,
 td {
-    border: 0.1em solid #ddd;
+    border: 0.1em solid whitesmoke;
     padding: 0.5em;
     text-align: left;
 }
 
 th {
-    background-color: #f2f2f2;
+    background-color: whitesmoke;
 }
 
 .topic-name,
@@ -192,14 +191,14 @@ th {
 }
 
 .topic-card {
-    border: 0.1em solid #ddd;
+    border: 0.1em solid lightgray;
     border-radius: 0.5em;
     padding: 0.5em;
     width: 12em;
 }
 
 .topic-card:hover {
-    background-color: lightgoldenrodyellow;
+    background-color: whitesmoke;
 }
 
 .topic-actions {
