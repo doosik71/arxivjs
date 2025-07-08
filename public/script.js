@@ -685,7 +685,7 @@ function handleDOMContentLoaded() {
      * Loads the saved theme from localStorage or sets default theme.
      */
     function loadSavedTheme() {
-        const savedTheme = localStorage.getItem('arxivjs-theme') || 'red';
+        const savedTheme = localStorage.getItem('arxivjs-theme') || 'classic';
         themeSelect.value = savedTheme;
         if (themeLink) {
             themeLink.href = `theme/theme-${savedTheme}.css`;
