@@ -183,14 +183,14 @@
                 <div class="theme-selector">
                     <label for="theme-select">Choose Theme:</label>
                     <select id="theme-select">
-                        <option value="red">Red</option>
-                        <option value="green">Green</option>
-                        <option value="blue">Blue</option>
-                        <option value="classic">---</option>
                         <option value="spring">Spring</option>
                         <option value="summer">Summer</option>
                         <option value="autumn">Autumn</option>
-                        <option value="winter" selected>Winter</option>
+                        <option value="winter">Winter</option>
+                        <option value="classic">---</option>
+                        <option value="red">Red</option>
+                        <option value="green">Green</option>
+                        <option value="blue">Blue</option>
                         <option value="classic">---</option>
                         <option value="classic">Classic</option>
                         <option value="modern">Modern</option>
@@ -219,6 +219,25 @@
                         <option value="starlight">Starlight</option>
                     </select>
                 </div>
+            </div>
+            <div class="option-section">
+                <h3>Server Information</h3>
+                <table id="server-info-table">
+                    <tbody>
+                        <tr>
+                            <th>Hostname</th>
+                            <td id="server-hostname"></td>
+                        </tr>
+                        <tr>
+                            <th>Port</th>
+                            <td id="server-port"></td>
+                        </tr>
+                        <tr>
+                            <th>Data Path</th>
+                            <td id="server-datapath"></td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </div>

@@ -692,6 +692,21 @@ function handleDOMContentLoaded() {
         }
     }
 
+    /**
+     * Fetches and displays the server information.
+     */
+    async function loadServerInfo() {
+        try {
+            const response = await fetch('/server-info');
+            const info = await response.json();
+            getElement('server-hostname').textContent = info.hostname;
+            getElement('server-port').textContent = info.port;
+            getElement('server-datapath').textContent = info.dataPath;
+        } catch (error) {
+            console.error('Failed to load server info:', error);
+        }
+    }
+
     // --- Event Listener Assignments ---
     toggleMenuButton.addEventListener('click', handleToggleMenuClick);
     topicListMenu.addEventListener('click', handleTopicListMenuClick);
@@ -716,5 +731,6 @@ function handleDOMContentLoaded() {
     loadSavedTheme();
     loadTopics();
     populateYearFilter();
+    loadServerInfo();
     showView(topicListView);
 }

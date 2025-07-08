@@ -380,23 +380,95 @@ app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/summarize-and-save', summarizeAndSave);
 app.post('/paper-by-url', addPaperByUrl);
 
-// Start express server.
-const args = process.argv.slice(2);
+let server;
 
-function getArgValue(argName) {
-    const argIndex = args.indexOf(argName);
-    if (argIndex > -1 && args[argIndex + 1]) {
-        return args[argIndex + 1];
+app.get('/server-info', (req, res) => {
+    if (server && server.address()) {
+        res.json({
+            port: server.address().port,
+            hostname: server.address().address,
+            dataPath: dataPath,
+        });
+    } else {
+        res.status(503).json({ message: 'Server not available' });
     }
-    return null;
-}
-
-const HOSTNAME = getArgValue('--host') || 'localhost';
-const PORT = getArgValue('--port') || process.env.PORT || 3000;
-
-const server = app.listen(PORT, HOSTNAME, () => {
-    console.log(`Server is running on http://${HOSTNAME}:${PORT}`);
-    console.log(`Data path: ${dataPath}`);
 });
 
-module.exports = server;
+// Start express server.
+const net = require('net');
+
+/**
+ * Finds an available port within a given range.
+ * @param {number} startPort - The starting port number.
+ * @param {number} endPort - The ending port number.
+ * @param {string} host - The host to check the port on.
+ * @returns {Promise<number>} A promise that resolves with an available port number.
+ */
+function findAvailablePort(startPort, endPort, host) {
+    return new Promise((resolve, reject) => {
+        const checkPort = (port) => {
+            if (port > endPort) {
+                reject(new Error(`No available ports found between ${startPort} and ${endPort}.`));
+                return;
+            }
+            const server = net.createServer();
+            server.listen(port, host, () => {
+                server.once('close', () => {
+                    resolve(port);
+                });
+                server.close();
+            });
+            server.on('error', (err) => {
+                if (err.code === 'EADDRINUSE' || err.code === 'EACCES') {
+                    checkPort(port + 1);
+                } else {
+                    reject(err);
+                }
+            });
+        };
+        checkPort(startPort);
+    });
+}
+
+/**
+ * Starts the express server on an available port.
+ * @returns {Promise<{server: *, port: number, hostname: string}>}
+ */
+async function startServer() {
+    const args = process.argv.slice(2);
+
+    function getArgValue(argName) {
+        const argIndex = args.indexOf(argName);
+        if (argIndex > -1 && args[argIndex + 1]) {
+            return args[argIndex + 1];
+        }
+        return null;
+    }
+
+    const HOSTNAME = getArgValue('--host') || 'localhost';
+    let port = getArgValue('--port') || process.env.PORT;
+
+    if (!port) {
+        try {
+            port = await findAvailablePort(8000, 9000, HOSTNAME);
+        } catch (err) {
+            console.error(err.message);
+            console.log('Defaulting to port 3000.');
+            port = 3000;
+        }
+    }
+
+    return new Promise((resolve) => {
+        server = app.listen(port, HOSTNAME, () => {
+            console.log(`Server is running on http://${HOSTNAME}:${port}`);
+            console.log(`Data path: ${dataPath}`);
+            resolve({ server, port, hostname: HOSTNAME });
+        });
+    });
+}
+
+if (require.main === module) {
+    startServer();
+}
+
+module.exports = { startServer };

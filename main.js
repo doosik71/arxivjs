@@ -1,36 +1,45 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
-const server = require('./index.js'); // Import the server
+const { startServer } = require('./index.js'); // Import the server starter
 
-function createWindow() {
-  const mainWindow = new BrowserWindow({
-    width: 1200,
-    height: 800,
-    icon: path.join(__dirname, 'public', 'favicon.ico'),
-    webPreferences: {
-      preload: path.join(__dirname, 'preload.js'),
-      nodeIntegration: true,
-      contextIsolation: false,
-    },
-  });
+async function main() {
+    const { server, port, hostname } = await startServer();
 
-  // The server is now running, load the URL
-  mainWindow.loadURL('http://localhost:3000');
+    function createWindow() {
+        const mainWindow = new BrowserWindow({
+            width: 1200,
+            height: 800,
+            icon: path.join(__dirname, 'public', 'favicon.ico'),
+            webPreferences: {
+                preload: path.join(__dirname, 'preload.js'),
+                nodeIntegration: true,
+                contextIsolation: false,
+            },
+        });
 
-  // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+        // The server is now running, load the URL
+        mainWindow.loadURL(`http://${hostname}:${port}`);
+
+        // Open the DevTools.
+        // mainWindow.webContents.openDevTools();
+    }
+
+    app.whenReady().then(() => {
+        createWindow();
+
+        app.on('activate', function () {
+            if (BrowserWindow.getAllWindows().length === 0) createWindow();
+        });
+    });
+
+    app.on('window-all-closed', function () {
+        server.close(() => {
+            console.log('Server closed');
+            if (process.platform !== 'darwin') {
+                app.quit();
+            }
+        });
+    });
 }
 
-app.whenReady().then(() => {
-  createWindow();
-
-  app.on('activate', function () {
-    if (BrowserWindow.getAllWindows().length === 0) createWindow();
-  });
-});
-
-app.on('window-all-closed', function () {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+main().catch(console.error);
