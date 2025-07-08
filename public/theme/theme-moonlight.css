@@ -1,0 +1,41 @@
+/*
+ * Moonlight Theme - ArxivJS
+ * Silver and blue colors with serene night atmosphere
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #334155;
+    --color-text-muted: #475569;
+    --color-text-disabled: #cbd5e1;
+    
+    /* Background colors */
+    --color-background-primary: #f8fafc;
+    --color-background-secondary: #f1f5f9;
+    --color-background-hover: #e2e8f0;
+    
+    /* Border colors */
+    --color-border-primary: #94a3b8;
+    --color-border-secondary: #cbd5e1;
+    --color-border-accent: #475569;
+    
+    /* Link colors */
+    --color-link-primary: #334155;
+    --color-link-secondary: #475569;
+    --color-link-hover: #1e293b;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #1e293b;
+    --color-accent-secondary: #334155;
+    --color-accent-tertiary: #475569;
+    --color-accent-quaternary: #64748b;
+    --color-accent-light: #94a3b8;
+    --color-accent-very-light: #cbd5e1;
+    
+    /* Special colors */
+    --color-selection-background: #f1f5f9;
+    --color-info-text: #334155;
+    --color-spinner: rgba(71, 85, 105, 0.2);
+    --color-gray-border: #94a3b8;
+}

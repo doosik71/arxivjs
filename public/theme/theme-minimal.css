@@ -1,0 +1,41 @@
+/*
+ * Minimal Theme - ArxivJS
+ * Clean, distraction-free design with subtle colors
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #1f2937;
+    --color-text-secondary: #4b5563;
+    --color-text-muted: #9ca3af;
+    --color-text-disabled: #d1d5db;
+    
+    /* Background colors */
+    --color-background-primary: #ffffff;
+    --color-background-secondary: #fefefe;
+    --color-background-hover: #f9fafb;
+    
+    /* Border colors */
+    --color-border-primary: #e5e7eb;
+    --color-border-secondary: #f3f4f6;
+    --color-border-accent: #4b5563;
+    
+    /* Link colors */
+    --color-link-primary: #374151;
+    --color-link-secondary: #4b5563;
+    --color-link-hover: #1f2937;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #111827;
+    --color-accent-secondary: #1f2937;
+    --color-accent-tertiary: #374151;
+    --color-accent-quaternary: #4b5563;
+    --color-accent-light: #6b7280;
+    --color-accent-very-light: #9ca3af;
+    
+    /* Special colors */
+    --color-selection-background: #f3f4f6;
+    --color-info-text: #374151;
+    --color-spinner: rgba(75, 85, 99, 0.2);
+    --color-gray-border: #9ca3af;
+}

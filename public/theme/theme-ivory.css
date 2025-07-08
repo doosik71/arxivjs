@@ -1,0 +1,41 @@
+/*
+ * Ivory Theme - ArxivJS
+ * Warm cream color scheme with elegant simplicity
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #451a03;
+    --color-text-secondary: #78350f;
+    --color-text-muted: #a16207;
+    --color-text-disabled: #fef3c7;
+    
+    /* Background colors */
+    --color-background-primary: #fffef7;
+    --color-background-secondary: #fefdf6;
+    --color-background-hover: #fef7ed;
+    
+    /* Border colors */
+    --color-border-primary: #fed7aa;
+    --color-border-secondary: #fef3c7;
+    --color-border-accent: #a16207;
+    
+    /* Link colors */
+    --color-link-primary: #78350f;
+    --color-link-secondary: #a16207;
+    --color-link-hover: #451a03;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #451a03;
+    --color-accent-secondary: #78350f;
+    --color-accent-tertiary: #92400e;
+    --color-accent-quaternary: #a16207;
+    --color-accent-light: #ca8a04;
+    --color-accent-very-light: #eab308;
+    
+    /* Special colors */
+    --color-selection-background: #fef7ed;
+    --color-info-text: #78350f;
+    --color-spinner: rgba(161, 98, 7, 0.2);
+    --color-gray-border: #fed7aa;
+}

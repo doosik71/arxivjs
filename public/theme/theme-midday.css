@@ -1,0 +1,41 @@
+/*
+ * Midday Theme - ArxivJS
+ * Bright sunny colors with high energy
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #9a3412;
+    --color-text-secondary: #c2410c;
+    --color-text-muted: #ea580c;
+    --color-text-disabled: #fed7aa;
+    
+    /* Background colors */
+    --color-background-primary: #fff7ed;
+    --color-background-secondary: #ffedd5;
+    --color-background-hover: #fed7aa;
+    
+    /* Border colors */
+    --color-border-primary: #fb923c;
+    --color-border-secondary: #fdba74;
+    --color-border-accent: #ea580c;
+    
+    /* Link colors */
+    --color-link-primary: #c2410c;
+    --color-link-secondary: #ea580c;
+    --color-link-hover: #9a3412;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #9a3412;
+    --color-accent-secondary: #c2410c;
+    --color-accent-tertiary: #dc2626;
+    --color-accent-quaternary: #ea580c;
+    --color-accent-light: #f97316;
+    --color-accent-very-light: #fb923c;
+    
+    /* Special colors */
+    --color-selection-background: #ffedd5;
+    --color-info-text: #c2410c;
+    --color-spinner: rgba(234, 88, 12, 0.2);
+    --color-gray-border: #fb923c;
+}

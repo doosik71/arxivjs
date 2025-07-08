@@ -1,0 +1,41 @@
+/*
+ * Amethyst Theme - ArxivJS
+ * Purple color scheme with mystical elegance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #581c87;
+    --color-text-secondary: #6b21a8;
+    --color-text-muted: #7c3aed;
+    --color-text-disabled: #c4b5fd;
+    
+    /* Background colors */
+    --color-background-primary: #faf5ff;
+    --color-background-secondary: #f3e8ff;
+    --color-background-hover: #e9d5ff;
+    
+    /* Border colors */
+    --color-border-primary: #a78bfa;
+    --color-border-secondary: #c4b5fd;
+    --color-border-accent: #7c3aed;
+    
+    /* Link colors */
+    --color-link-primary: #6b21a8;
+    --color-link-secondary: #7c3aed;
+    --color-link-hover: #581c87;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #581c87;
+    --color-accent-secondary: #6b21a8;
+    --color-accent-tertiary: #7c2d92;
+    --color-accent-quaternary: #7c3aed;
+    --color-accent-light: #8b5cf6;
+    --color-accent-very-light: #a78bfa;
+    
+    /* Special colors */
+    --color-selection-background: #f3e8ff;
+    --color-info-text: #6b21a8;
+    --color-spinner: rgba(124, 58, 237, 0.2);
+    --color-gray-border: #a78bfa;
+}

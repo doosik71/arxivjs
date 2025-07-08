@@ -1,0 +1,41 @@
+/*
+ * Emerald Theme - ArxivJS
+ * Rich green color scheme with natural elegance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #064e3b;
+    --color-text-secondary: #065f46;
+    --color-text-muted: #059669;
+    --color-text-disabled: #6ee7b7;
+    
+    /* Background colors */
+    --color-background-primary: #ecfdf5;
+    --color-background-secondary: #d1fae5;
+    --color-background-hover: #a7f3d0;
+    
+    /* Border colors */
+    --color-border-primary: #34d399;
+    --color-border-secondary: #6ee7b7;
+    --color-border-accent: #059669;
+    
+    /* Link colors */
+    --color-link-primary: #065f46;
+    --color-link-secondary: #059669;
+    --color-link-hover: #064e3b;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #064e3b;
+    --color-accent-secondary: #065f46;
+    --color-accent-tertiary: #047857;
+    --color-accent-quaternary: #059669;
+    --color-accent-light: #10b981;
+    --color-accent-very-light: #34d399;
+    
+    /* Special colors */
+    --color-selection-background: #d1fae5;
+    --color-info-text: #065f46;
+    --color-spinner: rgba(5, 150, 105, 0.2);
+    --color-gray-border: #34d399;
+}

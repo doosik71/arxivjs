@@ -1,0 +1,41 @@
+/*
+ * Aurora Theme - ArxivJS
+ * Northern lights colors with ethereal beauty
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #065f46;
+    --color-text-secondary: #047857;
+    --color-text-muted: #059669;
+    --color-text-disabled: #6ee7b7;
+    
+    /* Background colors */
+    --color-background-primary: #f0fdfa;
+    --color-background-secondary: #ccfbf1;
+    --color-background-hover: #99f6e4;
+    
+    /* Border colors */
+    --color-border-primary: #5eead4;
+    --color-border-secondary: #99f6e4;
+    --color-border-accent: #14b8a6;
+    
+    /* Link colors */
+    --color-link-primary: #047857;
+    --color-link-secondary: #059669;
+    --color-link-hover: #065f46;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #065f46;
+    --color-accent-secondary: #047857;
+    --color-accent-tertiary: #0d9488;
+    --color-accent-quaternary: #14b8a6;
+    --color-accent-light: #2dd4bf;
+    --color-accent-very-light: #5eead4;
+    
+    /* Special colors */
+    --color-selection-background: #ccfbf1;
+    --color-info-text: #047857;
+    --color-spinner: rgba(20, 184, 166, 0.2);
+    --color-gray-border: #5eead4;
+}

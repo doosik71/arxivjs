@@ -58,6 +58,7 @@ function handleDOMContentLoaded() {
     const summaryView = getElement('summary-view');
     const abstractCell = getElement('paper-detail-info-table-abstract');
     const themeSelect = getElement('theme-select');
+    const themeLink = getElement('theme-loader');
 
     // Validate that all critical elements were found before proceeding.
     const criticalElements = [
@@ -65,7 +66,7 @@ function handleDOMContentLoaded() {
         topicListMenu, paperListMenu, paperDetailMenu, optionMenu, topicListView, paperListView,
         paperDetailView, optionView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
         searchPaperForm, addPaperByUrlForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
-        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect, themeLink
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -673,9 +674,8 @@ function handleDOMContentLoaded() {
      */
     function handleThemeChange(e) {
         const selectedTheme = e.target.value;
-        const themeLink = document.querySelector('link[href*="theme-"]');
         if (themeLink) {
-            themeLink.href = `theme-${selectedTheme}.css`;
+            themeLink.href = `theme/theme-${selectedTheme}.css`;
         }
         // Save theme preference to localStorage
         localStorage.setItem('arxivjs-theme', selectedTheme);
@@ -687,9 +687,8 @@ function handleDOMContentLoaded() {
     function loadSavedTheme() {
         const savedTheme = localStorage.getItem('arxivjs-theme') || 'red';
         themeSelect.value = savedTheme;
-        const themeLink = document.querySelector('link[href*="theme-"]');
         if (themeLink) {
-            themeLink.href = `theme-${savedTheme}.css`;
+            themeLink.href = `theme/theme-${savedTheme}.css`;
         }
     }
 

@@ -1,0 +1,41 @@
+/*
+ * Twilight Theme - ArxivJS
+ * Purple-blue dusk colors with magical atmosphere
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #4c1d95;
+    --color-text-secondary: #5b21b6;
+    --color-text-muted: #6d28d9;
+    --color-text-disabled: #c4b5fd;
+    
+    /* Background colors */
+    --color-background-primary: #f5f3ff;
+    --color-background-secondary: #ede9fe;
+    --color-background-hover: #ddd6fe;
+    
+    /* Border colors */
+    --color-border-primary: #a78bfa;
+    --color-border-secondary: #c4b5fd;
+    --color-border-accent: #6d28d9;
+    
+    /* Link colors */
+    --color-link-primary: #5b21b6;
+    --color-link-secondary: #6d28d9;
+    --color-link-hover: #4c1d95;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #4c1d95;
+    --color-accent-secondary: #5b21b6;
+    --color-accent-tertiary: #6d28d9;
+    --color-accent-quaternary: #7c3aed;
+    --color-accent-light: #8b5cf6;
+    --color-accent-very-light: #a78bfa;
+    
+    /* Special colors */
+    --color-selection-background: #ede9fe;
+    --color-info-text: #5b21b6;
+    --color-spinner: rgba(109, 40, 217, 0.2);
+    --color-gray-border: #a78bfa;
+}

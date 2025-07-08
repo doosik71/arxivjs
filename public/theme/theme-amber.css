@@ -1,0 +1,41 @@
+/*
+ * Amber Theme - ArxivJS
+ * Warm yellow-orange color scheme with golden elegance
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #92400e;
+    --color-text-secondary: #b45309;
+    --color-text-muted: #d97706;
+    --color-text-disabled: #fcd34d;
+    
+    /* Background colors */
+    --color-background-primary: #fffbeb;
+    --color-background-secondary: #fef3c7;
+    --color-background-hover: #fed7aa;
+    
+    /* Border colors */
+    --color-border-primary: #f59e0b;
+    --color-border-secondary: #fbbf24;
+    --color-border-accent: #d97706;
+    
+    /* Link colors */
+    --color-link-primary: #b45309;
+    --color-link-secondary: #d97706;
+    --color-link-hover: #92400e;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #92400e;
+    --color-accent-secondary: #b45309;
+    --color-accent-tertiary: #d97706;
+    --color-accent-quaternary: #f59e0b;
+    --color-accent-light: #fbbf24;
+    --color-accent-very-light: #fcd34d;
+    
+    /* Special colors */
+    --color-selection-background: #fef3c7;
+    --color-info-text: #b45309;
+    --color-spinner: rgba(217, 119, 6, 0.2);
+    --color-gray-border: #f59e0b;
+}

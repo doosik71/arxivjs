@@ -1,0 +1,41 @@
+/*
+ * Coral Theme - ArxivJS
+ * Warm pink-orange color scheme with vibrant energy
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #be185d;
+    --color-text-secondary: #db2777;
+    --color-text-muted: #ec4899;
+    --color-text-disabled: #f9a8d4;
+    
+    /* Background colors */
+    --color-background-primary: #fdf2f8;
+    --color-background-secondary: #fce7f3;
+    --color-background-hover: #fbcfe8;
+    
+    /* Border colors */
+    --color-border-primary: #f472b6;
+    --color-border-secondary: #f9a8d4;
+    --color-border-accent: #ec4899;
+    
+    /* Link colors */
+    --color-link-primary: #db2777;
+    --color-link-secondary: #ec4899;
+    --color-link-hover: #be185d;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #be185d;
+    --color-accent-secondary: #db2777;
+    --color-accent-tertiary: #e11d48;
+    --color-accent-quaternary: #ec4899;
+    --color-accent-light: #f472b6;
+    --color-accent-very-light: #f9a8d4;
+    
+    /* Special colors */
+    --color-selection-background: #fce7f3;
+    --color-info-text: #db2777;
+    --color-spinner: rgba(236, 72, 153, 0.2);
+    --color-gray-border: #f472b6;
+}

@@ -1,0 +1,41 @@
+/*
+ * Academic Theme - ArxivJS
+ * Professional academic styling with navy and gold accents
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #1e293b;
+    --color-text-secondary: #334155;
+    --color-text-muted: #64748b;
+    --color-text-disabled: #cbd5e1;
+    
+    /* Background colors */
+    --color-background-primary: #fefefe;
+    --color-background-secondary: #f8fafc;
+    --color-background-hover: #f1f5f9;
+    
+    /* Border colors */
+    --color-border-primary: #e2e8f0;
+    --color-border-secondary: #f1f5f9;
+    --color-border-accent: #0f172a;
+    
+    /* Link colors */
+    --color-link-primary: #0f172a;
+    --color-link-secondary: #1e293b;
+    --color-link-hover: #020617;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #0f172a;
+    --color-accent-secondary: #1e293b;
+    --color-accent-tertiary: #334155;
+    --color-accent-quaternary: #475569;
+    --color-accent-light: #64748b;
+    --color-accent-very-light: #94a3b8;
+    
+    /* Special colors */
+    --color-selection-background: #f8fafc;
+    --color-info-text: #1e293b;
+    --color-spinner: rgba(30, 41, 59, 0.2);
+    --color-gray-border: #94a3b8;
+}

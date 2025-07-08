@@ -1,0 +1,41 @@
+/*
+ * Slate Theme - ArxivJS
+ * Cool gray color scheme with modern sophistication
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #0f172a;
+    --color-text-secondary: #1e293b;
+    --color-text-muted: #475569;
+    --color-text-disabled: #cbd5e1;
+    
+    /* Background colors */
+    --color-background-primary: #f8fafc;
+    --color-background-secondary: #f1f5f9;
+    --color-background-hover: #e2e8f0;
+    
+    /* Border colors */
+    --color-border-primary: #94a3b8;
+    --color-border-secondary: #cbd5e1;
+    --color-border-accent: #475569;
+    
+    /* Link colors */
+    --color-link-primary: #1e293b;
+    --color-link-secondary: #475569;
+    --color-link-hover: #0f172a;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #0f172a;
+    --color-accent-secondary: #1e293b;
+    --color-accent-tertiary: #334155;
+    --color-accent-quaternary: #475569;
+    --color-accent-light: #64748b;
+    --color-accent-very-light: #94a3b8;
+    
+    /* Special colors */
+    --color-selection-background: #f1f5f9;
+    --color-info-text: #1e293b;
+    --color-spinner: rgba(71, 85, 105, 0.2);
+    --color-gray-border: #94a3b8;
+}

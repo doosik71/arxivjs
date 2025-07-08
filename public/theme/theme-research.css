@@ -1,0 +1,41 @@
+/*
+ * Research Theme - ArxivJS
+ * Science-focused theme with cool blues and teals
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #083344;
+    --color-text-secondary: #164e63;
+    --color-text-muted: #0891b2;
+    --color-text-disabled: #a5f3fc;
+    
+    /* Background colors */
+    --color-background-primary: #f0fdff;
+    --color-background-secondary: #ecfeff;
+    --color-background-hover: #cffafe;
+    
+    /* Border colors */
+    --color-border-primary: #67e8f9;
+    --color-border-secondary: #a5f3fc;
+    --color-border-accent: #0891b2;
+    
+    /* Link colors */
+    --color-link-primary: #0e7490;
+    --color-link-secondary: #0891b2;
+    --color-link-hover: #083344;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #083344;
+    --color-accent-secondary: #164e63;
+    --color-accent-tertiary: #0e7490;
+    --color-accent-quaternary: #0891b2;
+    --color-accent-light: #06b6d4;
+    --color-accent-very-light: #22d3ee;
+    
+    /* Special colors */
+    --color-selection-background: #e6fffa;
+    --color-info-text: #0e7490;
+    --color-spinner: rgba(8, 145, 178, 0.2);
+    --color-gray-border: #06b6d4;
+}

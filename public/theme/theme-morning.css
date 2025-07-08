@@ -1,0 +1,41 @@
+/*
+ * Morning Theme - ArxivJS
+ * Fresh dawn colors with soft pastels
+ */
+
+:root {
+    /* Text colors */
+    --color-text-primary: #0c4a6e;
+    --color-text-secondary: #0369a1;
+    --color-text-muted: #0284c7;
+    --color-text-disabled: #bae6fd;
+    
+    /* Background colors */
+    --color-background-primary: #f0f9ff;
+    --color-background-secondary: #e0f2fe;
+    --color-background-hover: #bae6fd;
+    
+    /* Border colors */
+    --color-border-primary: #7dd3fc;
+    --color-border-secondary: #bae6fd;
+    --color-border-accent: #0284c7;
+    
+    /* Link colors */
+    --color-link-primary: #0369a1;
+    --color-link-secondary: #0284c7;
+    --color-link-hover: #0c4a6e;
+    
+    /* Accent colors for headings and highlights */
+    --color-accent-primary: #0c4a6e;
+    --color-accent-secondary: #0369a1;
+    --color-accent-tertiary: #0284c7;
+    --color-accent-quaternary: #0ea5e9;
+    --color-accent-light: #38bdf8;
+    --color-accent-very-light: #7dd3fc;
+    
+    /* Special colors */
+    --color-selection-background: #e0f2fe;
+    --color-info-text: #0369a1;
+    --color-spinner: rgba(2, 132, 199, 0.2);
+    --color-gray-border: #7dd3fc;
+}
