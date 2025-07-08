@@ -905,12 +905,11 @@ function handleDOMContentLoaded() {
             }
 
             // Show save section after successful summarization (only for URL input)
-            if (selectedMethod === 'url') {
-                currentPdfSummary = summary;
-                currentPdfUrl = pdfUrl;
-                pdfSaveSection.style.display = 'block';
-            }
-
+            // if (selectedMethod === 'url') {
+            //     currentPdfSummary = summary;
+            //     currentPdfUrl = pdfUrl;
+            //     pdfSaveSection.style.display = 'block';
+            // }
         } catch (error) {
             console.error('PDF summarization failed:', error);
             pdfSummaryContent.innerHTML = '<div class="user-message">Failed to summarize PDF</div>';
