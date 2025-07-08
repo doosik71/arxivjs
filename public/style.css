@@ -94,7 +94,7 @@ li {
  */
 
 #sidebar {
-    width: 7em;
+    width: 9em;
     height: 100vh;
     background: var(--color-background-primary);
     padding: 1em;
@@ -160,7 +160,7 @@ li {
 #main-content {
     height: calc(100vh-1em);
     flex-grow: 1;
-    margin: 0 0 0 9em;
+    margin: 0 0 0 11em;
     transition: margin-left 0.3s;
 }
 
@@ -371,13 +371,17 @@ th {
     width: 0.1em;
 }
 
-#summary-content {
+/*
+ * Content viewer styles (shared between summary-content and pdf-summary-content)
+ */
+
+.content-viewer {
     flex-grow: 1;
     padding: 1em;
     box-sizing: border-box;
 }
 
-#summary-content::selection {
+.content-viewer::selection {
     background-color: var(--color-selection-background);
     text-decoration: underline;
     text-decoration-color: var(--color-accent-very-light);
@@ -385,29 +389,29 @@ th {
     text-underline-offset: 0.25em;
 }
 
-#summary-content ul,
-#summary-content ol {
+.content-viewer ul,
+.content-viewer ol {
     padding-left: 1.5em;
 }
 
-#summary-content h1 {
+.content-viewer h1 {
     color: var(--color-accent-primary);
 }
 
-#summary-content h2 {
+.content-viewer h2 {
     color: var(--color-accent-secondary);
 }
 
-#summary-content h3,
-#summary-content h4 {
+.content-viewer h3,
+.content-viewer h4 {
     color: var(--color-accent-tertiary);
 }
 
-#summary-content strong {
+.content-viewer strong {
     color: var(--color-accent-quaternary);
 }
 
-#summary-content h2::before {
+.content-viewer h2::before {
     content: "";
     display: inline-block;
     margin-right: 0.4em;
@@ -416,6 +420,10 @@ th {
     height: 1.4em;
     background-color: var(--color-accent-light);
     border-radius: 0.2em;
+}
+
+#summary-content {
+    /* Inherits all styles from .content-viewer */
 }
 
 #splitter-container {
@@ -474,4 +482,94 @@ th {
     transform: translate(-50%, -50%) rotate(90deg);
     font-size: 1.7em;
     color: var(--color-text-secondary);
+}
+
+/*
+ * PDF Summary view
+ */
+
+#pdf-summary-controls {
+    display: flex;
+    align-items: center;
+    gap: 1em;
+    margin-bottom: 1em;
+    flex-wrap: wrap;
+}
+
+.pdf-method-selection {
+    display: flex;
+    gap: 1em;
+    border: 0.1em solid var(--color-border-primary);
+    border-radius: 0.3em;
+    padding: 0.5em;
+}
+
+.pdf-method-selection label {
+    display: flex;
+    align-items: center;
+    gap: 0.3em;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.pdf-input-section,
+.pdf-upload-section,
+.pdf-action-section {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+#pdf-summary-content {
+    /* Inherits all styles from .content-viewer */
+    border: 0.1em solid var(--color-border-secondary);
+    border-radius: 0.5em;
+    background-color: var(--color-background-primary);
+    min-height: 20em;
+}
+
+#pdf-save-section {
+    margin-top: 1em;
+    padding: 1em;
+    border: 0.1em solid var(--color-border-secondary);
+    border-radius: 0.5em;
+    background-color: var(--color-background-primary);
+}
+
+#pdf-save-section h3 {
+    margin: 0 0 1em 0;
+    color: var(--color-text-primary);
+}
+
+.pdf-save-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
+}
+
+.pdf-save-field {
+    display: flex;
+    align-items: center;
+    gap: 0.5em;
+}
+
+.pdf-save-field label {
+    width: 5em;
+    text-align: right;
+    font-weight: bold;
+}
+
+.pdf-save-field input {
+    flex: 1;
+    max-width: 30em;
+}
+
+.pdf-save-actions {
+    display: flex;
+    gap: 0.5em;
+    margin-top: 0.5em;
+}
+
+.pdf-save-actions button {
+    padding: 0.5em 1em;
 }

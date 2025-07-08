@@ -4,11 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ArxivJS is a Node.js application that provides both web and desktop interfaces for managing arXiv papers. It allows users to:
+ArxivJS is a Node.js application that provides both web and desktop interfaces for managing arXiv papers and general PDF documents. It allows users to:
 
 - Create and manage topic folders
 - Search arXiv papers by keywords and date ranges
 - Save papers to topic folders
+- Summarize any PDF document via URL or file upload
 - Generate AI-powered summaries using Google's Gemini API
 - Export as both web application and Electron desktop app
 
@@ -22,15 +23,18 @@ The application uses a simple client-server architecture:
 - **Data storage** in `arxivjsdata/` directory (either in project root or Electron userData path)
 - **Gemini API integration** for paper summarization using streaming responses
 - **PDF processing** with pdf-parse library for extracting text content
+- **PDF URL proxy** for fetching external PDFs to avoid CORS issues
 - **ArXiv API integration** for searching and fetching paper metadata
+- **File upload handling** using multer for PDF file processing
 
 ### Client Side (public/script.js)
 
 - **Vanilla JavaScript** single-page application
-- **Four main views**: Topic List, Paper List, Paper Detail, Option
+- **Five main views**: Topic List, Paper List, Paper Detail, PDF Summary, Option
 - **Real-time streaming** for AI summary generation
 - **Dynamic UI updates** without page refreshes
-- **Theme system** with 8 different color schemes and localStorage persistence
+- **Theme system** with multiple color schemes and localStorage persistence
+- **Client-side PDF processing** using PDF.js for text extraction
 
 ### Desktop App (main.js)
 
@@ -111,6 +115,10 @@ The server provides RESTful endpoints for:
 - **Paper Summaries**: GET `/paper-summary/:topicName/:paperId`
 - **AI Summarization**: POST `/summarize-and-save` (streaming response)
 - **Add by URL**: POST `/paper-by-url`
+- **PDF Text Extraction**: POST `/extract-pdf-text` (file upload)
+- **PDF Text Summarization**: POST `/summarize-pdf-text` (streaming response)
+- **PDF URL Proxy**: POST `/fetch-pdf-url` (CORS-free PDF fetching)
+- **Save PDF Paper**: POST `/save-pdf-paper` (save PDF summary with metadata)
 
 ## Data Format
 
@@ -132,7 +140,7 @@ The server provides RESTful endpoints for:
 
 - **Collapsible menu**: Toggle between full sidebar and icon-only mode
 - **Smart text hiding**: Menu text hidden when collapsed, icons remain visible
-- **Four main sections**: Topic List, Paper List, Paper Detail, Option
+- **Five main sections**: Topic List, Paper List, Paper Detail, PDF Summary, Option
 - **Context-aware navigation**: Menu items enabled/disabled based on current state
 
 ### Form Elements
@@ -141,11 +149,45 @@ The server provides RESTful endpoints for:
 - **Focus states**: Enhanced visual feedback on input focus
 - **Consistent styling**: Buttons, dropdowns, and inputs follow design system
 
+## PDF Summary Feature
+
+### Overview
+The PDF Summary feature allows users to summarize any PDF document (not just arXiv papers) by:
+- Entering a PDF URL directly
+- Uploading a PDF file from their device
+
+### Technical Implementation
+- **Client-side PDF processing**: Uses PDF.js library for text extraction in the browser
+- **CORS handling**: Server proxy (`/fetch-pdf-url`) fetches external PDFs to avoid browser CORS restrictions
+- **Dual input methods**: Radio button selection between URL input and file upload
+- **Streaming summaries**: Real-time AI-powered summarization using Gemini API
+- **Topic-based organization**: Summaries are associated with selected topics
+- **Paper metadata management**: Collects and validates paper information (title, authors, year)
+- **Automatic saving**: Saves both paper metadata (.json) and summary (.md) to topic folders
+
+### User Interface
+- **Method selection**: Radio button selection for PDF source (URL vs File Upload)
+- **Conditional UI**: Shows only the selected input method
+- **Real-time streaming**: Live display of summary results during generation
+- **Save functionality**: Post-summarization form for paper metadata entry
+- **Form validation**: Ensures required fields (title, authors, year) are completed
+- **Success feedback**: Clear confirmation messages and automatic form cleanup
+- **Theme integration**: Consistent styling with existing design system
+
+### Workflow
+1. **Select input method**: Choose between PDF URL or file upload
+2. **Provide PDF source**: Enter URL or upload file
+3. **Generate summary**: Click Summarize to process PDF and generate AI summary
+4. **Enter metadata**: Fill in paper title, authors, and publication year (URL method only)
+5. **Save to topic**: Store both summary and metadata in the selected topic folder
+
 ## Important Notes
 
 - The application requires both `GEMINI_API_KEY` and `userprompt.txt` to function
 - Papers are downloaded as PDFs and processed to extract text for summarization
+- PDF.js library is loaded via CDN for client-side PDF text extraction
 - The frontend uses extensive DOM manipulation and event handling
 - Error handling includes both console logging and user-facing error dialogs
 - The server supports both standalone web deployment and Electron integration
 - Theme preferences are automatically saved and restored on application restart
+- CORS issues with external PDFs are handled through server-side proxy endpoints

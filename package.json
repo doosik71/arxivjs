@@ -21,8 +21,10 @@
     "axios": "^1.10.0",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
+    "multer": "^2.0.1",
     "nodemon": "^3.1.10",
     "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.3.93",
     "xml2js": "^0.6.2"
   },
   "devDependencies": {

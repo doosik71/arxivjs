@@ -4,6 +4,7 @@ const fs = require('fs').promises;
 const path = require('path');
 const axios = require('axios');
 const xml2js = require('xml2js');
+const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
 require('dotenv').config();
 
@@ -59,6 +60,14 @@ const userPromptPath = path.join(dataPath, 'userprompt.txt');
 // Initialize express server.
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
+
+// Configure multer for file uploads
+const upload = multer({ 
+    storage: multer.memoryStorage(),
+    limits: {
+        fileSize: 50 * 1024 * 1024 // 50MB limit
+    }
+});
 
 // Establish API access points.
 async function getTopics(req, res) {
@@ -379,6 +388,142 @@ app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/summarize-and-save', summarizeAndSave);
 app.post('/paper-by-url', addPaperByUrl);
+app.post('/extract-pdf-text', upload.single('pdf'), extractPdfText);
+app.post('/summarize-pdf-text', summarizePdfText);
+app.post('/fetch-pdf-url', fetchPdfFromUrl);
+app.post('/save-pdf-paper', savePdfPaper);
+
+async function extractPdfText(req, res) {
+    try {
+        if (!req.file) {
+            return res.status(400).json({ message: 'No PDF file uploaded' });
+        }
+
+        if (req.file.mimetype !== 'application/pdf') {
+            return res.status(400).json({ message: 'File must be a PDF' });
+        }
+
+        const pdfParser = require('pdf-parse');
+        const data = await pdfParser(req.file.buffer);
+        
+        res.json({ text: data.text });
+    } catch (error) {
+        console.error('PDF text extraction error:', error);
+        res.status(500).json({ message: 'Failed to extract text from PDF' });
+    }
+}
+
+async function summarizePdfText(req, res) {
+    try {
+        const { text, topicName } = req.body;
+        
+        if (!text) {
+            return res.status(400).json({ message: 'No text provided for summarization' });
+        }
+
+        if (!topicName) {
+            return res.status(400).json({ message: 'Topic name is required' });
+        }
+
+        // Read user prompt template
+        const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
+        const prompt = userPrompt.replace('{context}', text);
+        
+        // Initialize Gemini model
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const result = await model.generateContentStream(prompt);
+
+        // Set up streaming response
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        // Stream the summary
+        for await (const chunk of result.stream) {
+            const textChunk = chunk.text?.();
+            if (textChunk) {
+                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
+            }
+        }
+
+        res.end();
+
+    } catch (error) {
+        console.error('PDF text summarization error:', error);
+        res.status(500).json({ message: 'Failed to summarize PDF text' });
+    }
+}
+
+async function fetchPdfFromUrl(req, res) {
+    try {
+        const { url } = req.body;
+        
+        if (!url) {
+            return res.status(400).json({ message: 'PDF URL is required' });
+        }
+
+        // Fetch PDF from the URL
+        const response = await axios.get(url, { 
+            responseType: 'arraybuffer',
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+            }
+        });
+
+        // Set appropriate headers for PDF response
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Length', response.data.length);
+        
+        // Send the PDF data
+        res.send(Buffer.from(response.data));
+
+    } catch (error) {
+        console.error('PDF URL fetch error:', error);
+        res.status(500).json({ message: 'Failed to fetch PDF from URL' });
+    }
+}
+
+async function savePdfPaper(req, res) {
+    try {
+        const { paper, summary, topicName } = req.body;
+        
+        if (!paper || !summary || !topicName) {
+            return res.status(400).json({ message: 'Missing required data: paper, summary, or topicName' });
+        }
+
+        // Validate paper data
+        if (!paper.title || !paper.authors || !paper.year || !paper.url) {
+            return res.status(400).json({ message: 'Paper must include title, authors, year, and url' });
+        }
+
+        const topicPath = path.join(dataPath, topicName);
+        
+        // Check if topic exists
+        try {
+            await fs.access(topicPath);
+        } catch (error) {
+            return res.status(404).json({ message: 'Topic not found' });
+        }
+
+        // Generate filename using base64-encoded URL
+        const fileName = btoa(paper.url).replace(/[/+=]/g, '_');
+        const jsonFilePath = path.join(topicPath, fileName + '.json');
+        const mdFilePath = path.join(topicPath, fileName + '.md');
+
+        // Save paper metadata
+        await fs.writeFile(jsonFilePath, JSON.stringify(paper, null, 2));
+        
+        // Save summary
+        await fs.writeFile(mdFilePath, summary);
+
+        res.status(201).json({ message: 'PDF paper saved successfully' });
+
+    } catch (error) {
+        console.error('Save PDF paper error:', error);
+        res.status(500).json({ message: 'Failed to save PDF paper' });
+    }
+}
 
 let server;
 

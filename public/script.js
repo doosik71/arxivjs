@@ -38,10 +38,12 @@ function handleDOMContentLoaded() {
     const topicListMenu = getElement('topic-list-menu');
     const paperListMenu = getElement('paper-list-menu');
     const paperDetailMenu = getElement('paper-detail-menu');
+    const pdfSummaryMenu = getElement('pdf-summary-menu');
     const optionMenu = getElement('option-menu');
     const topicListView = getElement('topic-list-view');
     const paperListView = getElement('paper-list-view');
     const paperDetailView = getElement('paper-detail-view');
+    const pdfSummaryView = getElement('pdf-summary-view');
     const optionView = getElement('option-view');
     const addTopicForm = getElement('add-topic-form');
     const topicListCards = getElement('topic-list-cards');
@@ -59,14 +61,28 @@ function handleDOMContentLoaded() {
     const abstractCell = getElement('paper-detail-info-table-abstract');
     const themeSelect = getElement('theme-select');
     const themeLink = getElement('theme-loader');
+    const pdfFileInput = getElement('pdf-file-input');
+    const pdfUrlInput = getElement('pdf-url-input');
+    const pdfSummarizeButton = getElement('pdf-summarize-button');
+    const pdfSummaryContent = getElement('pdf-summary-content');
+    const pdfMethodUrl = getElement('pdf-method-url');
+    const pdfMethodFile = getElement('pdf-method-file');
+    const pdfUrlSection = getElement('pdf-url-section');
+    const pdfFileSection = getElement('pdf-file-section');
+    const pdfSaveSection = getElement('pdf-save-section');
+    const pdfPaperTitle = getElement('pdf-paper-title');
+    const pdfPaperAuthors = getElement('pdf-paper-authors');
+    const pdfPaperYear = getElement('pdf-paper-year');
+    const pdfSaveButton = getElement('pdf-save-button');
+    const pdfCancelSaveButton = getElement('pdf-cancel-save-button');
 
     // Validate that all critical elements were found before proceeding.
     const criticalElements = [
         sidebar, mainContent, toggleMenuButton, toggleMenuIcon, menuContainer,
-        topicListMenu, paperListMenu, paperDetailMenu, optionMenu, topicListView, paperListView,
-        paperDetailView, optionView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
+        topicListMenu, paperListMenu, paperDetailMenu, pdfSummaryMenu, optionMenu, topicListView, paperListView,
+        paperDetailView, pdfSummaryView, optionView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
         searchPaperForm, addPaperByUrlForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
-        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect, themeLink
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect, themeLink, pdfFileInput, pdfUrlInput, pdfSummarizeButton, pdfSummaryContent, pdfMethodUrl, pdfMethodFile, pdfUrlSection, pdfFileSection, pdfSaveSection, pdfPaperTitle, pdfPaperAuthors, pdfPaperYear, pdfSaveButton, pdfCancelSaveButton
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -77,6 +93,8 @@ function handleDOMContentLoaded() {
     // State Variables
     let currentTopic = null;
     let currentPaper = null;
+    let currentPdfSummary = null;
+    let currentPdfUrl = null;
 
     // --- Function Definitions ---
 
@@ -86,8 +104,10 @@ function handleDOMContentLoaded() {
     function updateMenuState() {
         if (currentTopic) {
             paperListMenu.classList.remove('disabled');
+            pdfSummaryMenu.classList.remove('disabled');
         } else {
             paperListMenu.classList.add('disabled');
+            pdfSummaryMenu.classList.add('disabled');
         }
 
         if (currentPaper) {
@@ -105,6 +125,7 @@ function handleDOMContentLoaded() {
         topicListView.style.display = 'none';
         paperListView.style.display = 'none';
         paperDetailView.style.display = 'none';
+        pdfSummaryView.style.display = 'none';
         optionView.style.display = 'none';
         view.style.display = 'block';
         updateMenuState();
@@ -171,6 +192,22 @@ function handleDOMContentLoaded() {
         }
         else {
             alert('Please select a paper first.');
+        }
+    }
+
+    /**
+     * Handles the click event on the "PDF Summary" menu item.
+     * Shows the PDF summary view if a topic has been selected.
+     */
+    function handlePdfSummaryMenuClick() {
+        if (pdfSummaryMenu.classList.contains('disabled'))
+            return;
+
+        if (currentTopic) {
+            showView(pdfSummaryView);
+        }
+        else {
+            alert('Please select a topic first.');
         }
     }
 
@@ -707,11 +744,294 @@ function handleDOMContentLoaded() {
         }
     }
 
+    /**
+     * Extracts text from PDF using PDF.js
+     */
+    async function extractTextFromPdf(source) {
+        try {
+            // Check if PDF.js is loaded
+            if (typeof window.pdfjsLib === 'undefined') {
+                throw new Error('PDF.js library is not loaded');
+            }
+
+            // Set PDF.js worker if not already set
+            if (!window.pdfjsLib.GlobalWorkerOptions.workerSrc) {
+                window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+            }
+
+            let arrayBuffer;
+            if (typeof source === 'string') {
+                // URL source - use server proxy to avoid CORS
+                const response = await fetch('/fetch-pdf-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ url: source })
+                });
+                if (!response.ok) {
+                    throw new Error('Failed to fetch PDF from URL');
+                }
+                arrayBuffer = await response.arrayBuffer();
+            } else {
+                // File source
+                arrayBuffer = await source.arrayBuffer();
+            }
+
+            const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            
+            let fullText = '';
+            
+            // Extract text from all pages
+            for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
+                const page = await pdf.getPage(pageNum);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n';
+            }
+
+            return fullText;
+            
+        } catch (error) {
+            console.error('PDF text extraction failed:', error);
+            throw error;
+        }
+    }
+
+    /**
+     * Handles PDF file upload and text extraction using client-side PDF.js.
+     */
+    async function handlePdfFileUpload() {
+        const file = pdfFileInput.files[0];
+        if (!file) {
+            return;
+        }
+
+        if (file.type !== 'application/pdf') {
+            alert('Please select a PDF file.');
+            return;
+        }
+
+        try {
+            const extractedText = await extractTextFromPdf(file);
+            // Store extracted text for summarization
+            window.pdfExtractedText = extractedText;
+        } catch (error) {
+            console.error('PDF file upload text extraction failed:', error);
+            alert('Failed to extract text from PDF file');
+        }
+    }
+
+    /**
+     * Handles the PDF summarize button click.
+     * Extracts text from PDF (URL or file) and requests summarization.
+     */
+    async function handlePdfSummarizeButtonClick() {
+        if (!currentTopic) {
+            alert('Please select a topic first.');
+            return;
+        }
+
+        const selectedMethod = document.querySelector('input[name="pdf-method"]:checked').value;
+        const pdfUrl = pdfUrlInput.value.trim();
+        const pdfFile = pdfFileInput.files[0];
+        
+        if (selectedMethod === 'url' && !pdfUrl) {
+            alert('Please enter a PDF URL.');
+            return;
+        }
+        
+        if (selectedMethod === 'file' && !pdfFile) {
+            alert('Please upload a PDF file.');
+            return;
+        }
+
+        pdfSummaryContent.innerHTML = '<div class="user-message">Extracting text from PDF...<div class="spinner"></div></div>';
+
+        try {
+            let extractedText;
+            
+            if (selectedMethod === 'url') {
+                // Extract text from URL
+                extractedText = await extractTextFromPdf(pdfUrl);
+            } else {
+                // Use already extracted text or extract from file
+                if (window.pdfExtractedText) {
+                    extractedText = window.pdfExtractedText;
+                } else {
+                    extractedText = await extractTextFromPdf(pdfFile);
+                }
+            }
+
+            if (!extractedText) {
+                throw new Error('No text extracted from PDF');
+            }
+
+            // Send text to server for summarization
+            pdfSummaryContent.innerHTML = '<div class="user-message">Summarizing...<div class="spinner"></div></div>';
+
+            const response = await fetch('/summarize-pdf-text', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ text: extractedText, topicName: currentTopic })
+            });
+
+            if (!response.ok || !response.body) {
+                const text = await response.text();
+                console.error('Failed to fetch summary:', text);
+                pdfSummaryContent.innerHTML = 'Error: Invalid response!';
+                return;
+            }
+
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let summary = '';
+            pdfSummaryContent.innerHTML = ''; // Clear the "Summarizing..." message
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+                const chunk = decoder.decode(value);
+                const lines = chunk.split('\n\n');
+                for (const line of lines) {
+                    if (line.startsWith('data: ')) {
+                        try {
+                            summary += JSON.parse(line.substring(6));
+                            pdfSummaryContent.innerHTML = markdown2html(summary);
+                            MathJax.typeset();
+                        } catch (e) {
+                            // Ignore empty data chunks
+                        }
+                    }
+                }
+            }
+
+            // Show save section after successful summarization (only for URL input)
+            if (selectedMethod === 'url') {
+                currentPdfSummary = summary;
+                currentPdfUrl = pdfUrl;
+                pdfSaveSection.style.display = 'block';
+            }
+
+        } catch (error) {
+            console.error('PDF summarization failed:', error);
+            pdfSummaryContent.innerHTML = '<div class="user-message">Failed to summarize PDF</div>';
+        }
+    }
+
+    /**
+     * Handles PDF method selection (URL or File)
+     */
+    function handlePdfMethodChange() {
+        if (pdfMethodUrl.checked) {
+            pdfUrlSection.style.display = 'flex';
+            pdfFileSection.style.display = 'none';
+        } else {
+            pdfUrlSection.style.display = 'none';
+            pdfFileSection.style.display = 'flex';
+        }
+        // Hide save section when method changes
+        pdfSaveSection.style.display = 'none';
+    }
+
+    /**
+     * Handles saving PDF paper information to the current topic
+     */
+    async function handlePdfSaveButtonClick() {
+        const title = pdfPaperTitle.value.trim();
+        const authors = pdfPaperAuthors.value.trim();
+        const year = parseInt(pdfPaperYear.value);
+
+        if (!title) {
+            alert('Please enter the paper title.');
+            return;
+        }
+
+        if (!authors) {
+            alert('Please enter the paper authors.');
+            return;
+        }
+
+        if (!year || year < 1900 || year > 2099) {
+            alert('Please enter a valid year.');
+            return;
+        }
+
+        if (!currentTopic) {
+            alert('Please select a topic first.');
+            return;
+        }
+
+        if (!currentPdfSummary || !currentPdfUrl) {
+            alert('No PDF summary available to save.');
+            return;
+        }
+
+        try {
+            const paperData = {
+                title: title,
+                authors: authors,
+                year: year,
+                url: currentPdfUrl,
+                abstract: '' // Placeholder abstract
+            };
+
+            const response = await fetch('/save-pdf-paper', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    paper: paperData,
+                    summary: currentPdfSummary,
+                    topicName: currentTopic
+                })
+            });
+
+            if (response.ok) {
+                alert('Paper saved successfully!');
+                // Clear form and hide save section
+                pdfPaperTitle.value = '';
+                pdfPaperAuthors.value = '';
+                pdfPaperYear.value = '';
+                pdfSaveSection.style.display = 'none';
+                
+                // Clear summary content
+                pdfSummaryContent.innerHTML = '';
+                
+                // Clear URL input
+                pdfUrlInput.value = '';
+                
+                // Reset state
+                currentPdfSummary = null;
+                currentPdfUrl = null;
+            } else {
+                const error = await response.json();
+                alert(`Error saving paper: ${error.message}`);
+            }
+        } catch (error) {
+            console.error('Failed to save PDF paper:', error);
+            alert('Failed to save paper. Please try again.');
+        }
+    }
+
+    /**
+     * Handles canceling the PDF save operation
+     */
+    function handlePdfCancelSaveButtonClick() {
+        // Clear form and hide save section
+        pdfPaperTitle.value = '';
+        pdfPaperAuthors.value = '';
+        pdfPaperYear.value = '';
+        pdfSaveSection.style.display = 'none';
+        
+        // Reset state
+        currentPdfSummary = null;
+        currentPdfUrl = null;
+    }
+
     // --- Event Listener Assignments ---
     toggleMenuButton.addEventListener('click', handleToggleMenuClick);
     topicListMenu.addEventListener('click', handleTopicListMenuClick);
     paperListMenu.addEventListener('click', handlePaperListMenuClick);
     paperDetailMenu.addEventListener('click', handlePaperDetailMenuClick);
+    pdfSummaryMenu.addEventListener('click', handlePdfSummaryMenuClick);
     optionMenu.addEventListener('click', handleOptionMenuClick);
     addTopicForm.addEventListener('submit', handleAddTopicFormSubmit);
     topicListCards.addEventListener('click', handleTopicListCardsClick);
@@ -726,6 +1046,12 @@ function handleDOMContentLoaded() {
     summarizeButton.addEventListener('click', handleSummarizeButtonClick);
     splitter.addEventListener('pointerdown', handleSplitterPointerDown);
     themeSelect.addEventListener('change', handleThemeChange);
+    pdfFileInput.addEventListener('change', handlePdfFileUpload);
+    pdfSummarizeButton.addEventListener('click', handlePdfSummarizeButtonClick);
+    pdfMethodUrl.addEventListener('change', handlePdfMethodChange);
+    pdfMethodFile.addEventListener('change', handlePdfMethodChange);
+    pdfSaveButton.addEventListener('click', handlePdfSaveButtonClick);
+    pdfCancelSaveButton.addEventListener('click', handlePdfCancelSaveButtonClick);
 
     // --- Initial Application Setup ---
     loadSavedTheme();
