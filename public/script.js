@@ -280,7 +280,7 @@ function handleDOMContentLoaded() {
         cards.forEach(card => {
             const topicName = card.querySelector('.topic-name').textContent.toLowerCase();
             if (topicName.includes(searchTerm)) {
-                card.style.display = 'flex';
+                card.style.display = '';
             } else {
                 card.style.display = 'none';
             }
