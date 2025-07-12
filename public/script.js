@@ -415,36 +415,42 @@ function handleDOMContentLoaded() {
      */
     async function handleAddPaperByUrlFormSubmit(e) {
         e.preventDefault();
-        const paperUrlInput = document.getElementById('paper-url');
-        const paperUrl = paperUrlInput.value;
-        if (!paperUrl) {
-            alert('Please enter a paper URL.');
+
+        const paperUrlInput = document.getElementById('paper-url-input');
+        if (!paperUrlInput) {
+            alert('Paper URL input element not found.');
             return;
         }
+
         if (!currentTopic) {
             alert('Please select a topic first.');
             return;
         }
 
-        try {
-            const response = await fetch('/paper-by-url', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ paperUrl, topicName: currentTopic })
-            });
+        const paperUrls = paperUrlInput.value.trim().split(/\s+/);
+        const topicName = currentTopic;
+        paperUrlInput.value = '';
 
-            if (response.ok) {
-                const paper = await response.json();
-                showPaperDetail(paper);
-                paperUrlInput.value = '';
-                loadPapers(currentTopic);
-            } else {
-                const error = await response.json();
-                alert(`Error: ${error.message}`);
+        for (const paperUrl of paperUrls) {
+            try {
+                const response = await fetch('/paper-by-url', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paperUrl, topicName })
+                });
+
+                if (response.ok) {
+                    const paper = await response.json();
+                    await showPaperDetail(paper);
+                    loadPapers(currentTopic);
+                } else {
+                    const error = await response.json();
+                    alert(`Error: ${error.message}`);
+                }
+            } catch (error) {
+                console.error('Failed to add paper by URL:', error);
+                alert('Failed to add paper. Please check the URL and try again.');
             }
-        } catch (error) {
-            console.error('Failed to add paper by URL:', error);
-            alert('Failed to add paper. Please check the URL and try again.');
         }
     }
 
@@ -565,18 +571,19 @@ function handleDOMContentLoaded() {
         document.getElementById('paper-detail-info-table-year').innerText = paper.year;
         document.getElementById('paper-detail-info-table-url').innerHTML = `<a href="${paper.url}" target="_blank" class="card-button">Link</a>`;
         document.getElementById('paper-detail-info-table-abstract').innerText = paper.abstract.replaceAll('\n', ' ');
+        document.getElementById('summary-content').innerHTML = "";
 
         const pdfUrl = paper.url.replace('/abs/', '/pdf/');
-        
+
         // Check if auto-pdf-viewer is enabled
         const autoPdfViewer = localStorage.getItem('arxivjs-auto-pdf-viewer') === 'true';
-        
+
         // Configure the load PDF button
         if (loadPdfButton && !loadPdfButton.hasEventListener) {
             loadPdfButton.addEventListener('click', handleLoadPdfButtonClick);
             loadPdfButton.hasEventListener = true;
         }
-        
+
         if (autoPdfViewer) {
             // Auto load PDF
             loadPdfViewer(pdfUrl);
@@ -603,23 +610,23 @@ function handleDOMContentLoaded() {
             } else {
                 summaryContent.innerHTML = '';
                 summarizeButton.style.display = 'block';
-                
+
                 // Check if auto-summarization is enabled
                 const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
                 if (autoSummarization) {
                     // Automatically trigger summarization
-                    handleSummarizeButtonClick();
+                    await handleSummarizeButtonClick();
                 }
             }
         } catch (error) {
             summaryContent.innerHTML = '';
             summarizeButton.style.display = 'block';
-            
+
             // Check if auto-summarization is enabled
             const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
             if (autoSummarization) {
                 // Automatically trigger summarization
-                handleSummarizeButtonClick();
+                await handleSummarizeButtonClick();
             }
         }
     }
@@ -712,6 +719,8 @@ function handleDOMContentLoaded() {
                 }
             }
         }
+
+        await new Promise(resolve => setTimeout(resolve, 1000));
     }
 
     /**
@@ -814,7 +823,7 @@ function handleDOMContentLoaded() {
     function loadSavedSettings() {
         const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
         const autoPdfViewer = localStorage.getItem('arxivjs-auto-pdf-viewer') === 'true';
-        
+
         autoSummarizationCheckbox.checked = autoSummarization;
         autoPdfViewerCheckbox.checked = autoPdfViewer;
     }
@@ -867,9 +876,9 @@ function handleDOMContentLoaded() {
             }
 
             const pdf = await window.pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-            
+
             let fullText = '';
-            
+
             // Extract text from all pages
             for (let pageNum = 1; pageNum <= pdf.numPages; pageNum++) {
                 const page = await pdf.getPage(pageNum);
@@ -879,7 +888,7 @@ function handleDOMContentLoaded() {
             }
 
             return fullText;
-            
+
         } catch (error) {
             console.error('PDF text extraction failed:', error);
             throw error;
@@ -923,12 +932,12 @@ function handleDOMContentLoaded() {
         const selectedMethod = document.querySelector('input[name="pdf-method"]:checked').value;
         const pdfUrl = pdfUrlInput.value.trim();
         const pdfFile = pdfFileInput.files[0];
-        
+
         if (selectedMethod === 'url' && !pdfUrl) {
             alert('Please enter a PDF URL.');
             return;
         }
-        
+
         if (selectedMethod === 'file' && !pdfFile) {
             alert('Please upload a PDF file.');
             return;
@@ -938,7 +947,7 @@ function handleDOMContentLoaded() {
 
         try {
             let extractedText;
-            
+
             if (selectedMethod === 'url') {
                 // Extract text from URL
                 extractedText = await extractTextFromPdf(pdfUrl);
@@ -1080,13 +1089,13 @@ function handleDOMContentLoaded() {
                 pdfPaperAuthors.value = '';
                 pdfPaperYear.value = '';
                 pdfSaveSection.style.display = 'none';
-                
+
                 // Clear summary content
                 pdfSummaryContent.innerHTML = '';
-                
+
                 // Clear URL input
                 pdfUrlInput.value = '';
-                
+
                 // Reset state
                 currentPdfSummary = null;
                 currentPdfUrl = null;
@@ -1109,7 +1118,7 @@ function handleDOMContentLoaded() {
         pdfPaperAuthors.value = '';
         pdfPaperYear.value = '';
         pdfSaveSection.style.display = 'none';
-        
+
         // Reset state
         currentPdfSummary = null;
         currentPdfUrl = null;

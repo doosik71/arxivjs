@@ -208,22 +208,22 @@ th {
     cursor: pointer;
 }
 
-#topic-list-header {
+#topic-list-view #topic-list-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 1em;
 }
 
-#search-topics-container {
+#topic-list-view #search-topics-container {
     position: relative;
 }
 
-#search-topics-input {
+#topic-list-view #search-topics-input {
     padding-right: 1em;
 }
 
-#clear-search-topics {
+#topic-list-view #clear-search-topics {
     position: absolute;
     right: 0.1em;
     top: 50%;
@@ -235,31 +235,32 @@ th {
     color: var(--color-text-muted);
 }
 
-#topic-list-cards {
+#topic-list-view #topic-list-cards {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(13em, 1fr));
     gap: 0.5em;
     padding-top: 1em;
 }
 
-.topic-card {
+#topic-list-view .topic-card {
     border: 0.1em solid var(--color-border-primary);
     border-radius: 0.5em;
     padding: 0.5em;
     width: 12em;
 }
 
-.topic-card:hover {
+#topic-list-view .topic-card:hover {
     background-color: var(--color-background-primary);
 }
 
-.topic-actions {
+#topic-list-view .topic-actions {
     margin-top: 0.2em;
     display: flex;
     justify-content: space-around;
 }
 
-.card-button {
+#topic-list-view .card-button,
+#paper-list-view .card-button {
     background: none;
     border: none;
     cursor: pointer;
@@ -268,7 +269,7 @@ th {
     color: var(--color-link-secondary);
 }
 
-.card-button:hover {
+#topic-list-view .card-button:hover {
     color: var(--color-link-hover);
 }
 
@@ -276,32 +277,37 @@ th {
  * Paper list view
  */
 
-#add-paper-by-url-form {
+#paper-list-view #add-paper-by-url-form {
     margin-left: 1em;
 }
 
-#paper-search-controls {
+#paper-list-view #paper-search-controls {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: 1em;
 }
 
-.paper-search-by-api {
+#paper-list-view .paper-search-by-api {
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
-#search-paper-container {
+#paper-list-view #paper-url-input,
+#pdf-summary-view #pdf-url-input {
+    width: 20em;
+}
+
+#paper-list-view #search-paper-container {
     position: relative;
 }
 
-#search-papers-input {
+#paper-list-view #search-papers-input {
     padding-right: 1em;
 }
 
-#clear-search-papers {
+#paper-list-view #clear-search-papers {
     position: absolute;
     right: 0.1em;
     top: 50%;
@@ -313,7 +319,7 @@ th {
     color: var(--color-text-muted);
 }
 
-#search-loading-message {
+#paper-list-view #search-loading-message {
     display: none;
     max-width: 60%;
     margin: 2em auto;
@@ -358,7 +364,7 @@ th {
     flex-direction: column;
 }
 
-#paper-detail-info-table {
+#paper-detail-view #paper-detail-info-table {
     margin: 0;
     flex-shrink: 0;
 }
@@ -367,7 +373,7 @@ th {
     vertical-align: middle;
 }
 
-#paper-detail-info-table th {
+#paper-detail-view #paper-detail-info-table th {
     white-space: nowrap;
     width: 0.1em;
 }
@@ -423,26 +429,22 @@ th {
     border-radius: 0.2em;
 }
 
-#summary-content {
-    /* Inherits all styles from .content-viewer */
-}
-
-#splitter-container {
+#paper-detail-view #splitter-container {
     display: flex;
     flex-grow: 1;
     height: 100%;
     border: none;
 }
 
-#splitter-container>div {
+#paper-detail-view #splitter-container>div {
     height: 100%;
 }
 
-#splitter-panel {
+#paper-detail-view #splitter-panel {
     padding: 0;
 }
 
-#summary-view {
+#paper-detail-view #summary-view {
     overflow: auto;
     flex: 0 0 40%;
     box-sizing: border-box;
@@ -451,18 +453,18 @@ th {
     flex-direction: column;
 }
 
-#pdf-view {
+#paper-detail-view #pdf-view {
     flex: 1 1 60%;
     height: 100%;
     overflow: hidden;
     border: 0.1em solid var(--color-border-secondary);
 }
 
-#pdf-view-frame {
+#paper-detail-view #pdf-view-frame {
     height: 100%;
 }
 
-#splitter {
+#paper-detail-view #splitter {
     flex: 0 0 0.3em;
     background: var(--color-background-primary);
     cursor: col-resize;
@@ -470,11 +472,11 @@ th {
     transition: background-color 0.2s;
 }
 
-#splitter:hover {
+#paper-detail-view #splitter:hover {
     background: var(--color-background-hover);
 }
 
-#splitter::before {
+#paper-detail-view #splitter::before {
     content: '...';
     position: absolute;
     top: 50%;
@@ -484,8 +486,8 @@ th {
     color: var(--color-text-secondary);
 }
 
-#summarize-button,
-#load-pdf-button {
+#paper-detail-view #summarize-button,
+#paper-detail-view #load-pdf-button {
     margin: 1em auto;
 }
 
@@ -493,7 +495,7 @@ th {
  * PDF Summary view
  */
 
-#pdf-summary-controls {
+#pdf-summary-view #pdf-summary-controls {
     display: flex;
     align-items: center;
     gap: 1em;
@@ -501,7 +503,7 @@ th {
     flex-wrap: wrap;
 }
 
-.pdf-method-selection {
+#pdf-summary-view .pdf-method-selection {
     display: flex;
     gap: 1em;
     border: 0.1em solid var(--color-border-primary);
@@ -509,7 +511,7 @@ th {
     padding: 0.5em;
 }
 
-.pdf-method-selection label {
+#pdf-summary-view .pdf-method-selection label {
     display: flex;
     align-items: center;
     gap: 0.3em;
@@ -517,15 +519,15 @@ th {
     white-space: nowrap;
 }
 
-.pdf-input-section,
-.pdf-upload-section,
-.pdf-action-section {
+#pdf-summary-view .pdf-input-section,
+#pdf-summary-view .pdf-upload-section,
+#pdf-summary-view .pdf-action-section {
     display: flex;
     align-items: center;
     gap: 0.5em;
 }
 
-#pdf-summary-content {
+#pdf-summary-view #pdf-summary-content {
     /* Inherits all styles from .content-viewer */
     border: 0.1em solid var(--color-border-secondary);
     border-radius: 0.5em;
@@ -535,7 +537,7 @@ th {
     max-width: 60em;
 }
 
-#pdf-save-section {
+#pdf-summary-view #pdf-save-section {
     margin-top: 1em;
     padding: 1em;
     border: 0.1em solid var(--color-border-secondary);
@@ -543,48 +545,48 @@ th {
     background-color: var(--color-background-primary);
 }
 
-#pdf-save-section h3 {
+#pdf-summary-view #pdf-save-section h3 {
     margin: 0 0 1em 0;
     color: var(--color-text-primary);
 }
 
-.pdf-save-form {
+#pdf-summary-view .pdf-save-form {
     display: flex;
     flex-direction: column;
     gap: 1em;
 }
 
-.pdf-save-field {
+#pdf-summary-view .pdf-save-field {
     display: flex;
     align-items: center;
     gap: 0.5em;
 }
 
-.pdf-save-field label {
+#pdf-summary-view .pdf-save-field label {
     width: 5em;
     text-align: right;
     font-weight: bold;
 }
 
-.pdf-save-field input {
+#pdf-summary-view .pdf-save-field input {
     flex: 1;
     max-width: 30em;
 }
 
-.pdf-save-actions {
+#pdf-summary-view .pdf-save-actions {
     display: flex;
     gap: 0.5em;
     margin-top: 0.5em;
 }
 
-.pdf-save-actions button {
+#pdf-summary-view .pdf-save-actions button {
     padding: 0.5em 1em;
 }
 
-#pdf-file-section {
+#pdf-summary-view #pdf-file-section {
     display: none;
 }
 
-#pdf-save-section {
+#pdf-summary-view #pdf-save-section {
     display: none;
 }
