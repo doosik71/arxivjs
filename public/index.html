@@ -184,11 +184,16 @@
             </table>
             <div id="splitter-container">
                 <div id="summary-view" class="splitter-panel">
-                    <button id="summarize-button">Summarize</button>
+                    <div class="panel-controls">
+                        <button id="summarize-button" class="panel-button">Summarize</button>
+                    </div>
                     <div id="summary-content" class="content-viewer"></div>
                 </div>
                 <div id="splitter"></div>
                 <div id="pdf-view" class="splitter-panel">
+                    <div class="panel-controls">
+                        <button id="load-pdf-button" class="panel-button">Load PDF</button>
+                    </div>
                     <iframe title="PDF view frame" id="pdf-view-frame" width="100%" height="100%"></iframe>
                 </div>
             </div>
@@ -210,7 +215,7 @@
                     <label for="pdf-url-input">PDF URL:</label>
                     <input type="text" id="pdf-url-input" placeholder="Enter PDF URL" />
                 </div>
-                <div class="pdf-upload-section" id="pdf-file-section" style="display: none;">
+                <div class="pdf-upload-section" id="pdf-file-section">
                     <label for="pdf-file-input">Upload PDF:</label>
                     <input type="file" id="pdf-file-input" accept=".pdf" />
                 </div>
@@ -219,7 +224,7 @@
                 </div>
             </div>
             <div id="pdf-summary-content" class="content-viewer"></div>
-            <div id="pdf-save-section" style="display: none;">
+            <div id="pdf-save-section">
                 <h3>Save Paper Information</h3>
                 <div class="pdf-save-form">
                     <div class="pdf-save-field">
@@ -283,6 +288,19 @@
                         <option value="moonlight">Moonlight</option>
                         <option value="starlight">Starlight</option>
                     </select>
+                </div>
+            </div>
+            <div class="option-section">
+                <h3>Settings</h3>
+                <div class="settings-container">
+                    <label>
+                        <input type="checkbox" id="auto-summarization" />
+                        Auto summarization
+                    </label>
+                    <label>
+                        <input type="checkbox" id="auto-pdf-viewer" />
+                        Auto PDF viewer
+                    </label>
                 </div>
             </div>
             <div class="option-section">

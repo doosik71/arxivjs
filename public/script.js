@@ -75,6 +75,10 @@ function handleDOMContentLoaded() {
     const pdfPaperYear = getElement('pdf-paper-year');
     const pdfSaveButton = getElement('pdf-save-button');
     const pdfCancelSaveButton = getElement('pdf-cancel-save-button');
+    const autoSummarizationCheckbox = getElement('auto-summarization');
+    const autoPdfViewerCheckbox = getElement('auto-pdf-viewer');
+    const pdfViewFrame = getElement('pdf-view-frame');
+    const loadPdfButton = getElement('load-pdf-button');
 
     // Validate that all critical elements were found before proceeding.
     const criticalElements = [
@@ -82,7 +86,7 @@ function handleDOMContentLoaded() {
         topicListMenu, paperListMenu, paperDetailMenu, pdfSummaryMenu, optionMenu, topicListView, paperListView,
         paperDetailView, pdfSummaryView, optionView, addTopicForm, topicListCards, searchTopicsInput, clearSearchTopicsButton,
         searchPaperForm, addPaperByUrlForm, searchPapersInput, clearSearchPapersButton, paperListTableBody,
-        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect, themeLink, pdfFileInput, pdfUrlInput, pdfSummarizeButton, pdfSummaryContent, pdfMethodUrl, pdfMethodFile, pdfUrlSection, pdfFileSection, pdfSaveSection, pdfPaperTitle, pdfPaperAuthors, pdfPaperYear, pdfSaveButton, pdfCancelSaveButton
+        searchResultsTableBody, summarizeButton, splitter, summaryView, abstractCell, themeSelect, themeLink, pdfFileInput, pdfUrlInput, pdfSummarizeButton, pdfSummaryContent, pdfMethodUrl, pdfMethodFile, pdfUrlSection, pdfFileSection, pdfSaveSection, pdfPaperTitle, pdfPaperAuthors, pdfPaperYear, pdfSaveButton, pdfCancelSaveButton, autoSummarizationCheckbox, autoPdfViewerCheckbox, pdfViewFrame, loadPdfButton
     ];
 
     if (criticalElements.some(el => !el)) {
@@ -527,6 +531,28 @@ function handleDOMContentLoaded() {
     }
 
     /**
+     * Loads PDF into the viewer frame
+     * @param {string} pdfUrl - The PDF URL to load
+     */
+    function loadPdfViewer(pdfUrl) {
+        pdfViewFrame.src = pdfUrl;
+        // Hide the load PDF button and show the frame
+        if (loadPdfButton) {
+            loadPdfButton.style.display = 'none';
+        }
+        pdfViewFrame.style.display = 'block';
+    }
+
+    /**
+     * Handles the load PDF button click event
+     */
+    function handleLoadPdfButtonClick() {
+        const paper = JSON.parse(currentPaper);
+        const pdfUrl = paper.url.replace('/abs/', '/pdf/');
+        loadPdfViewer(pdfUrl);
+    }
+
+    /**
      * Displays the detailed view for a selected paper.
      * @param {object} paper - The paper data object.
      */
@@ -541,7 +567,27 @@ function handleDOMContentLoaded() {
         document.getElementById('paper-detail-info-table-abstract').innerText = paper.abstract.replaceAll('\n', ' ');
 
         const pdfUrl = paper.url.replace('/abs/', '/pdf/');
-        document.getElementById('pdf-view-frame').src = pdfUrl;
+        
+        // Check if auto-pdf-viewer is enabled
+        const autoPdfViewer = localStorage.getItem('arxivjs-auto-pdf-viewer') === 'true';
+        
+        // Configure the load PDF button
+        if (loadPdfButton && !loadPdfButton.hasEventListener) {
+            loadPdfButton.addEventListener('click', handleLoadPdfButtonClick);
+            loadPdfButton.hasEventListener = true;
+        }
+        
+        if (autoPdfViewer) {
+            // Auto load PDF
+            loadPdfViewer(pdfUrl);
+        } else {
+            // Show load button and hide iframe
+            if (loadPdfButton) {
+                loadPdfButton.style.display = 'block';
+            }
+            pdfViewFrame.style.display = 'none';
+            pdfViewFrame.src = '';
+        }
 
         const summaryContent = document.getElementById('summary-content');
 
@@ -557,9 +603,24 @@ function handleDOMContentLoaded() {
             } else {
                 summaryContent.innerHTML = '';
                 summarizeButton.style.display = 'block';
+                
+                // Check if auto-summarization is enabled
+                const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
+                if (autoSummarization) {
+                    // Automatically trigger summarization
+                    handleSummarizeButtonClick();
+                }
             }
         } catch (error) {
+            summaryContent.innerHTML = '';
             summarizeButton.style.display = 'block';
+            
+            // Check if auto-summarization is enabled
+            const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
+            if (autoSummarization) {
+                // Automatically trigger summarization
+                handleSummarizeButtonClick();
+            }
         }
     }
 
@@ -727,6 +788,35 @@ function handleDOMContentLoaded() {
         if (themeLink) {
             themeLink.href = `theme/theme-${savedTheme}.css`;
         }
+    }
+
+    /**
+     * Handles auto-summarization checkbox change event.
+     * Saves the state to localStorage.
+     */
+    function handleAutoSummarizationChange() {
+        const isChecked = autoSummarizationCheckbox.checked;
+        localStorage.setItem('arxivjs-auto-summarization', isChecked);
+    }
+
+    /**
+     * Handles auto-pdf-viewer checkbox change event.
+     * Saves the state to localStorage.
+     */
+    function handleAutoPdfViewerChange() {
+        const isChecked = autoPdfViewerCheckbox.checked;
+        localStorage.setItem('arxivjs-auto-pdf-viewer', isChecked);
+    }
+
+    /**
+     * Loads saved settings from localStorage.
+     */
+    function loadSavedSettings() {
+        const autoSummarization = localStorage.getItem('arxivjs-auto-summarization') === 'true';
+        const autoPdfViewer = localStorage.getItem('arxivjs-auto-pdf-viewer') === 'true';
+        
+        autoSummarizationCheckbox.checked = autoSummarization;
+        autoPdfViewerCheckbox.checked = autoPdfViewer;
     }
 
     /**
@@ -1051,9 +1141,12 @@ function handleDOMContentLoaded() {
     pdfMethodFile.addEventListener('change', handlePdfMethodChange);
     pdfSaveButton.addEventListener('click', handlePdfSaveButtonClick);
     pdfCancelSaveButton.addEventListener('click', handlePdfCancelSaveButtonClick);
+    autoSummarizationCheckbox.addEventListener('change', handleAutoSummarizationChange);
+    autoPdfViewerCheckbox.addEventListener('change', handleAutoPdfViewerChange);
 
     // --- Initial Application Setup ---
     loadSavedTheme();
+    loadSavedSettings();
     loadTopics();
     populateYearFilter();
     loadServerInfo();

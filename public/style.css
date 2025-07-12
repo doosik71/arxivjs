@@ -2,7 +2,8 @@
  * Global style
  */
 
-html, body {
+html,
+body {
     width: 100%;
     height: 100%;
 }
@@ -168,7 +169,7 @@ li {
     margin-left: 3em;
 }
 
-#main-content > div {
+#main-content>div {
     height: calc(100vh - 2em);
     padding: 1em;
     display: none;
@@ -444,7 +445,6 @@ th {
 #summary-view {
     overflow: auto;
     flex: 0 0 40%;
-    padding: 1em;
     box-sizing: border-box;
     border: 0.1em solid var(--color-border-secondary);
     display: flex;
@@ -482,6 +482,11 @@ th {
     transform: translate(-50%, -50%) rotate(90deg);
     font-size: 1.7em;
     color: var(--color-text-secondary);
+}
+
+#summarize-button,
+#load-pdf-button {
+    margin: 1em auto;
 }
 
 /*
@@ -525,7 +530,9 @@ th {
     border: 0.1em solid var(--color-border-secondary);
     border-radius: 0.5em;
     background-color: var(--color-background-primary);
+    margin: 1em auto;
     min-height: 20em;
+    max-width: 60em;
 }
 
 #pdf-save-section {
@@ -572,4 +579,12 @@ th {
 
 .pdf-save-actions button {
     padding: 0.5em 1em;
+}
+
+#pdf-file-section {
+    display: none;
+}
+
+#pdf-save-section {
+    display: none;
 }
