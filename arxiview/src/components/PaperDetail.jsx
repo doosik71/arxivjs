@@ -1,10 +1,9 @@
 import { useState, useEffect } from 'react';
 import { getPaperSummary, chatWithGemini } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
-import TableOfContents from './TableOfContents';
 import ChatBox from './ChatBox';
 
-const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
+const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState(null);
@@ -74,6 +73,17 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
     };
   }, [paper]);
 
+  useEffect(() => {
+    if (summary) {
+      const headers = extractTableOfContents(summary);
+      onTocUpdate(headers);
+    }
+    // Clear TOC when component unmounts or summary is cleared
+    return () => {
+      onTocUpdate([]);
+    };
+  }, [summary, onTocUpdate]);
+
   const loadSummary = async () => {
     try {
       setLoadingSummary(true);
@@ -110,11 +120,6 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
     return parseMarkdownWithMath(summaryText);
-  };
-
-  const getTOCHeaders = (summaryText) => {
-    if (!summaryText) return [];
-    return extractTableOfContents(summaryText);
   };
 
   return (
@@ -156,11 +161,6 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
               <main className="formatted-summary" itemProp="description">
                 {formatSummary(summary)}
               </main>
-              <aside className="sidebar">
-                {getTOCHeaders(summary).length > 0 && (
-                  <TableOfContents headers={getTOCHeaders(summary)} />
-                )}
-              </aside>
             </div>
           ) : (
             <div className="no-summary">

@@ -614,42 +614,31 @@ mjx-math {
 }
 
 /* Table of Contents Styles */
-.summary-view {
+.paper-detail-view {
   display: flex;
   gap: 2rem;
   align-items: flex-start;
 }
 
-.summary-view .formatted-summary {
+.paper-detail-view article {
   flex: 1;
   min-width: 0;
 }
 
-.summary-view .table-of-contents {
-  width: 100%;
-  max-height: 80vh;
-}
-
-.sidebar {
+.toc-container {
   width: 280px;
   position: sticky;
   top: 1rem;
   flex-shrink: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-height: calc(100vh - 2rem);
 }
 
 .table-of-contents {
   flex-shrink: 0;
-  width: 280px;
+  width: 100%;
   background: var(--color-background);
   border: 1px solid var(--color-border);
   border-radius: 8px;
   padding: 1rem;
-  position: sticky;
-  top: 1rem;
   max-height: calc(100vh - 2rem);
   overflow-y: auto;
   align-self: flex-start;
@@ -1434,4 +1423,66 @@ article h3:first-child {
 /* Adjustments for main content to not be overlapped by collapsed chat */
 .App main {
   padding-bottom: 60px;
+}
+
+/* Print-specific styles */
+@media print {
+  /* General print resets */
+  body, .App, .container, article, .paper-list, .paper-item {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+
+  * {
+    color: #000000 !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  /* Hide elements that should not be printed */
+  .header,
+  .footer,
+  .toc-container,
+  .chat-box,
+  .breadcrumb,
+  .settings-button,
+  .theme-selector,
+  .search-container,
+  .paper-list-view .table-of-contents {
+    display: none !important;
+  }
+
+  /* Layout adjustments for printing */
+  .App main, .container {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+  }
+
+  .paper-detail-view, .paper-list-view {
+    display: block !important;
+  }
+
+  .paper-detail, .paper-list {
+    box-shadow: none !important;
+    border: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  /* Link styling for print */
+  a, a:visited {
+    text-decoration: none !important;
+  }
+
+  .paper-meta a[href]::after {
+    content: " (" attr(href) ")";
+  }
+
+  /* Ensure highlighted search text is visible */
+  .search-highlight {
+    background-color: #dddddd !important;
+    padding: 1px 2px;
+    border: 1px solid #aaaaaa;
+  }
 }

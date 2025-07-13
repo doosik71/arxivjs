@@ -1,7 +1,8 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import TopicList from './components/TopicList';
 import PaperList from './components/PaperList';
 import PaperDetail from './components/PaperDetail';
+import TableOfContents from './components/TableOfContents';
 import ThemeSelector from './components/ThemeSelector';
 import Footer from './components/Footer';
 import SettingsModal from './components/SettingsModal';
@@ -16,6 +17,7 @@ const App = () => {
   const [selectedPaperId, setSelectedPaperId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [configStatus, setConfigStatus] = useState('initializing');
+  const [tocHeaders, setTocHeaders] = useState([]);
 
   // Initialize theme and backend configuration on app load
   useEffect(() => {
@@ -76,6 +78,10 @@ const App = () => {
     }
   };
 
+  const handleTocUpdate = useCallback((headers) => {
+    setTocHeaders(headers);
+  }, []);
+
   const renderCurrentView = () => {
     switch (currentView) {
       case 'topics':
@@ -90,12 +96,20 @@ const App = () => {
         );
       case 'paper-detail':
         return (
-          <PaperDetail
-            paper={selectedPaper}
-            paperId={selectedPaperId}
-            topicName={selectedTopic}
-            onBackToPapers={handleBackToPapers}
-          />
+          <div className="paper-detail-view">
+            <PaperDetail
+              paper={selectedPaper}
+              paperId={selectedPaperId}
+              topicName={selectedTopic}
+              onBackToPapers={handleBackToPapers}
+              onTocUpdate={handleTocUpdate}
+            />
+            {tocHeaders.length > 0 && (
+              <aside className="toc-container">
+                <TableOfContents headers={tocHeaders} />
+              </aside>
+            )}
+          </div>
         );
       default:
         return <TopicList onTopicSelect={handleTopicSelect} />;
