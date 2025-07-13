@@ -130,6 +130,13 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
     }));
   };
 
+  const scrollToYear = (year) => {
+    const element = document.getElementById(`year-${year}`);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading papers...</div>;
   }
