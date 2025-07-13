@@ -1,13 +1,21 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import TopicList from './components/TopicList';
 import PaperList from './components/PaperList';
 import PaperDetail from './components/PaperDetail';
+import ThemeSelector from './components/ThemeSelector';
+import { applyTheme, getStoredTheme } from './utils/themes';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('topics');
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [selectedPaperId, setSelectedPaperId] = useState(null);
+
+  // Initialize theme on app load
+  useEffect(() => {
+    const storedTheme = getStoredTheme();
+    applyTheme(storedTheme);
+  }, []);
 
   const handleTopicSelect = (topicName) => {
     setSelectedTopic(topicName);
@@ -63,7 +71,10 @@ const App = () => {
     <div className="App">
       <header className="header">
         <div className="container">
-          <h1>ArxiView - Research Paper Reader</h1>
+          <div className="header-content">
+            <h1>ArxiView - Research Paper Reader</h1>
+            <ThemeSelector />
+          </div>
         </div>
       </header>
       
