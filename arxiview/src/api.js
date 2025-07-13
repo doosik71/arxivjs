@@ -1,29 +1,53 @@
 import axios from 'axios';
 import { getBackendUrl } from './utils/config';
 
+let apiBaseUrl = null;
+
 // Get dynamic backend URL
 const getApiBaseUrl = () => {
+  if (apiBaseUrl) {
+    return apiBaseUrl;
+  }
+
   // Check if running in development mode with Vite proxy
   if (import.meta.env.DEV) {
-    return '/api';
+    apiBaseUrl = '/api';
+    return apiBaseUrl;
   }
   
   // In production or when ARXIVIEW_BACKEND_URL is set, use direct backend URL
   const backendUrl = window.ARXIVIEW_BACKEND_URL || getBackendUrl();
+  apiBaseUrl = backendUrl;
   return backendUrl;
 };
 
 const api = axios.create();
 
 // Update axios instance base URL
-export const updateApiConfig = () => {
-  const baseURL = getApiBaseUrl();
+export const updateApiConfig = (target) => {
+  const baseURL = target || getApiBaseUrl();
   api.defaults.baseURL = baseURL;
+  apiBaseUrl = baseURL;
   console.log(`API configured to use: ${baseURL}`);
 };
 
 // Initialize API configuration
 updateApiConfig();
+
+// Function to initialize backend URL from command line args
+export const initializeApi = async () => {
+  if (window.electron) {
+    try {
+      const args = await window.electron.getCommandLineArgs();
+      if (args && args.target) {
+        updateApiConfig(args.target);
+      }
+    } catch (error) {
+      console.error('Failed to get command line args:', error);
+    }
+  }
+};
+
 
 export const getTopics = async () => {
   const response = await api.get('/topics');

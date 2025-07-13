@@ -8,7 +8,7 @@ import Footer from './components/Footer';
 import SettingsModal from './components/SettingsModal';
 import { applyTheme, getStoredTheme } from './utils/themes';
 import { initializeConfig } from './utils/config';
-import { updateApiConfig } from './api';
+import { initializeApi, updateApiConfig } from './api';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('topics');
@@ -26,11 +26,14 @@ const App = () => {
       const storedTheme = getStoredTheme();
       applyTheme(storedTheme);
 
+      // Initialize API from command line args
+      await initializeApi();
+
       // Initialize backend configuration
       try {
         setConfigStatus('initializing');
         const backendUrl = await initializeConfig();
-        updateApiConfig();
+        updateApiConfig(); // This might be redundant if initializeApi already sets it
         setConfigStatus('connected');
         console.log(`Backend initialized at: ${backendUrl}`);
       } catch (error) {

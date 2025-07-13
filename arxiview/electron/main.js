@@ -1,6 +1,15 @@
-const { app, BrowserWindow, Menu, shell } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain } = require('electron');
 const path = require('path');
+const parseArgs = require('yargs-parser');
+
 const isDev = process.env.NODE_ENV === 'development';
+
+// Parse command line arguments
+const argv = parseArgs(process.argv.slice(isDev ? 2 : 1));
+const host = argv.host || 'localhost';
+const port = argv.port || 8766;
+const target = argv.target || 'http://localhost:8765';
+const devUrl = `http://${host}:${port}`;
 
 function createWindow() {
   // Create the browser window
@@ -10,6 +19,7 @@ function createWindow() {
     minWidth: 800,
     minHeight: 600,
     webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
       nodeIntegration: false,
       contextIsolation: true,
       enableRemoteModule: false,
@@ -23,7 +33,7 @@ function createWindow() {
   // Load the app
   if (isDev) {
     // Development mode - load from Vite dev server
-    mainWindow.loadURL('http://localhost:8766');
+    mainWindow.loadURL(devUrl);
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
@@ -46,7 +56,7 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsedUrl = new URL(navigationUrl);
     
-    if (parsedUrl.origin !== 'http://localhost:8766' && parsedUrl.origin !== 'file://') {
+    if (parsedUrl.origin !== devUrl && parsedUrl.origin !== 'file://') {
       event.preventDefault();
       shell.openExternal(navigationUrl);
     }
@@ -149,6 +159,13 @@ function createMenu() {
 
 // App event handlers
 app.whenReady().then(() => {
+  // Provide command line arguments to the renderer process
+  ipcMain.handle('get-command-line-args', () => ({
+    host,
+    port,
+    target,
+  }));
+
   createWindow();
   createMenu();
 
