@@ -147,7 +147,6 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
         </section>
 
         <section className="paper-summary">
-          <h2>AI Summary</h2>
           {loadingSummary ? (
             <div className="loading">Loading summary...</div>
           ) : summaryError ? (

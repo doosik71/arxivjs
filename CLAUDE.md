@@ -9,7 +9,8 @@ ArxivJS is a comprehensive research paper management system consisting of two ap
 1. **ArxivJS (Main Application)**: A Node.js application with both web and desktop interfaces for managing arXiv papers and general PDF documents
 2. **ArxiView (Read-only Client)**: A React-based read-only interface for browsing and viewing papers with AI summaries
 
-### ArxivJS Features:
+### ArxivJS Features
+
 - Create and manage topic folders
 - Search arXiv papers by keywords and date ranges
 - Save papers to topic folders
@@ -17,24 +18,30 @@ ArxivJS is a comprehensive research paper management system consisting of two ap
 - Generate AI-powered summaries using Google's Gemini API
 - Export as both web application and Electron desktop app
 
-### ArxiView Features:
+### ArxiView Features
+
 - Read-only interface for browsing topics and papers
 - Advanced search with text highlighting
 - Math expression rendering with MathJax
 - Table of Contents with scroll tracking
 - Multiple theme support (8 custom themes)
+- Configurable backend URL via Settings modal
 - Edge Immersive Reader support
 - Responsive design for mobile and desktop
+- Available as both web app and Electron desktop application
 
 ## Architecture
 
 ### ArxivJS (Main Application)
+
 The main application uses a simple client-server architecture:
 
 ### ArxiView (React Client)
+
 ArxiView is a modern React application that consumes the ArxivJS API:
 
-#### Frontend Stack:
+#### Frontend Stack
+
 - **React 19** with functional components and hooks
 - **Vite** as build tool and development server
 - **Axios** for API communication with ArxivJS backend
@@ -42,18 +49,22 @@ ArxiView is a modern React application that consumes the ArxivJS API:
 - **MathJax** for LaTeX math expression rendering
 - **Marked** library for markdown parsing with Korean text support
 
-#### Key Components:
+#### Key Components
+
 - **App.jsx**: Main application container with routing logic
 - **TopicList.jsx**: Grid-based topic browser with search and highlighting
 - **PaperList.jsx**: Year-grouped paper listing with advanced search
 - **PaperDetail.jsx**: Paper viewer with metadata, abstract, and AI summary
 - **TableOfContents.jsx**: Auto-generated TOC with scroll tracking
 - **ThemeSelector.jsx**: Dynamic theme switching component
+- **SettingsModal.jsx**: Settings configuration modal for backend URL and other options
 - **Footer.jsx**: Site footer with GitHub link and project info
 
-#### Utilities:
+#### Utilities
+
 - **themes.js**: Theme management with 8 custom color schemes
 - **markdownRenderer.jsx**: Advanced markdown processing with math protection
+- **config.js**: Configuration management for backend URL and app settings
 - **api.js**: Centralized API communication layer
 
 ### ArxivJS Server Side (index.js)
@@ -84,7 +95,8 @@ ArxiView is a modern React application that consumes the ArxivJS API:
 ## Key File Structure
 
 ### ArxivJS (Main Application)
-```
+
+```text
 ├── index.js          # Main Express server with all API endpoints
 ├── main.js           # Electron app entry point
 ├── preload.js        # Electron preload script
@@ -106,14 +118,18 @@ ArxiView is a modern React application that consumes the ArxivJS API:
 ```
 
 ### ArxiView (React Client)
-```
+
+```text
 arxiview/
-├── package.json      # React dependencies and scripts
+├── package.json      # React dependencies and scripts with Electron support
 ├── vite.config.js    # Vite configuration with proxy to backend
 ├── index.html        # HTML entry point with meta tags for Immersive Reader
+├── electron/
+│   └── main.js       # Electron main process configuration
 ├── src/
 │   ├── main.jsx      # React app entry point
 │   ├── App.jsx       # Main application component with routing
+│   ├── api.js        # Centralized API client with configurable backend URL
 │   ├── index.css     # Global styles with CSS custom properties
 │   ├── components/
 │   │   ├── TopicList.jsx      # Topic grid with search and highlighting
@@ -121,12 +137,12 @@ arxiview/
 │   │   ├── PaperDetail.jsx    # Paper viewer with TOC and summary
 │   │   ├── TableOfContents.jsx # TOC with scroll tracking
 │   │   ├── ThemeSelector.jsx   # Theme dropdown component
+│   │   ├── SettingsModal.jsx   # Settings modal for backend URL configuration
 │   │   └── Footer.jsx         # Site footer with GitHub link
-│   ├── utils/
-│   │   ├── themes.js          # 8 custom themes with color definitions
-│   │   ├── markdownRenderer.jsx # Advanced markdown with math support
-│   │   └── api.js            # Axios-based API client
-│   └── assets/              # Static assets (if any)
+│   └── utils/
+│       ├── themes.js          # 8 custom themes with color definitions
+│       ├── markdownRenderer.jsx # Advanced markdown with math support
+│       └── config.js          # Configuration management utility
 ```
 
 ## Development Commands
@@ -134,6 +150,7 @@ arxiview/
 ### ArxivJS (Main Application)
 
 #### Running the Application
+
 ```bash
 # Start development server (web only)
 npm run dev
@@ -147,6 +164,7 @@ npm start
 ```
 
 #### Building/Packaging
+
 ```bash
 # Package for Windows
 npm run package:win
@@ -158,6 +176,7 @@ npm run package:linux
 ### ArxiView (React Client)
 
 #### Running the Application
+
 ```bash
 # From arxiview/ directory
 cd arxiview
@@ -170,12 +189,28 @@ npm run build
 
 # Preview production build
 npm run preview
+
+# Electron desktop app development
+npm run electron-dev
+
+# Build and run Electron app
+npm run build-electron
+
+# Build distribution packages
+npm run dist          # All platforms
+npm run dist:win      # Windows
+npm run dist:mac      # macOS
+npm run dist:linux    # Linux
 ```
 
 #### Development Notes
+
 - ArxiView requires ArxivJS backend to be running on port 8765
 - Vite proxy automatically forwards API calls to the backend
 - Hot module replacement (HMR) enabled for rapid development
+- Electron app available with packaging for Windows, macOS, and Linux
+- Distribution builds create installers in the `release/` directory
+- Backend URL configuration persists in localStorage
 
 ### Testing
 
@@ -238,11 +273,14 @@ The server provides RESTful endpoints for:
 ## PDF Summary Feature
 
 ### Overview
+
 The PDF Summary feature allows users to summarize any PDF document (not just arXiv papers) by:
+
 - Entering a PDF URL directly
 - Uploading a PDF file from their device
 
 ### Technical Implementation
+
 - **Client-side PDF processing**: Uses PDF.js library for text extraction in the browser
 - **CORS handling**: Server proxy (`/fetch-pdf-url`) fetches external PDFs to avoid browser CORS restrictions
 - **Dual input methods**: Radio button selection between URL input and file upload
@@ -252,6 +290,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - **Automatic saving**: Saves both paper metadata (.json) and summary (.md) to topic folders
 
 ### User Interface
+
 - **Method selection**: Radio button selection for PDF source (URL vs File Upload)
 - **Conditional UI**: Shows only the selected input method
 - **Real-time streaming**: Live display of summary results during generation
@@ -261,6 +300,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - **Theme integration**: Consistent styling with existing design system
 
 ### Workflow
+
 1. **Select input method**: Choose between PDF URL or file upload
 2. **Provide PDF source**: Enter URL or upload file
 3. **Generate summary**: Click Summarize to process PDF and generate AI summary
@@ -270,18 +310,21 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 ## ArxiView Features (React Client)
 
 ### Advanced Search & Highlighting
+
 - **Real-time search**: Instant filtering of topics and papers
 - **Field-specific search**: Search within title, authors, year, or abstract
 - **Text highlighting**: Search terms highlighted in yellow across all results
 - **Search statistics**: Shows number of matches found
 
 ### Math Expression Support
+
 - **MathJax integration**: Full LaTeX math rendering support
 - **Math protection**: Advanced preprocessing prevents markdown corruption
 - **Korean text support**: Enhanced markdown parsing for mixed Korean/English text
 - **Streaming compatibility**: Math expressions render correctly in real-time
 
 ### Table of Contents (TOC)
+
 - **Auto-generation**: TOC created from markdown headers (h1, h2, h3)
 - **Scroll tracking**: Single active item highlighting based on scroll position
 - **Sticky positioning**: TOC remains visible while scrolling
@@ -289,6 +332,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - **Responsive design**: Collapses on mobile devices
 
 ### Theme System
+
 - **8 custom themes**: Light, Dark, Forest, Ocean, Sunset, Lavender, Coffee, Mint
 - **CSS custom properties**: Consistent theming across all components
 - **Theme persistence**: Selected theme saved in localStorage
@@ -296,12 +340,14 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - **Search highlighting**: Theme-aware highlight colors
 
 ### Edge Immersive Reader Support
+
 - **Semantic HTML**: Proper article, section, header structure
 - **Meta tags**: Rich metadata for better content understanding
 - **Schema.org markup**: Structured data for research articles
 - **Dynamic metadata**: Page title and description update per paper
 
 ### Responsive Design
+
 - **Mobile-first**: Optimized for touch devices
 - **Flexible layout**: Grid and flexbox for adaptive design
 - **Viewport optimization**: Proper scaling and touch targets
@@ -310,6 +356,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 ## Important Notes
 
 ### ArxivJS (Main Application)
+
 - The application requires both `GEMINI_API_KEY` and `userprompt.txt` to function
 - Papers are downloaded as PDFs and processed to extract text for summarization
 - PDF.js library is loaded via CDN for client-side PDF text extraction
@@ -320,10 +367,14 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - CORS issues with external PDFs are handled through server-side proxy endpoints
 
 ### ArxiView (React Client)
+
 - Read-only interface - no data modification capabilities
 - Requires ArxivJS backend running on port 8765 for API access
 - Uses modern React patterns (hooks, functional components)
+- Built with React 19 and Vite for optimal performance
 - MathJax loaded via CDN for math rendering
+- Available as both web application and Electron desktop app
 - Responsive design supports mobile and desktop browsers
-- All themes and search preferences stored in localStorage
+- All themes, backend URL, and search preferences stored in localStorage
 - Optimized for research paper reading and browsing experience
+- Cross-platform Electron packaging for Windows, macOS, and Linux
