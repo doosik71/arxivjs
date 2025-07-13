@@ -181,7 +181,7 @@ npm run package:linux
 # From arxiview/ directory
 cd arxiview
 
-# Start development server (default port 3000)
+# Start development server (default port 8766)
 npm run dev
 
 # Build for production
@@ -205,9 +205,8 @@ npm run dist:linux    # Linux
 
 #### Development Notes
 
-- ArxiView can connect to any ArxivJS backend (configurable via Settings modal)
-- Default backend URL is <http://localhost:9900>
-- Vite proxy automatically forwards API calls to the backend during development
+- ArxiView requires ArxivJS backend to be running on port 8765
+- Vite proxy automatically forwards API calls to the backend
 - Hot module replacement (HMR) enabled for rapid development
 - Electron app available with packaging for Windows, macOS, and Linux
 - Distribution builds create installers in the `release/` directory
@@ -370,7 +369,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 ### ArxiView (React Client)
 
 - Read-only interface - no data modification capabilities
-- Configurable backend URL (default: <http://localhost:9900>) via Settings modal
+- Requires ArxivJS backend running on port 8765 for API access
 - Uses modern React patterns (hooks, functional components)
 - Built with React 19 and Vite for optimal performance
 - MathJax loaded via CDN for math rendering

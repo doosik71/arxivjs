@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react';
-import { getPaperSummary } from '../api';
+import { getPaperSummary, chatWithGemini } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import TableOfContents from './TableOfContents';
+import ChatBox from './ChatBox';
 
 const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState(null);
+  const [chatHistory, setChatHistory] = useState([]);
+  const [isChatLoading, setIsChatLoading] = useState(false);
 
   useEffect(() => {
     if (paperId && topicName) {
@@ -84,6 +87,26 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
     }
   };
 
+  const handleClearChatHistory = () => {
+    setChatHistory([]);
+  };
+
+  const handleSendMessage = async (message) => {
+    const newHistory = [...chatHistory, { role: 'user', content: message }];
+    setChatHistory(newHistory);
+    setIsChatLoading(true);
+  
+    try {
+      const response = await chatWithGemini(topicName, paperId, newHistory);
+      setChatHistory([...newHistory, { role: 'assistant', content: response.message }]);
+    } catch (error) {
+      console.error('Chat error:', error);
+      setChatHistory([...newHistory, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
+    } finally {
+      setIsChatLoading(false);
+    }
+  };
+
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
     return parseMarkdownWithMath(summaryText);
@@ -130,15 +153,15 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           ) : summaryError ? (
             <div className="error">{summaryError}</div>
           ) : summary ? (
-            <div className="summary-with-toc">
-              {getTOCHeaders(summary).length > 0 && (
-                <aside>
-                  <TableOfContents headers={getTOCHeaders(summary)} />
-                </aside>
-              )}
+            <div className="summary-view">
               <main className="formatted-summary" itemProp="description">
                 {formatSummary(summary)}
               </main>
+              <aside className="sidebar">
+                {getTOCHeaders(summary).length > 0 && (
+                  <TableOfContents headers={getTOCHeaders(summary)} />
+                )}
+              </aside>
             </div>
           ) : (
             <div className="no-summary">
@@ -147,6 +170,14 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           )}
         </section>
       </div>
+      {summary && !summaryError && (
+        <ChatBox
+          onSendMessage={handleSendMessage}
+          chatHistory={chatHistory}
+          isLoading={isChatLoading}
+          onClearHistory={handleClearChatHistory}
+        />
+      )}
     </article>
   );
 };

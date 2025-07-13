@@ -18,7 +18,7 @@ ArxiView is a React-based read-only frontend client for viewing research papers 
 ## Requirements
 
 - Node.js 16+ 
-- ArxivJS backend server running (default: http://localhost:9900)
+- ArxivJS backend server running (default: http://localhost:8765)
 
 ## Installation
 
@@ -32,7 +32,7 @@ npm install
 npm run dev
 ```
 
-The application will be available at http://localhost:3000
+The application will be available at http://localhost:8766
 
 ## Production Build
 

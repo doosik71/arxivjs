@@ -23,7 +23,7 @@ function createWindow() {
   // Load the app
   if (isDev) {
     // Development mode - load from Vite dev server
-    mainWindow.loadURL('http://localhost:3000');
+    mainWindow.loadURL('http://localhost:8766');
     // Open DevTools in development
     mainWindow.webContents.openDevTools();
   } else {
@@ -46,7 +46,7 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
     const parsedUrl = new URL(navigationUrl);
     
-    if (parsedUrl.origin !== 'http://localhost:3000' && parsedUrl.origin !== 'file://') {
+    if (parsedUrl.origin !== 'http://localhost:8766' && parsedUrl.origin !== 'file://') {
       event.preventDefault();
       shell.openExternal(navigationUrl);
     }

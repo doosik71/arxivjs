@@ -47,4 +47,9 @@ export const getPaperSummary = async (topicName, paperId) => {
   }
 };
 
+export const chatWithGemini = async (topicName, paperId, history) => {
+  const response = await api.post(`/chat/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`, { history });
+  return response.data;
+};
+
 export default api;

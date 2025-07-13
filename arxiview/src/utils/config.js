@@ -1,6 +1,6 @@
 // Configuration management for ArxiView
 export const DEFAULT_CONFIG = {
-  backendPort: 9900,
+  backendPort: 8765,
   backendHost: 'localhost',
   backendProtocol: 'http'
 };
@@ -84,7 +84,7 @@ const getCurrentPort = () => {
 
 // Auto-discover backend port by testing common ports
 export const discoverBackendPort = async (host = 'localhost', protocol = 'http') => {
-  const commonPorts = [9900, 8000, 8080, 5000, 9000, 3001, 8001, 4000, 4001, 5001];
+  const commonPorts = [8765, 8000, 8080, 5000, 9000, 3001, 8001, 4000, 4001, 5001];
   const currentPort = getCurrentPort();
   
   // Filter out the current frontend port to avoid self-connection
