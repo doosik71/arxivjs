@@ -105,6 +105,7 @@ body {
   grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
   gap: 1rem;
   margin-bottom: 2rem;
+  padding-bottom: 140px; /* Add space for sticky form */
 }
 
 .topic-card {
@@ -204,6 +205,12 @@ body {
 }
 
 .breadcrumb {
+  position: sticky;
+  top: 0;
+  z-index: 200;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 0.75rem 0;
   margin-bottom: 1rem;
   color: var(--color-text-secondary);
 }
@@ -240,6 +247,88 @@ body {
   margin-bottom: 2rem;
   border: 1px solid var(--color-border);
   position: relative;
+}
+
+.paper-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.paper-header h1 {
+  flex: 1;
+  margin: 0;
+}
+
+.paper-header .delete-button {
+  position: static;
+  width: 2rem;
+  height: 2rem;
+  margin: 0;
+  flex-shrink: 0;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+}
+
+.paper-header .delete-button:hover {
+  opacity: 1;
+  transform: scale(1.1);
+}
+
+.paper-header .delete-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.summary-header h2 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1.5rem;
+}
+
+.delete-summary-button {
+  position: static;
+  width: 1.5rem;
+  height: 1.5rem;
+  margin: 0;
+  padding: 0;
+  background: rgba(231, 76, 60, 0.5);
+  color: white;
+  border: none;
+  border-radius: 50%;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0.7;
+  transition: opacity 0.2s ease, transform 0.2s ease, background 0.2s ease;
+}
+
+.delete-summary-button:hover {
+  opacity: 1;
+  transform: scale(1.1);
+  background: rgba(192, 57, 43, 0.8);
+}
+
+.delete-summary-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+  background: rgba(231, 76, 60, 0.3);
 }
 
 .paper-detail h1 {
@@ -280,7 +369,36 @@ body {
   font-style: italic;
 }
 
+/* Topic List Search Container (no breadcrumbs) */
+.topic-search-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+}
+
+/* Paper List Search Container (below breadcrumbs) */
+.paper-search-container {
+  position: sticky;
+  top: 45px; /* Position below breadcrumbs */
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 0;
+  margin-bottom: 2rem;
+}
+
+/* Legacy search-container class for backward compatibility */
 .search-container {
+  position: sticky;
+  top: 45px; /* Position below breadcrumbs */
+  z-index: 100;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  padding: 1rem 0;
   margin-bottom: 2rem;
 }
 
@@ -466,7 +584,6 @@ body {
   display: flex;
   gap: 1rem;
   align-items: center;
-  margin-bottom: 1rem;
   flex-wrap: wrap;
 }
 
@@ -518,7 +635,7 @@ body {
 }
 
 .year-group {
-  margin-bottom: 1.5rem;
+  margin-bottom: 0;
 }
 
 .year-header {
@@ -1467,12 +1584,16 @@ article h3:first-child {
 
 /* Topic Management Styles */
 .add-topic-form {
-  margin-bottom: 2rem;
+  position: sticky;
+  bottom: 0;
+  z-index: 100;
+  margin-bottom: 0;
   padding: 1.5rem;
   background: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border-top: 2px solid var(--color-border);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -2px 8px rgba(0,0,0,0.1);
 }
 
 .add-topic-form .form-group {
@@ -1935,9 +2056,6 @@ article h3:first-child {
 .generating-summary {
   margin-top: 1rem;
   padding: 1rem;
-  background: var(--color-surface);
-  border-radius: 8px;
-  border: 1px solid var(--color-border);
 }
 
 .generating-summary .loading {

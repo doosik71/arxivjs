@@ -109,4 +109,9 @@ export const deletePaper = async (topicName, paperId) => {
   return response.data;
 };
 
+export const deletePaperSummary = async (topicName, paperId) => {
+  const response = await api.delete(`/paper-summary/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`);
+  return response.data;
+};
+
 export default api;

@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPaperSummary, chatWithGemini, generatePaperSummary } from '../api';
+import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 
@@ -10,6 +10,8 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
   const [chatHistory, setChatHistory] = useState([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+  const [isDeletingSummary, setIsDeletingSummary] = useState(false);
 
   useEffect(() => {
     if (paperId && topicName) {
@@ -177,6 +179,41 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     }
   };
 
+  const handleDeletePaper = async () => {
+    if (!confirm(`Are you sure you want to delete "${paper.title}"?`)) {
+      return;
+    }
+
+    try {
+      setIsDeleting(true);
+      await deletePaper(topicName, paperId);
+      onBackToPapers(); // Navigate back to paper list
+    } catch (error) {
+      console.error('Error deleting paper:', error);
+      alert('Failed to delete paper. Please try again.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
+
+  const handleDeleteSummary = async () => {
+    if (!confirm('Are you sure you want to delete the summary? This will only delete the AI-generated summary, not the paper itself.')) {
+      return;
+    }
+
+    try {
+      setIsDeletingSummary(true);
+      await deletePaperSummary(topicName, paperId);
+      setSummary(null); // Clear the summary from state
+      setSummaryError(null); // Clear any errors
+    } catch (error) {
+      console.error('Error deleting summary:', error);
+      alert('Failed to delete summary. Please try again.');
+    } finally {
+      setIsDeletingSummary(false);
+    }
+  };
+
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
     return parseMarkdownWithMath(summaryText);
@@ -194,7 +231,17 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
 
       <div className="paper-detail">
         <header>
-          <h1>{paper.title}</h1>
+          <div className="paper-header">
+            <h1>{paper.title}</h1>
+            <button 
+              onClick={handleDeletePaper}
+              disabled={isDeleting}
+              className="delete-button"
+              title="Delete paper"
+            >
+              {isDeleting ? '⏳' : '×'}
+            </button>
+          </div>
           
           <div className="paper-meta" itemScope itemType="https://schema.org/ScholarlyArticle">
             <meta itemProp="name" content={paper.title} />
@@ -216,26 +263,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
             <div className="loading">Loading summary...</div>
           ) : summaryError ? (
             <div className="error">{summaryError}</div>
-          ) : summary ? (
-            <div className="summary-view">
-              <main className="formatted-summary" itemProp="description">
-                {formatSummary(summary)}
-              </main>
-            </div>
-          ) : (
-            <div className="no-summary">
-              <p>No summary available yet.</p>
-              <button 
-                onClick={handleGenerateSummary}
-                disabled={isGeneratingSummary}
-                className="summarize-button"
-              >
-                {isGeneratingSummary ? 'Generating Summary...' : 'Generate Summary'}
-              </button>
-            </div>
-          )}
-          
-          {isGeneratingSummary && (
+          ) : isGeneratingSummary ? (
             <div className="generating-summary">
               <div className="loading">
                 Generating AI summary...
@@ -248,6 +276,34 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
                   </main>
                 </div>
               )}
+            </div>
+          ) : summary ? (
+            <div className="summary-view">
+              <div className="summary-header">
+                <h2>Summary</h2>
+                <button 
+                  onClick={handleDeleteSummary}
+                  disabled={isDeletingSummary}
+                  className="delete-summary-button"
+                  title="Delete summary"
+                >
+                  {isDeletingSummary ? '⏳' : '×'}
+                </button>
+              </div>
+              <main className="formatted-summary" itemProp="description">
+                {formatSummary(summary)}
+              </main>
+            </div>
+          ) : (
+            <div className="no-summary">
+              <p>No summary available yet.</p>
+              <button 
+                onClick={handleGenerateSummary}
+                disabled={isGeneratingSummary}
+                className="summarize-button"
+              >
+                Generate Summary
+              </button>
             </div>
           )}
         </section>

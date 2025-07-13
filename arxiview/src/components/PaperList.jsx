@@ -142,6 +142,9 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
 
   const handleAddPaper = async (paper) => {
     try {
+      // Store current scroll position
+      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+      
       await savePaperToTopic(topicName, paper);
       await loadPapers(); // Reload the papers list
       
@@ -149,6 +152,11 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
       setArxivSearchResults(prevResults => 
         prevResults.filter(result => result.url !== paper.url)
       );
+      
+      // Restore scroll position after a brief delay to allow for re-render
+      setTimeout(() => {
+        window.scrollTo(0, scrollPosition);
+      }, 50);
     } catch (err) {
       window.alert('Failed to add paper: ' + (err.response?.data?.message || err.message));
       console.error('Error adding paper:', err);
@@ -189,8 +197,16 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
     }
 
     try {
+      // Store current scroll position
+      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
+      
       await deletePaper(topicName, paperId);
       await loadPapers(); // Reload the papers list
+      
+      // Restore scroll position after a brief delay to allow for re-render
+      setTimeout(() => {
+        window.scrollTo(0, scrollPosition);
+      }, 50);
     } catch (err) {
       window.alert('Failed to delete paper: ' + (err.response?.data?.message || err.message));
       console.error('Error deleting paper:', err);
@@ -245,7 +261,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
       <h2>Papers in {topicName}</h2>
       
       {papers.length > 0 && (
-        <div className="search-container">
+        <div className="paper-search-container">
           <div className="paper-search-controls">
             <div className="search-box">
               <input

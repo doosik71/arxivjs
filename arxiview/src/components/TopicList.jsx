@@ -129,7 +129,7 @@ const TopicList = ({ onTopicSelect }) => {
       )}
       
       {topics.length > 0 && (
-        <div className="search-container">
+        <div className="topic-search-container">
           <div className="search-box">
             <input
               type="text"

@@ -224,6 +224,19 @@ async function deletePaper(req, res) {
     }
 }
 
+async function deletePaperSummary(req, res) {
+    try {
+        await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.md'));
+        res.json({ message: 'Paper summary deleted successfully.' });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ message: 'Summary not found.' });
+        } else {
+            res.status(500).json({ message: error.message });
+        }
+    }
+}
+
 async function searchArxiv(req, res) {
     try {
         let { keyword, year, count, sort } = req.query;
@@ -460,6 +473,7 @@ app.get('/papers/:topicName', getPapers);
 app.post('/papers/:topicName', savePaper);
 app.put('/papers/:topicName/:paperId', movePaper);
 app.delete('/papers/:topicName/:paperId', deletePaper);
+app.delete('/paper-summary/:topicName/:paperId', deletePaperSummary);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/chat/:topicName/:paperId', chatWithGemini);
