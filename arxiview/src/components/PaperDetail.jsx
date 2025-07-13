@@ -14,6 +14,63 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
     }
   }, [paperId, topicName]);
 
+  // Update page metadata for immersive reader
+  useEffect(() => {
+    if (paper) {
+      // Update document title
+      document.title = `${paper.title} - ArxiView`;
+      
+      // Update meta description
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', 
+          paper.abstract ? paper.abstract.substring(0, 160) + '...' : 
+          `Research paper: ${paper.title} by ${paper.authors}`
+        );
+      }
+      
+      // Update Open Graph metadata
+      const ogTitle = document.querySelector('meta[property="og:title"]');
+      if (ogTitle) {
+        ogTitle.setAttribute('content', paper.title);
+      }
+      
+      const ogDescription = document.querySelector('meta[property="og:description"]');
+      if (ogDescription) {
+        ogDescription.setAttribute('content', 
+          paper.abstract ? paper.abstract.substring(0, 200) + '...' : 
+          `Research paper by ${paper.authors}, published in ${paper.year}`
+        );
+      }
+      
+      // Add article metadata
+      const articleAuthor = document.querySelector('meta[property="article:author"]');
+      if (articleAuthor) {
+        articleAuthor.setAttribute('content', paper.authors);
+      }
+      
+      // Add publication date if available
+      let articlePublished = document.querySelector('meta[property="article:published_time"]');
+      if (!articlePublished) {
+        articlePublished = document.createElement('meta');
+        articlePublished.setAttribute('property', 'article:published_time');
+        document.head.appendChild(articlePublished);
+      }
+      articlePublished.setAttribute('content', `${paper.year}-01-01`);
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.title = 'ArxiView - Paper Reader';
+      const metaDescription = document.querySelector('meta[name="description"]');
+      if (metaDescription) {
+        metaDescription.setAttribute('content', 
+          'A read-only interface for browsing and viewing research papers and AI-generated summaries'
+        );
+      }
+    };
+  }, [paper]);
+
   const loadSummary = async () => {
     try {
       setLoadingSummary(true);
@@ -38,31 +95,36 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   };
 
   return (
-    <div>
-      <div className="breadcrumb">
+    <article>
+      <nav className="breadcrumb">
         <a href="#" onClick={(e) => { e.preventDefault(); onBackToPapers(); }}>
           ← Back to {topicName}
         </a>
         {' / '}
         <strong>{paper.title}</strong>
-      </div>
+      </nav>
 
       <div className="paper-detail">
-        <h2>{paper.title}</h2>
-        
-        <div className="paper-meta">
-          <p><strong>Authors:</strong> {paper.authors}</p>
-          <p><strong>Year:</strong> {paper.year}</p>
-          <p><strong>URL:</strong> <a href={paper.url} target="_blank" rel="noopener noreferrer">{paper.url}</a></p>
-        </div>
+        <header>
+          <h1>{paper.title}</h1>
+          
+          <div className="paper-meta" itemScope itemType="https://schema.org/ScholarlyArticle">
+            <meta itemProp="name" content={paper.title} />
+            <p><strong>Authors:</strong> <span itemProp="author">{paper.authors}</span></p>
+            <p><strong>Year:</strong> <time itemProp="datePublished">{paper.year}</time></p>
+            <p><strong>URL:</strong> <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url">{paper.url}</a></p>
+          </div>
+        </header>
 
-        <div className="paper-abstract">
-          <h3>Abstract</h3>
-          <p>{paper.abstract}</p>
-        </div>
+        <section className="paper-abstract">
+          <h2>Abstract</h2>
+          <div itemProp="abstract">
+            <p>{paper.abstract}</p>
+          </div>
+        </section>
 
-        <div className="paper-summary">
-          <h3>AI Summary</h3>
+        <section className="paper-summary">
+          <h2>AI Summary</h2>
           {loadingSummary ? (
             <div className="loading">Loading summary...</div>
           ) : summaryError ? (
@@ -70,18 +132,22 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           ) : summary ? (
             <div className="summary-with-toc">
               {getTOCHeaders(summary).length > 0 && (
-                <TableOfContents headers={getTOCHeaders(summary)} />
+                <aside>
+                  <TableOfContents headers={getTOCHeaders(summary)} />
+                </aside>
               )}
-              <div className="formatted-summary">{formatSummary(summary)}</div>
+              <main className="formatted-summary" itemProp="description">
+                {formatSummary(summary)}
+              </main>
             </div>
           ) : (
             <div className="no-summary">
-              No summary available. Generate a summary in the main ArxivJS application.
+              No summary available. Generate a summary in the main ArxiView application.
             </div>
           )}
-        </div>
+        </section>
       </div>
-    </div>
+    </article>
   );
 };
 

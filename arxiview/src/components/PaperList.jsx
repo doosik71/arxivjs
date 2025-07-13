@@ -1,6 +1,48 @@
 import { useState, useEffect } from 'react';
 import { getPapers } from '../api';
 
+// Utility function to highlight search terms in text
+const highlightText = (text, searchQuery, searchField, currentField) => {
+  if (!searchQuery.trim()) return text;
+  
+  // Only highlight if we're searching in 'all' fields or the current field matches
+  if (searchField !== 'all' && searchField !== currentField) return text;
+  
+  const searchTerm = searchQuery.toLowerCase();
+  const textLower = text.toLowerCase();
+  
+  if (!textLower.includes(searchTerm)) return text;
+  
+  // Find all occurrences of the search term
+  const parts = [];
+  let lastIndex = 0;
+  let index = textLower.indexOf(searchTerm, lastIndex);
+  
+  while (index !== -1) {
+    // Add text before the match
+    if (index > lastIndex) {
+      parts.push(text.substring(lastIndex, index));
+    }
+    
+    // Add the highlighted match
+    parts.push(
+      <mark key={`${index}-${searchTerm}`} className="search-highlight">
+        {text.substring(index, index + searchTerm.length)}
+      </mark>
+    );
+    
+    lastIndex = index + searchTerm.length;
+    index = textLower.indexOf(searchTerm, lastIndex);
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  
+  return parts;
+};
+
 const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -177,8 +219,15 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
                       className="paper-item"
                       onClick={() => onPaperSelect(paper, paperId)}
                     >
-                      <div className="paper-title">{paper.title}</div>
-                      <div className="paper-authors">{paper.authors}</div>
+                      <div className="paper-title">
+                        {highlightText(paper.title, searchQuery, searchField, 'title')}
+                      </div>
+                      <div className="paper-authors">
+                        {highlightText(paper.authors, searchQuery, searchField, 'authors')}
+                      </div>
+                      <div className="paper-year">
+                        {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
+                      </div>
                     </div>
                   );
                 })}

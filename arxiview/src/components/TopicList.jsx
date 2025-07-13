@@ -1,6 +1,45 @@
 import { useState, useEffect } from 'react';
 import { getTopics } from '../api';
 
+// Utility function to highlight search terms in text
+const highlightText = (text, searchQuery) => {
+  if (!searchQuery.trim()) return text;
+  
+  const searchTerm = searchQuery.toLowerCase();
+  const textLower = text.toLowerCase();
+  
+  if (!textLower.includes(searchTerm)) return text;
+  
+  // Find all occurrences of the search term
+  const parts = [];
+  let lastIndex = 0;
+  let index = textLower.indexOf(searchTerm, lastIndex);
+  
+  while (index !== -1) {
+    // Add text before the match
+    if (index > lastIndex) {
+      parts.push(text.substring(lastIndex, index));
+    }
+    
+    // Add the highlighted match
+    parts.push(
+      <mark key={`${index}-${searchTerm}`} className="search-highlight">
+        {text.substring(index, index + searchTerm.length)}
+      </mark>
+    );
+    
+    lastIndex = index + searchTerm.length;
+    index = textLower.indexOf(searchTerm, lastIndex);
+  }
+  
+  // Add remaining text
+  if (lastIndex < text.length) {
+    parts.push(text.substring(lastIndex));
+  }
+  
+  return parts;
+};
+
 const TopicList = ({ onTopicSelect }) => {
   const [topics, setTopics] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -92,7 +131,7 @@ const TopicList = ({ onTopicSelect }) => {
               className="topic-card"
               onClick={() => onTopicSelect(topic)}
             >
-              <h3>{topic}</h3>
+              <h3>{highlightText(topic, searchQuery)}</h3>
             </div>
           ))}
         </div>

@@ -11,7 +11,9 @@ export const themes = {
       textSecondary: '#6c757d',
       border: '#dee2e6',
       hover: '#e9ecef',
-      accent: '#17a2b8'
+      accent: '#17a2b8',
+      highlightBg: '#ffeb3b',
+      highlightText: '#333'
     }
   },
   dark: {
@@ -26,7 +28,9 @@ export const themes = {
       textSecondary: '#b0b0b0',
       border: '#333333',
       hover: '#2a2a2a',
-      accent: '#90caf9'
+      accent: '#90caf9',
+      highlightBg: '#ffc107',
+      highlightText: '#000'
     }
   },
   forest: {
@@ -41,7 +45,9 @@ export const themes = {
       textSecondary: '#388e3c',
       border: '#c8e6c9',
       hover: '#e8f5e8',
-      accent: '#66bb6a'
+      accent: '#66bb6a',
+      highlightBg: '#c8e6c9',
+      highlightText: '#1b5e20'
     }
   },
   ocean: {
@@ -56,7 +62,9 @@ export const themes = {
       textSecondary: '#1565c0',
       border: '#bbdefb',
       hover: '#e1f5fe',
-      accent: '#03a9f4'
+      accent: '#03a9f4',
+      highlightBg: '#bbdefb',
+      highlightText: '#0d47a1'
     }
   },
   sunset: {
@@ -71,7 +79,9 @@ export const themes = {
       textSecondary: '#f57c00',
       border: '#ffccbc',
       hover: '#fbe9d0',
-      accent: '#ff9800'
+      accent: '#ff9800',
+      highlightBg: '#ffccbc',
+      highlightText: '#bf360c'
     }
   },
   lavender: {
@@ -86,7 +96,9 @@ export const themes = {
       textSecondary: '#7b1fa2',
       border: '#e1bee7',
       hover: '#f8e8ff',
-      accent: '#ab47bc'
+      accent: '#ab47bc',
+      highlightBg: '#e1bee7',
+      highlightText: '#4a148c'
     }
   },
   coffee: {
@@ -101,7 +113,9 @@ export const themes = {
       textSecondary: '#5d4037',
       border: '#d7ccc8',
       hover: '#f5f5f5',
-      accent: '#a1887f'
+      accent: '#a1887f',
+      highlightBg: '#d7ccc8',
+      highlightText: '#3e2723'
     }
   },
   mint: {
@@ -116,7 +130,9 @@ export const themes = {
       textSecondary: '#00695c',
       border: '#b2dfdb',
       hover: '#f0f9f8',
-      accent: '#4db6ac'
+      accent: '#4db6ac',
+      highlightBg: '#b2dfdb',
+      highlightText: '#004d40'
     }
   }
 };

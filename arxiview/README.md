@@ -1,4 +1,4 @@
-# ArxiView - Research Paper Reader
+# ArxiView - Arxiv Paper Reader
 
 ArxiView is a React-based read-only frontend client for viewing research papers and summaries managed by the ArxivJS application.
 
@@ -7,8 +7,13 @@ ArxiView is a React-based read-only frontend client for viewing research papers 
 - **Topic Browsing**: View all research topics created in ArxivJS
 - **Paper Listing**: Browse papers within each topic, sorted by year and title
 - **Paper Details**: View paper metadata, abstracts, and AI-generated summaries
+- **Advanced Search**: Real-time search with text highlighting
+- **Math Expression Support**: Full LaTeX math rendering with MathJax
+- **Table of Contents**: Auto-generated TOC with scroll tracking
+- **Multiple Themes**: 8 custom themes with consistent styling
 - **Responsive Design**: Optimized for desktop and mobile viewing
 - **Read-Only Interface**: Safe viewing without the ability to modify data
+- **Electron Desktop App**: Available as a cross-platform desktop application
 
 ## Requirements
 
@@ -31,10 +36,39 @@ The application will be available at http://localhost:3000
 
 ## Production Build
 
+### Web Application
 ```bash
 npm run build
 npm run preview
 ```
+
+### Desktop Application (Electron)
+
+```bash
+# Development mode (starts both Vite and Electron)
+npm run electron-dev
+
+# Build and run Electron app
+npm run build-electron
+
+# Build distributable packages
+npm run dist:win    # Windows installer and portable
+npm run dist:mac    # macOS DMG  
+npm run dist:linux  # Linux AppImage and DEB
+npm run dist        # All platforms
+```
+
+#### Windows Build Outputs
+- `ArxiView-1.0.0-x64.exe` - NSIS installer
+- `ArxiView-1.0.0-x64.exe` - Portable executable
+
+#### macOS Build Outputs  
+- `ArxiView-1.0.0-arm64.dmg` - Apple Silicon
+- `ArxiView-1.0.0-x64.dmg` - Intel Macs
+
+#### Linux Build Outputs
+- `ArxiView-1.0.0-x64.AppImage` - Universal Linux app
+- `ArxiView-1.0.0-x64.deb` - Debian/Ubuntu package
 
 ## Architecture
 
