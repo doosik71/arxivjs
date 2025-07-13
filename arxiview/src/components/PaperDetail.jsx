@@ -161,12 +161,6 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
                 {getTOCHeaders(summary).length > 0 && (
                   <TableOfContents headers={getTOCHeaders(summary)} />
                 )}
-                <ChatBox
-                  onSendMessage={handleSendMessage}
-                  chatHistory={chatHistory}
-                  isLoading={isChatLoading}
-                  onClearHistory={handleClearChatHistory}
-                />
               </aside>
             </div>
           ) : (
@@ -176,6 +170,14 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           )}
         </section>
       </div>
+      {summary && !summaryError && (
+        <ChatBox
+          onSendMessage={handleSendMessage}
+          chatHistory={chatHistory}
+          isLoading={isChatLoading}
+          onClearHistory={handleClearChatHistory}
+        />
+      )}
     </article>
   );
 };
