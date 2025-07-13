@@ -118,7 +118,7 @@ const SettingsModal = ({ isOpen, onClose, onConfigUpdate }) => {
     setConfig({
       backendProtocol: 'http',
       backendHost: 'localhost', 
-      backendPort: 9900
+      backendPort: 8765
     });
     setTestResult(null);
     setError(null);
@@ -168,7 +168,7 @@ const SettingsModal = ({ isOpen, onClose, onConfigUpdate }) => {
                 type="number"
                 value={config.backendPort}
                 onChange={e => handleInputChange('backendPort', parseInt(e.target.value) || '')}
-                placeholder="9900"
+                placeholder="8765"
                 min="1"
                 max="65535"
                 className="form-control"

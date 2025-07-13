@@ -658,11 +658,11 @@ async function startServer() {
 
     if (!port) {
         try {
-            port = await findAvailablePort(8000, 9000, HOSTNAME);
+            port = await findAvailablePort(8765, 9000, HOSTNAME);
         } catch (err) {
             console.error(err.message);
-            console.log('Defaulting to port 3000.');
-            port = 3000;
+            console.log('Defaulting to port 8765.');
+            port = 8765;
         }
     }
 

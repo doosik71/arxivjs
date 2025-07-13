@@ -84,7 +84,7 @@ To start the web server, run the `run_arxivjs_server.bat` script or execute the 
 npm run dev
 ```
 
-Once the server is running, open your web browser and navigate to `http://localhost:3000` (or the port specified in your configuration).
+Once the server is running, open your web browser and navigate to `http://localhost:8765` (or the port specified in your configuration).
 
 ### Desktop Application
 

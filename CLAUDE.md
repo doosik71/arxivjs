@@ -162,7 +162,7 @@ npm run package:linux
 # From arxiview/ directory
 cd arxiview
 
-# Start development server (default port 3000)
+# Start development server (default port 8766)
 npm run dev
 
 # Build for production
@@ -173,7 +173,7 @@ npm run preview
 ```
 
 #### Development Notes
-- ArxiView requires ArxivJS backend to be running on port 9900
+- ArxiView requires ArxivJS backend to be running on port 8765
 - Vite proxy automatically forwards API calls to the backend
 - Hot module replacement (HMR) enabled for rapid development
 
@@ -321,7 +321,7 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 
 ### ArxiView (React Client)
 - Read-only interface - no data modification capabilities
-- Requires ArxivJS backend running on port 9900 for API access
+- Requires ArxivJS backend running on port 8765 for API access
 - Uses modern React patterns (hooks, functional components)
 - MathJax loaded via CDN for math rendering
 - Responsive design supports mobile and desktop browsers
