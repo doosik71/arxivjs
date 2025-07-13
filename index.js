@@ -286,6 +286,68 @@ async function getPaperSummary(req, res) {
     }
 }
 
+async function chatWithGemini(req, res) {
+    try {
+        const { topicName, paperId } = req.params;
+        const { history } = req.body;
+
+        const jsonPath = path.join(dataPath, topicName, paperId + '.json');
+        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+
+        let paperContext = '';
+        try {
+            const paperData = await fs.readFile(jsonPath, 'utf-8');
+            const paper = JSON.parse(paperData);
+            paperContext += `Title: ${paper.title}\nAuthors: ${paper.authors}\nAbstract: ${paper.abstract}\n\n`;
+        } catch (error) {
+            // Ignore if json file doesn't exist
+        }
+
+        try {
+            const summary = await fs.readFile(mdPath, 'utf-8');
+            paperContext += `AI Summary:\n${summary}`;
+        } catch (error) {
+            // Ignore if summary file doesn't exist
+        }
+
+        if (!paperContext) {
+            return res.status(404).json({ message: 'Paper context not found.' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        
+        const conversationHistory = history.slice(0, -1);
+        const lastMessage = history[history.length - 1];
+
+        const chat = model.startChat({
+            history: [
+                {
+                    role: "user",
+                    parts: [{ text: `You are a helpful assistant. The user is asking questions about a research paper. Use the following context to answer their questions:\n\n${paperContext}` }],
+                },
+                {
+                    role: "model",
+                    parts: [{ text: "Okay, I have the context of the paper. I'm ready to answer questions about it." }],
+                },
+                ...conversationHistory.map(h => ({
+                    role: h.role === 'assistant' ? 'model' : 'user',
+                    parts: [{ text: h.content }]
+                }))
+            ],
+        });
+
+        const result = await chat.sendMessage(lastMessage.content);
+        const response = await result.response;
+        const text = response.text();
+
+        res.json({ message: text });
+
+    } catch (error) {
+        console.error('Error in /chat:', error);
+        res.status(500).json({ message: error.message });
+    }
+}
+
 async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName } = req.body;
@@ -386,6 +448,7 @@ app.put('/papers/:topicName/:paperId', movePaper);
 app.delete('/papers/:topicName/:paperId', deletePaper);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
+app.post('/chat/:topicName/:paperId', chatWithGemini);
 app.post('/summarize-and-save', summarizeAndSave);
 app.post('/paper-by-url', addPaperByUrl);
 app.post('/extract-pdf-text', upload.single('pdf'), extractPdfText);

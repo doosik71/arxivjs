@@ -22,6 +22,17 @@ arxivjs는 논문의 주제를 관리하고 논문 주제와 관련한 논문을
 * main.js: Electron 앱의 메인 프로세스
 * preload.js: Electron 앱의 preload 스크립트
 
+## Arxiview 앱
+
+`arxiview`는 React와 Vite를 사용하여 구축된 새로운 클라이언트 애플리케이션으로, 기존의 `public` 폴더 기반 클라이언트를 대체한다. Electron을 통해 데스크톱 앱으로도 패키징된다.
+
+### 주요 소스 파일 구성
+
+*   `arxiview/src/App.jsx`: 메인 애플리케이션 컴포넌트
+*   `arxiview/src/main.jsx`: 애플리케이션 진입점
+*   `arxiview/src/components/`: TopicList, PaperList, PaperDetail 등 UI 뷰를 위한 React 컴포넌트
+*   `arxiview/electron/main.js`: Arxiview 앱을 위한 Electron 메인 프로세스 스크립트
+
 ## 실행 파일 구성
 
 * run_arxivjs_app.bat: Electron 앱을 실행한다.

@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPapers } from '../api';
+import TableOfContents from './TableOfContents';
 
 // Utility function to highlight search terms in text
 const highlightText = (text, searchQuery, searchField, currentField) => {
@@ -130,6 +131,14 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
     }));
   };
 
+  const groupedPapers = groupPapersByYear(filteredPapers);
+  const tocHeaders = groupedPapers.map(({ year }) => ({
+    id: `year-${year}`,
+    text: `${year}`,
+    level: 1,
+  }));
+
+
   if (loading) {
     return <div className="loading">Loading papers...</div>;
   }
@@ -203,37 +212,40 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
           {searchField !== 'all' && ` in ${searchField}`}.
         </div>
       ) : (
-        <div className="paper-list-container">
-          {groupPapersByYear(filteredPapers).map(({ year, papers }) => (
-            <div key={year} className="year-group">
-              <div className="year-header">
-                <h3 className="year-title">{year}</h3>
-                <span className="year-count">({papers.length} paper{papers.length !== 1 ? 's' : ''})</span>
+        <div className="paper-list-view">
+          <div className="paper-list-container">
+            {groupedPapers.map(({ year, papers }) => (
+              <div key={year} id={`year-${year}`} className="year-group">
+                <div className="year-header">
+                  <h3 className="year-title">{year}</h3>
+                  <span className="year-count">({papers.length} paper{papers.length !== 1 ? 's' : ''})</span>
+                </div>
+                <div className="paper-list">
+                  {papers.map((paper) => {
+                    const paperId = btoa(paper.url);
+                    return (
+                      <div
+                        key={paperId}
+                        className="paper-item"
+                        onClick={() => onPaperSelect(paper, paperId)}
+                      >
+                        <div className="paper-title">
+                          {highlightText(paper.title, searchQuery, searchField, 'title')}
+                        </div>
+                        <div className="paper-authors">
+                          {highlightText(paper.authors, searchQuery, searchField, 'authors')}
+                        </div>
+                        <div className="paper-year">
+                          {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
-              <div className="paper-list">
-                {papers.map((paper) => {
-                  const paperId = btoa(paper.url);
-                  return (
-                    <div
-                      key={paperId}
-                      className="paper-item"
-                      onClick={() => onPaperSelect(paper, paperId)}
-                    >
-                      <div className="paper-title">
-                        {highlightText(paper.title, searchQuery, searchField, 'title')}
-                      </div>
-                      <div className="paper-authors">
-                        {highlightText(paper.authors, searchQuery, searchField, 'authors')}
-                      </div>
-                      <div className="paper-year">
-                        {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
-                      </div>
-                    </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
+            ))}
+          </div>
+          <TableOfContents headers={tocHeaders} />
         </div>
       )}
     </div>
