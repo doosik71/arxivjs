@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { getPaperSummary } from '../api';
+import { parseMarkdownWithMath } from '../utils/markdownRenderer';
 
 const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   const [summary, setSummary] = useState(null);
@@ -27,22 +28,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
 
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
-    
-    return summaryText.split('\n').map((line, index) => {
-      if (line.startsWith('# ')) {
-        return <h2 key={index}>{line.substring(2)}</h2>;
-      } else if (line.startsWith('## ')) {
-        return <h3 key={index}>{line.substring(3)}</h3>;
-      } else if (line.startsWith('### ')) {
-        return <h4 key={index}>{line.substring(4)}</h4>;
-      } else if (line.startsWith('- ')) {
-        return <li key={index}>{line.substring(2)}</li>;
-      } else if (line.trim() === '') {
-        return <br key={index} />;
-      } else {
-        return <p key={index}>{line}</p>;
-      }
-    });
+    return parseMarkdownWithMath(summaryText);
   };
 
   return (
@@ -76,7 +62,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           ) : summaryError ? (
             <div className="error">{summaryError}</div>
           ) : summary ? (
-            <div>{formatSummary(summary)}</div>
+            <div className="formatted-summary">{formatSummary(summary)}</div>
           ) : (
             <div className="no-summary">
               No summary available. Generate a summary in the main ArxivJS application.
