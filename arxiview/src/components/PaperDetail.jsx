@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getPaperSummary } from '../api';
-import { parseMarkdownWithMath } from '../utils/markdownRenderer';
+import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
+import TableOfContents from './TableOfContents';
 
 const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   const [summary, setSummary] = useState(null);
@@ -29,6 +30,11 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
     return parseMarkdownWithMath(summaryText);
+  };
+
+  const getTOCHeaders = (summaryText) => {
+    if (!summaryText) return [];
+    return extractTableOfContents(summaryText);
   };
 
   return (
@@ -62,7 +68,12 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers }) => {
           ) : summaryError ? (
             <div className="error">{summaryError}</div>
           ) : summary ? (
-            <div className="formatted-summary">{formatSummary(summary)}</div>
+            <div className="summary-with-toc">
+              {getTOCHeaders(summary).length > 0 && (
+                <TableOfContents headers={getTOCHeaders(summary)} />
+              )}
+              <div className="formatted-summary">{formatSummary(summary)}</div>
+            </div>
           ) : (
             <div className="no-summary">
               No summary available. Generate a summary in the main ArxivJS application.

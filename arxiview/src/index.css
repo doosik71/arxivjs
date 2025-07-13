@@ -491,7 +491,7 @@ body {
   color: var(--color-text-secondary);
 }
 
-/* Math-specific styles */
+/* Math-specific styles for MathJax */
 .math-block {
   margin: 1.5rem 0;
   padding: 1rem;
@@ -501,37 +501,160 @@ body {
   overflow-x: auto;
 }
 
-.katex {
-  font-size: 1.1em;
+/* MathJax styling */
+.MathJax {
+  font-size: 1.1em !important;
 }
 
-.katex-display {
+.MathJax_Display {
+  margin: 1rem 0 !important;
+}
+
+/* Custom MathJax theme integration */
+.MathJax * {
+  color: var(--color-text) !important;
+}
+
+mjx-container {
+  margin: 0.5rem 0;
+}
+
+mjx-container[display="true"] {
   margin: 1rem 0;
+  text-align: center;
 }
 
-/* Custom KaTeX theme integration */
-.katex .base {
+mjx-math {
   color: var(--color-text) !important;
 }
 
-.katex .mord {
-  color: var(--color-text) !important;
+/* Table of Contents Styles */
+.summary-with-toc {
+  display: flex;
+  gap: 2rem;
+  align-items: flex-start;
 }
 
-.katex .mop {
-  color: var(--color-primary) !important;
+.table-of-contents {
+  flex-shrink: 0;
+  width: 280px;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  padding: 1rem;
+  position: sticky;
+  top: 2rem;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
 }
 
-.katex .mrel {
-  color: var(--color-secondary) !important;
+.toc-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--color-border);
 }
 
-.katex .mbin {
-  color: var(--color-accent) !important;
+.toc-header h4 {
+  margin: 0;
+  color: var(--color-primary);
+  font-size: 1rem;
+  font-weight: 600;
 }
 
-.katex .mpunct {
+.toc-toggle {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s ease;
+  font-size: 0.8rem;
+}
+
+.toc-toggle:hover {
+  background: var(--color-hover);
+}
+
+.toc-nav {
+  max-height: calc(100vh - 8rem);
+  overflow-y: auto;
+}
+
+.toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.toc-item {
+  margin: 0;
+}
+
+.toc-level-1 {
+  margin-bottom: 0.5rem;
+}
+
+.toc-level-2 {
+  margin-left: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+.toc-level-3 {
+  margin-left: 2rem;
+  margin-bottom: 0.25rem;
+}
+
+.toc-link {
+  display: block;
+  padding: 0.4rem 0.75rem;
+  color: var(--color-text-secondary);
+  text-decoration: none;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  line-height: 1.4;
+  border-left: 3px solid transparent;
+}
+
+.toc-item:not(.active) .toc-link:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.toc-item.active .toc-link {
+  background: var(--color-secondary) !important;
+  color: var(--color-background) !important;
+  border-left-color: var(--color-accent) !important;
+  font-weight: 500 !important;
+}
+
+.toc-item:not(.active) .toc-link {
+  background: transparent !important;
   color: var(--color-text-secondary) !important;
+  border-left-color: transparent !important;
+}
+
+.toc-level-1 .toc-link {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.toc-level-3 .toc-link {
+  font-size: 0.85rem;
+}
+
+/* Header anchor styling */
+.header-with-anchor {
+  scroll-margin-top: 5rem;
+}
+
+.formatted-summary {
+  flex: 1;
+  min-width: 0;
 }
 
 @media (max-width: 768px) {
@@ -587,8 +710,8 @@ body {
     margin: 1rem 0;
   }
   
-  .katex {
-    font-size: 1em;
+  .MathJax {
+    font-size: 1em !important;
   }
   
   .formatted-summary {
@@ -597,6 +720,22 @@ body {
   
   .formatted-summary p {
     text-align: left;
+  }
+  
+  .summary-with-toc {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .table-of-contents {
+    position: static;
+    width: 100%;
+    max-height: none;
+    order: -1;
+  }
+  
+  .toc-nav {
+    max-height: 300px;
   }
 }
 
