@@ -52,4 +52,61 @@ export const chatWithGemini = async (topicName, paperId, history) => {
   return response.data;
 };
 
+export const createTopic = async (topicName) => {
+  const response = await api.post('/topics', { topicName });
+  return response.data;
+};
+
+export const deleteTopic = async (topicName) => {
+  const response = await api.delete(`/topics/${encodeURIComponent(topicName)}`);
+  return response.data;
+};
+
+export const searchArxivPapers = async (keyword, year, count = 100, sort = 'relevance') => {
+  const params = new URLSearchParams({
+    keyword,
+    count: count.toString(),
+    sort
+  });
+  
+  if (year) {
+    params.append('year', year);
+  }
+  
+  const response = await api.get(`/search?${params.toString()}`);
+  return response.data;
+};
+
+export const savePaperToTopic = async (topicName, paper) => {
+  const response = await api.post(`/papers/${encodeURIComponent(topicName)}`, { paper });
+  return response.data;
+};
+
+export const generatePaperSummary = async (topicName, paper) => {
+  const baseURL = api.defaults.baseURL || '';
+  const url = `${baseURL}/summarize-and-save`;
+  
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ 
+      paper, 
+      topicName 
+    })
+  });
+  
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  
+  return response;
+};
+
+export const deletePaper = async (topicName, paperId) => {
+  const response = await api.delete(`/papers/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`);
+  return response.data;
+};
+
 export default api;

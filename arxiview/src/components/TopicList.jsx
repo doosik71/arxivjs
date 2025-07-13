@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTopics } from '../api';
+import { getTopics, createTopic, deleteTopic } from '../api';
 
 // Utility function to highlight search terms in text
 const highlightText = (text, searchQuery) => {
@@ -45,6 +45,8 @@ const TopicList = ({ onTopicSelect }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const [newTopicName, setNewTopicName] = useState('');
+  const [isCreating, setIsCreating] = useState(false);
 
   useEffect(() => {
     loadTopics();
@@ -75,6 +77,38 @@ const TopicList = ({ onTopicSelect }) => {
     setSearchQuery('');
   };
 
+  const handleCreateTopic = async (e) => {
+    e.preventDefault();
+    if (!newTopicName.trim()) return;
+
+    try {
+      setIsCreating(true);
+      await createTopic(newTopicName.trim());
+      setNewTopicName('');
+      await loadTopics();
+    } catch (err) {
+      setError('Failed to create topic: ' + (err.response?.data?.message || err.message));
+      console.error('Error creating topic:', err);
+    } finally {
+      setIsCreating(false);
+    }
+  };
+
+  const handleDeleteTopic = async (topicName) => {
+    if (!window.confirm(`Are you sure you want to delete topic "${topicName}"?`)) {
+      return;
+    }
+
+    try {
+      await deleteTopic(topicName);
+      await loadTopics();
+    } catch (err) {
+      const errorMessage = 'Failed to delete topic: ' + (err.response?.data?.message || err.message);
+      window.alert(errorMessage);
+      console.error('Error deleting topic:', err);
+    }
+  };
+
   if (loading) {
     return <div className="loading">Loading topics...</div>;
   }
@@ -86,6 +120,13 @@ const TopicList = ({ onTopicSelect }) => {
   return (
     <div>
       <h2>Research Topics</h2>
+      
+      {error && (
+        <div className="error-message">
+          {error}
+          <button onClick={() => setError(null)} className="error-close">×</button>
+        </div>
+      )}
       
       {topics.length > 0 && (
         <div className="search-container">
@@ -117,7 +158,7 @@ const TopicList = ({ onTopicSelect }) => {
 
       {topics.length === 0 ? (
         <div className="loading">
-          No topics found. Topics will appear here when they are created in the main ArxivJS application.
+          No topics found. Create your first topic using the form below.
         </div>
       ) : filteredTopics.length === 0 ? (
         <div className="no-results">
@@ -129,13 +170,43 @@ const TopicList = ({ onTopicSelect }) => {
             <div
               key={topic}
               className="topic-card"
-              onClick={() => onTopicSelect(topic)}
             >
-              <h3>{highlightText(topic, searchQuery)}</h3>
+              <h3 onClick={() => onTopicSelect(topic)}>{highlightText(topic, searchQuery)}</h3>
+              <button 
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteTopic(topic);
+                }}
+                className="delete-button"
+                title="Delete topic"
+              >
+                ×
+              </button>
             </div>
           ))}
         </div>
       )}
+
+      {/* Create Topic Form - moved to bottom */}
+      <form onSubmit={handleCreateTopic} className="add-topic-form">
+        <div className="form-group">
+          <input
+            type="text"
+            placeholder="Enter new topic name..."
+            value={newTopicName}
+            onChange={(e) => setNewTopicName(e.target.value)}
+            className="topic-input"
+            disabled={isCreating}
+          />
+          <button 
+            type="submit" 
+            disabled={!newTopicName.trim() || isCreating}
+            className="add-button"
+          >
+            {isCreating ? 'Creating...' : 'Add Topic'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 };

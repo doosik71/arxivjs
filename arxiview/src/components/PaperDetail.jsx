@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPaperSummary, chatWithGemini } from '../api';
+import { getPaperSummary, chatWithGemini, generatePaperSummary } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 
@@ -9,6 +9,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
   const [summaryError, setSummaryError] = useState(null);
   const [chatHistory, setChatHistory] = useState([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
+  const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
 
   useEffect(() => {
     if (paperId && topicName) {
@@ -87,6 +88,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
   const loadSummary = async () => {
     try {
       setLoadingSummary(true);
+      setSummaryError(null);
       const summaryData = await getPaperSummary(topicName, paperId);
       setSummary(summaryData);
     } catch (err) {
@@ -94,6 +96,64 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
       console.error('Error loading summary:', err);
     } finally {
       setLoadingSummary(false);
+    }
+  };
+
+  const handleGenerateSummary = async () => {
+    try {
+      setIsGeneratingSummary(true);
+      setSummaryError(null);
+      
+      const response = await generatePaperSummary(topicName, paper);
+      
+      // Check if streaming is supported
+      if (!response.body || !response.body.getReader) {
+        // Fallback to regular response
+        const text = await response.text();
+        setSummary(text);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let summaryText = '';
+      
+      setSummary(''); // Clear existing summary to show streaming
+      
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n\n');
+          
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonData = line.substring(6).trim();
+                if (jsonData && jsonData !== '[DONE]') {
+                  const data = JSON.parse(jsonData);
+                  summaryText += data;
+                  setSummary(summaryText);
+                }
+              } catch (e) {
+                // Ignore invalid JSON chunks
+                console.warn('Failed to parse chunk:', line);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+      
+    } catch (err) {
+      setSummaryError('Failed to generate summary: ' + (err.message || 'Unknown error'));
+      console.error('Error generating summary:', err);
+      setSummary(null); // Clear partial summary on error
+    } finally {
+      setIsGeneratingSummary(false);
     }
   };
 
@@ -164,7 +224,30 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
             </div>
           ) : (
             <div className="no-summary">
-              No summary available. Generate a summary in the main ArxiView application.
+              <p>No summary available yet.</p>
+              <button 
+                onClick={handleGenerateSummary}
+                disabled={isGeneratingSummary}
+                className="summarize-button"
+              >
+                {isGeneratingSummary ? 'Generating Summary...' : 'Generate Summary'}
+              </button>
+            </div>
+          )}
+          
+          {isGeneratingSummary && (
+            <div className="generating-summary">
+              <div className="loading">
+                Generating AI summary...
+                <div className="spinner"></div>
+              </div>
+              {summary && (
+                <div className="summary-preview">
+                  <main className="formatted-summary" itemProp="description">
+                    {formatSummary(summary)}
+                  </main>
+                </div>
+              )}
             </div>
           )}
         </section>

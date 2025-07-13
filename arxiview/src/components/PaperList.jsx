@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPapers } from '../api';
+import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper } from '../api';
 import TableOfContents from './TableOfContents';
 
 // Utility function to highlight search terms in text
@@ -50,10 +50,20 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchField, setSearchField] = useState('all');
+  
+  // New paper search states
+  const [arxivSearchQuery, setArxivSearchQuery] = useState('');
+  const [arxivSearchYear, setArxivSearchYear] = useState('');
+  const [arxivSearchResults, setArxivSearchResults] = useState([]);
+  const [arxivSearchLoading, setArxivSearchLoading] = useState(false);
+  const [arxivSearchError, setArxivSearchError] = useState(null);
+  const [showArxivSearch, setShowArxivSearch] = useState(false);
 
   useEffect(() => {
     if (topicName) {
       loadPapers();
+      // Set topic name as default search query
+      setArxivSearchQuery(topicName);
     }
   }, [topicName]);
 
@@ -110,6 +120,81 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
   const clearSearch = () => {
     setSearchQuery('');
     setSearchField('all');
+  };
+
+  // ArXiv search functions
+  const handleArxivSearch = async (e) => {
+    e.preventDefault();
+    if (!arxivSearchQuery.trim()) return;
+
+    try {
+      setArxivSearchLoading(true);
+      setArxivSearchError(null);
+      const results = await searchArxivPapers(arxivSearchQuery, arxivSearchYear, 50);
+      setArxivSearchResults(results);
+    } catch (err) {
+      setArxivSearchError('Failed to search papers: ' + (err.response?.data?.message || err.message));
+      console.error('Error searching papers:', err);
+    } finally {
+      setArxivSearchLoading(false);
+    }
+  };
+
+  const handleAddPaper = async (paper) => {
+    try {
+      await savePaperToTopic(topicName, paper);
+      await loadPapers(); // Reload the papers list
+      
+      // Remove the added paper from search results
+      setArxivSearchResults(prevResults => 
+        prevResults.filter(result => result.url !== paper.url)
+      );
+    } catch (err) {
+      window.alert('Failed to add paper: ' + (err.response?.data?.message || err.message));
+      console.error('Error adding paper:', err);
+    }
+  };
+
+  const clearArxivSearch = () => {
+    setArxivSearchQuery('');
+    setArxivSearchYear('');
+    setArxivSearchResults([]);
+    setArxivSearchError(null);
+  };
+
+  const toggleArxivSearch = () => {
+    setShowArxivSearch(!showArxivSearch);
+    if (showArxivSearch) {
+      clearArxivSearch();
+    }
+  };
+
+  // Generate year options for the last 10 years
+  const generateYearOptions = () => {
+    const currentYear = new Date().getFullYear();
+    const years = [];
+    for (let i = 0; i < 10; i++) {
+      const start = currentYear - (i * 3);
+      const end = start - 2;
+      years.push(`${end}~${start}`);
+    }
+    return years;
+  };
+
+  const handleDeletePaper = async (paper) => {
+    const paperId = btoa(paper.url);
+    
+    if (!window.confirm(`Are you sure you want to delete this paper?\n\n"${paper.title}"`)) {
+      return;
+    }
+
+    try {
+      await deletePaper(topicName, paperId);
+      await loadPapers(); // Reload the papers list
+    } catch (err) {
+      window.alert('Failed to delete paper: ' + (err.response?.data?.message || err.message));
+      console.error('Error deleting paper:', err);
+    }
   };
 
   const groupPapersByYear = (papers) => {
@@ -227,17 +312,31 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
                       <div
                         key={paperId}
                         className="paper-item"
-                        onClick={() => onPaperSelect(paper, paperId)}
                       >
-                        <div className="paper-title">
-                          {highlightText(paper.title, searchQuery, searchField, 'title')}
+                        <div 
+                          className="paper-content"
+                          onClick={() => onPaperSelect(paper, paperId)}
+                        >
+                          <div className="paper-title">
+                            {highlightText(paper.title, searchQuery, searchField, 'title')}
+                          </div>
+                          <div className="paper-authors">
+                            {highlightText(paper.authors, searchQuery, searchField, 'authors')}
+                          </div>
+                          <div className="paper-year">
+                            {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
+                          </div>
                         </div>
-                        <div className="paper-authors">
-                          {highlightText(paper.authors, searchQuery, searchField, 'authors')}
-                        </div>
-                        <div className="paper-year">
-                          {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
-                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeletePaper(paper);
+                          }}
+                          className="paper-delete-button"
+                          title="Delete paper"
+                        >
+                          ×
+                        </button>
                       </div>
                     );
                   })}
@@ -248,6 +347,108 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
           <TableOfContents headers={tocHeaders} />
         </div>
       )}
+
+      {/* ArXiv Paper Search Interface */}
+      <div className="arxiv-search-section">
+        <button 
+          onClick={toggleArxivSearch}
+          className="arxiv-search-toggle"
+        >
+          {showArxivSearch ? '< Hide' : 'Search >'}
+        </button>
+
+        {showArxivSearch && (
+          <div className="arxiv-search-container">
+            <h3>Search ArXiv Papers</h3>
+            
+            <form onSubmit={handleArxivSearch} className="arxiv-search-form">
+              <div className="arxiv-search-controls">
+                <input
+                  type="text"
+                  placeholder="Enter search keywords..."
+                  value={arxivSearchQuery}
+                  onChange={(e) => setArxivSearchQuery(e.target.value)}
+                  className="arxiv-search-input"
+                  disabled={arxivSearchLoading}
+                />
+                <select
+                  value={arxivSearchYear}
+                  onChange={(e) => setArxivSearchYear(e.target.value)}
+                  className="arxiv-year-select"
+                  disabled={arxivSearchLoading}
+                >
+                  <option value="">All Years</option>
+                  {generateYearOptions().map(year => (
+                    <option key={year} value={year}>{year}</option>
+                  ))}
+                </select>
+                <button 
+                  type="submit" 
+                  disabled={!arxivSearchQuery.trim() || arxivSearchLoading}
+                  className="arxiv-search-button"
+                >
+                  {arxivSearchLoading ? 'Searching...' : 'Search'}
+                </button>
+                {(arxivSearchQuery || arxivSearchResults.length > 0) && (
+                  <button 
+                    type="button"
+                    onClick={clearArxivSearch}
+                    className="arxiv-clear-button"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </form>
+
+            {arxivSearchError && (
+              <div className="arxiv-search-error">
+                {arxivSearchError}
+              </div>
+            )}
+
+            {arxivSearchResults.length > 0 && (
+              <div className="arxiv-search-results">
+                <h4>Search Results ({arxivSearchResults.length} papers found)</h4>
+                <div className="arxiv-results-list">
+                  {arxivSearchResults.map((paper, index) => (
+                    <div key={index} className="arxiv-result-item">
+                      <div className="arxiv-paper-info">
+                        <div className="arxiv-paper-title">{paper.title}</div>
+                        <div className="arxiv-paper-authors">{paper.authors}</div>
+                        <div className="arxiv-paper-meta">
+                          <span className="arxiv-paper-year">{paper.year}</span>
+                          <a 
+                            href={paper.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="arxiv-paper-link"
+                          >
+                            View on ArXiv
+                          </a>
+                        </div>
+                        {paper.abstract && (
+                          <div className="arxiv-paper-abstract">
+                            {paper.abstract.substring(0, 300)}
+                            {paper.abstract.length > 300 && '...'}
+                          </div>
+                        )}
+                      </div>
+                      <button
+                        onClick={() => handleAddPaper(paper)}
+                        className="arxiv-add-button"
+                        title="Add to this topic"
+                      >
+                        Add
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
