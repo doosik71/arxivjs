@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTopics, createTopic, deleteTopic } from '../api';
+import { getTopics, createTopic, deleteTopic, getPapers } from '../api';
 
 // Utility function to highlight search terms in text
 const highlightText = (text, searchQuery) => {
@@ -55,8 +55,28 @@ const TopicList = ({ onTopicSelect }) => {
   const loadTopics = async () => {
     try {
       setLoading(true);
-      const data = await getTopics();
-      setTopics(data);
+      const topicNames = await getTopics();
+      
+      // Get paper count for each topic
+      const topicsWithCounts = await Promise.all(
+        topicNames.map(async (topicName) => {
+          try {
+            const papers = await getPapers(topicName);
+            return {
+              name: topicName,
+              count: papers.length
+            };
+          } catch (error) {
+            console.error(`Error getting papers for topic ${topicName}:`, error);
+            return {
+              name: topicName,
+              count: 0
+            };
+          }
+        })
+      );
+      
+      setTopics(topicsWithCounts);
     } catch (err) {
       setError('Failed to load topics');
       console.error('Error loading topics:', err);
@@ -66,7 +86,7 @@ const TopicList = ({ onTopicSelect }) => {
   };
 
   const filteredTopics = topics.filter(topic =>
-    topic.toLowerCase().includes(searchQuery.toLowerCase())
+    topic.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const handleSearchChange = (e) => {
@@ -168,14 +188,15 @@ const TopicList = ({ onTopicSelect }) => {
         <div className="topic-grid">
           {filteredTopics.map((topic) => (
             <div
-              key={topic}
+              key={topic.name}
               className="topic-card"
             >
-              <h3 onClick={() => onTopicSelect(topic)}>{highlightText(topic, searchQuery)}</h3>
+              <h3 onClick={() => onTopicSelect(topic.name)}>{highlightText(topic.name, searchQuery)}</h3>
+              <div className="topic-paper-count">{topic.count} papers</div>
               <button 
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDeleteTopic(topic);
+                  handleDeleteTopic(topic.name);
                 }}
                 className="delete-button"
                 title="Delete topic"

@@ -117,12 +117,24 @@ body {
   cursor: pointer;
   transition: transform 0.2s, box-shadow 0.2s, background-color 0.3s ease;
   border: 1px solid var(--color-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 120px;
 }
 
 .topic-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
   background: var(--color-hover);
+}
+
+.topic-paper-count {
+  font-size: 0.8rem;
+  color: var(--color-text-secondary);
+  opacity: 0.7;
+  text-align: right;
+  margin-top: 0.5rem;
 }
 
 .paper-list {
@@ -185,6 +197,35 @@ body {
 
 .paper-delete-button:hover {
   background: rgba(192, 57, 43, 0.8);
+  transform: scale(1.1);
+}
+
+.paper-move-button {
+  position: absolute;
+  top: 0.5rem;
+  right: 2.5rem;
+  width: 1.5rem;
+  height: 1.5rem;
+  border: none;
+  background: rgba(52, 152, 219, 0.7);
+  color: white;
+  border-radius: 50%;
+  font-size: 0.75rem;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, background-color 0.2s, transform 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 10;
+}
+
+.paper-item:hover .paper-move-button {
+  opacity: 1;
+}
+
+.paper-move-button:hover {
+  background: rgba(52, 152, 219, 0.9);
   transform: scale(1.1);
 }
 
@@ -626,7 +667,7 @@ body {
 .paper-list-view .table-of-contents {
   width: 280px;
   position: sticky;
-  top: 1rem;
+  top: 8.5rem;
   flex-shrink: 0;
 }
 
@@ -1116,6 +1157,7 @@ article section:last-child {
 article p {
   margin-bottom: 1.2rem;
   text-align: justify;
+  -webkit-hyphens: auto;
   hyphens: auto;
 }
 
@@ -1403,6 +1445,71 @@ article h3:first-child {
   padding: 1.5rem;
   max-height: 60vh;
   overflow-y: auto;
+}
+
+.selected-paper-info {
+  margin-bottom: 1.5rem;
+  padding: 1rem;
+  background: var(--color-surface);
+  border-radius: 8px;
+  border: 1px solid var(--color-border);
+}
+
+.selected-paper-info p {
+  margin: 0.5rem 0;
+}
+
+.topic-selection {
+  margin-top: 1rem;
+}
+
+.topic-selection p {
+  margin-bottom: 1rem;
+  font-weight: bold;
+  color: var(--color-primary);
+}
+
+.topic-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.topic-item-button {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.topic-item-button:hover {
+  background: var(--color-hover);
+  border-color: var(--color-secondary);
+}
+
+.topic-name {
+  font-weight: 500;
+  color: var(--color-text);
+}
+
+.topic-count {
+  color: var(--color-text-secondary);
+  font-size: 0.9rem;
+}
+
+.no-topics {
+  text-align: center;
+  color: var(--color-text-secondary);
+  padding: 2rem;
+  font-style: italic;
 }
 
 .settings-form {
@@ -1706,7 +1813,7 @@ article h3:first-child {
   margin: 0;
   cursor: pointer;
   transition: color 0.2s ease;
-  padding-right: 2rem;
+  flex: 1;
 }
 
 .topic-card h3:hover {
@@ -1749,6 +1856,7 @@ article h3:first-child {
   margin-top: 3rem;
   padding-top: 2rem;
   border-top: 2px solid var(--color-border);
+  scroll-margin-top: 2rem;
 }
 
 .arxiv-search-toggle {
@@ -1830,6 +1938,23 @@ article h3:first-child {
   border-color: var(--color-secondary);
 }
 
+.arxiv-count-select {
+  padding: 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: 6px;
+  background: var(--color-background);
+  color: var(--color-text);
+  font-size: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s ease;
+  min-width: 120px;
+}
+
+.arxiv-count-select:focus {
+  outline: none;
+  border-color: var(--color-secondary);
+}
+
 .arxiv-search-button {
   padding: 0.75rem 1.5rem;
   background: var(--color-secondary);
@@ -1898,6 +2023,7 @@ article h3:first-child {
   border: 1px solid var(--color-border);
   border-radius: 8px;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .arxiv-result-item:hover {
@@ -1905,9 +2031,26 @@ article h3:first-child {
   border-color: var(--color-secondary);
 }
 
+.arxiv-paper-number-tag {
+  position: absolute;
+  top: 1.5rem;
+  left: 0.75rem;
+  background: var(--color-secondary);
+  color: var(--color-background);
+  font-size: 0.8rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  z-index: 10;
+  min-width: 1.5rem;
+  text-align: center;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
 .arxiv-paper-info {
   flex: 1;
   min-width: 0;
+  padding-left: 2rem;
 }
 
 .arxiv-paper-title {
@@ -1971,10 +2114,18 @@ article h3:first-child {
   align-self: flex-start;
 }
 
-.arxiv-add-button:hover {
+.arxiv-add-button:hover:not(:disabled) {
   background: var(--color-secondary);
   transform: translateY(-1px);
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.arxiv-add-button:disabled {
+  background: var(--color-text-secondary);
+  cursor: not-allowed;
+  opacity: 0.6;
+  transform: none;
+  box-shadow: none;
 }
 
 @media (max-width: 768px) {
@@ -1990,6 +2141,11 @@ article h3:first-child {
   }
 
   .arxiv-year-select {
+    font-size: 16px;
+    /* Prevents zoom on iOS */
+  }
+
+  .arxiv-count-select {
     font-size: 16px;
     /* Prevents zoom on iOS */
   }
@@ -2021,6 +2177,11 @@ article h3:first-child {
   }
 
   .paper-delete-button {
+    opacity: 1;
+    /* Always show on mobile */
+  }
+
+  .paper-move-button {
     opacity: 1;
     /* Always show on mobile */
   }

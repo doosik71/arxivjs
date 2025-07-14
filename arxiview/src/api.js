@@ -14,7 +14,7 @@ const getApiBaseUrl = () => {
     apiBaseUrl = '/api';
     return apiBaseUrl;
   }
-  
+
   // In production or when ARXIVIEW_BACKEND_URL is set, use direct backend URL
   const backendUrl = window.ARXIVIEW_BACKEND_URL || getBackendUrl();
   apiBaseUrl = backendUrl;
@@ -92,11 +92,11 @@ export const searchArxivPapers = async (keyword, year, count = 100, sort = 'rele
     count: count.toString(),
     sort
   });
-  
+
   if (year) {
     params.append('year', year);
   }
-  
+
   const response = await api.get(`/search?${params.toString()}`);
   return response.data;
 };
@@ -109,22 +109,22 @@ export const savePaperToTopic = async (topicName, paper) => {
 export const generatePaperSummary = async (topicName, paper) => {
   const baseURL = api.defaults.baseURL || '';
   const url = `${baseURL}/summarize-and-save`;
-  
+
   const response = await fetch(url, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ 
-      paper, 
-      topicName 
+    body: JSON.stringify({
+      paper,
+      topicName
     })
   });
-  
+
   if (!response.ok) {
     throw new Error(`HTTP error! status: ${response.status}`);
   }
-  
+
   return response;
 };
 
@@ -135,6 +135,13 @@ export const deletePaper = async (topicName, paperId) => {
 
 export const deletePaperSummary = async (topicName, paperId) => {
   const response = await api.delete(`/paper-summary/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`);
+  return response.data;
+};
+
+export const movePaper = async (sourceTopic, targetTopic, paperId) => {
+  const response = await api.put(`/papers/${encodeURIComponent(sourceTopic)}/${encodeURIComponent(paperId)}`, {
+    newTopicName: targetTopic
+  });
   return response.data;
 };
 

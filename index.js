@@ -190,19 +190,79 @@ async function movePaper(req, res) {
         const { newTopicName } = req.body;
         const oldPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.json');
         const newPath = path.join(dataPath, newTopicName, req.params.paperId + '.json');
-        await fs.rename(oldPath, newPath);
-
         const oldMdPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
         const newMdPath = path.join(dataPath, newTopicName, req.params.paperId + '.md');
+
+        // Check if paper already exists in target topic
         try {
-            await fs.rename(oldMdPath, newMdPath);
+            const existingPaperData = await fs.readFile(newPath, 'utf8');
+            const existingPaper = JSON.parse(existingPaperData);
+            
+            // Read the paper to be moved
+            const movingPaperData = await fs.readFile(oldPath, 'utf8');
+            const movingPaper = JSON.parse(movingPaperData);
+            
+            // Compare dates and keep the newer one
+            const existingDate = new Date(existingPaper.dateAdded || existingPaper.date || 0);
+            const movingDate = new Date(movingPaper.dateAdded || movingPaper.date || 0);
+            
+            if (movingDate > existingDate) {
+                // Moving paper is newer, replace the existing one
+                await fs.rename(oldPath, newPath);
+                
+                // Handle .md file - check if moving paper has a newer summary
+                try {
+                    const existingMdStat = await fs.stat(newMdPath);
+                    const movingMdStat = await fs.stat(oldMdPath);
+                    
+                    if (movingMdStat.mtime > existingMdStat.mtime) {
+                        await fs.rename(oldMdPath, newMdPath);
+                    } else {
+                        // Remove old md file since we're keeping the existing one
+                        await fs.unlink(oldMdPath);
+                    }
+                } catch (mdError) {
+                    // Handle case where one of the md files doesn't exist
+                    try {
+                        await fs.rename(oldMdPath, newMdPath);
+                    } catch (renameError) {
+                        if (renameError.code !== 'ENOENT') {
+                            throw renameError;
+                        }
+                    }
+                }
+                
+                res.json({ message: 'Paper moved successfully. Newer version replaced existing paper.' });
+            } else {
+                // Existing paper is newer or same date, just delete the moving paper
+                await fs.unlink(oldPath);
+                try {
+                    await fs.unlink(oldMdPath);
+                } catch (error) {
+                    if (error.code !== 'ENOENT') {
+                        throw error;
+                    }
+                }
+                res.json({ message: 'Paper not moved. Existing paper in target topic is newer or same date.' });
+            }
         } catch (error) {
-            if (error.code !== 'ENOENT') {
+            if (error.code === 'ENOENT') {
+                // Paper doesn't exist in target topic, proceed with normal move
+                await fs.rename(oldPath, newPath);
+                
+                try {
+                    await fs.rename(oldMdPath, newMdPath);
+                } catch (mdError) {
+                    if (mdError.code !== 'ENOENT') {
+                        throw mdError;
+                    }
+                }
+                
+                res.json({ message: 'Paper moved successfully.' });
+            } else {
                 throw error;
             }
         }
-
-        res.json({ message: 'Paper moved successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
