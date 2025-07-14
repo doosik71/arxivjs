@@ -58,6 +58,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
   const [arxivSearchLoading, setArxivSearchLoading] = useState(false);
   const [arxivSearchError, setArxivSearchError] = useState(null);
   const [showArxivSearch, setShowArxivSearch] = useState(false);
+  const [addedPapers, setAddedPapers] = useState(new Set());
 
   useEffect(() => {
     if (topicName) {
@@ -131,6 +132,22 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
       setArxivSearchLoading(true);
       setArxivSearchError(null);
       const results = await searchArxivPapers(arxivSearchQuery, arxivSearchYear, 50);
+      
+      // Check which papers already exist in the current topic
+      const existingPaperUrls = new Set(papers.map(paper => paper.url));
+      const alreadyAddedUrls = results
+        .filter(result => existingPaperUrls.has(result.url))
+        .map(result => result.url);
+      
+      // Add existing papers to addedPapers Set to hide their Add buttons
+      if (alreadyAddedUrls.length > 0) {
+        setAddedPapers(prev => {
+          const newSet = new Set(prev);
+          alreadyAddedUrls.forEach(url => newSet.add(url));
+          return newSet;
+        });
+      }
+      
       setArxivSearchResults(results);
     } catch (err) {
       setArxivSearchError('Failed to search papers: ' + (err.response?.data?.message || err.message));
@@ -142,21 +159,10 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
 
   const handleAddPaper = async (paper) => {
     try {
-      // Store current scroll position
-      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-      
       await savePaperToTopic(topicName, paper);
-      await loadPapers(); // Reload the papers list
       
-      // Remove the added paper from search results
-      setArxivSearchResults(prevResults => 
-        prevResults.filter(result => result.url !== paper.url)
-      );
-      
-      // Restore scroll position after a brief delay to allow for re-render
-      setTimeout(() => {
-        window.scrollTo(0, scrollPosition);
-      }, 50);
+      // Mark this paper as added to hide its Add button
+      setAddedPapers(prev => new Set(prev).add(paper.url));
     } catch (err) {
       window.alert('Failed to add paper: ' + (err.response?.data?.message || err.message));
       console.error('Error adding paper:', err);
@@ -168,6 +174,26 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
     setArxivSearchYear('');
     setArxivSearchResults([]);
     setArxivSearchError(null);
+    setAddedPapers(new Set());
+  };
+
+  const handleRefreshPapers = async () => {
+    await loadPapers();
+    
+    // After refreshing, check if there are search results and update addedPapers accordingly
+    if (arxivSearchResults.length > 0) {
+      const refreshedPapers = await getPapers(topicName);
+      const existingPaperUrls = new Set(refreshedPapers.map(paper => paper.url));
+      const alreadyAddedUrls = arxivSearchResults
+        .filter(result => existingPaperUrls.has(result.url))
+        .map(result => result.url);
+      
+      // Update addedPapers with papers that exist in the refreshed list
+      setAddedPapers(new Set(alreadyAddedUrls));
+    } else {
+      // Reset addedPapers if no search results
+      setAddedPapers(new Set());
+    }
   };
 
   const toggleArxivSearch = () => {
@@ -255,10 +281,30 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
           ← Back to Topics
         </a>
         {' / '}
-        <strong>{topicName}</strong>
+        <a 
+          href="#" 
+          onClick={(e) => { 
+            e.preventDefault(); 
+            window.scrollTo({ top: 0, behavior: 'smooth' }); 
+          }}
+          style={{ textDecoration: 'none', color: 'inherit', fontWeight: 'bold' }}
+        >
+          {topicName}
+        </a>
       </div>
       
-      <h2>Papers in {topicName}</h2>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+        <h2>Papers in {topicName}</h2>
+        <button 
+          onClick={handleRefreshPapers}
+          disabled={loading}
+          className="arxiv-search-button"
+          title="Refresh paper list"
+          style={{ fontSize: '0.9rem', padding: '0.5rem 1rem' }}
+        >
+          {loading ? '🔄' : '↻'} Refresh
+        </button>
+      </div>
       
       {papers.length > 0 && (
         <div className="paper-search-container">
@@ -430,7 +476,15 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
                   {arxivSearchResults.map((paper, index) => (
                     <div key={index} className="arxiv-result-item">
                       <div className="arxiv-paper-info">
-                        <div className="arxiv-paper-title">{paper.title}</div>
+                        <div 
+                          className="arxiv-paper-title"
+                          style={{
+                            color: addedPapers.has(paper.url) ? 'var(--color-text-secondary)' : 'var(--color-primary)',
+                            opacity: addedPapers.has(paper.url) ? 0.6 : 1
+                          }}
+                        >
+                          {paper.title}
+                        </div>
                         <div className="arxiv-paper-authors">{paper.authors}</div>
                         <div className="arxiv-paper-meta">
                           <span className="arxiv-paper-year">{paper.year}</span>
@@ -450,13 +504,15 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
                           </div>
                         )}
                       </div>
-                      <button
-                        onClick={() => handleAddPaper(paper)}
-                        className="arxiv-add-button"
-                        title="Add to this topic"
-                      >
-                        Add
-                      </button>
+                      {!addedPapers.has(paper.url) && (
+                        <button
+                          onClick={() => handleAddPaper(paper)}
+                          className="arxiv-add-button"
+                          title="Add to this topic"
+                        >
+                          Add
+                        </button>
+                      )}
                     </div>
                   ))}
                 </div>

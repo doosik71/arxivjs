@@ -2061,6 +2061,7 @@ article h3:first-child {
 .generating-summary .loading {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
   color: var(--color-text-secondary);
   font-size: 1rem;

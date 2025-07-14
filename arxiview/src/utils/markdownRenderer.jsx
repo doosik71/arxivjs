@@ -41,18 +41,31 @@ const initMathJax = () => {
 // Initialize MathJax
 initMathJax();
 
+const toHexEntity = (str) => {
+  return Array.from(str).map(char => {
+    const hex = char.codePointAt(0).toString(16);
+    return `&#x${hex};`;
+  }).join('');
+}
+
+const fromHexEntity = (encoded) => {
+  return encoded.replace(/&#x([0-9a-fA-F]+);/g, (_, hex) => {
+    return String.fromCodePoint(parseInt(hex, 16));
+  });
+}
+
 // Math protection system - using pre/code wrapper approach
 const protectMathExpressions = (text) => {
   let protectedText = text;
 
   // Protect block math ($$...$$)
   protectedText = protectedText.replace(/\$\$([\s\S]+?)\$\$/g, (_, inner) => {
-    return `<pre><code="latex_math_2">${inner}</code></pre>`;
+    return `<pre><code class="latex-math-2">${toHexEntity(inner)}</code></pre>`;
   });
 
   // Protect inline math ($...$)
   protectedText = protectedText.replace(/\$([^\n\r$]+?)\$/g, (_, inner) => {
-    return `<pre><code="latex_math_1">${inner}</code></pre>`;
+    return `<code class="latex-math-1">${toHexEntity(inner)}</code>`;
   });
 
   return protectedText;
@@ -63,14 +76,14 @@ const restoreMathExpressions = (htmlContent) => {
 
   // Restore inline math
   restoredContent = restoredContent.replace(
-    /<pre><code="latex_math_1">([^\n\r$]+?)<\/code><\/pre>/g,
-    (_, inner) => `$${inner}$`
+    /<code class="latex-math-1">([^\n\r$]+?)<\/code>/g,
+    (_, inner) => `$${fromHexEntity(inner)}$`
   );
 
   // Restore block math
   restoredContent = restoredContent.replace(
-    /<pre><code="latex_math_2">([\s\S]+?)<\/code><\/pre>/g,
-    (_, inner) => `$$${inner}$$`
+    /<pre><code class="latex-math-2">([\s\S]+?)<\/code><\/pre>/g,
+    (_, inner) => `$$${fromHexEntity(inner)}$$`
   );
 
   return restoredContent;
