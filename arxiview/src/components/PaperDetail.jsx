@@ -226,7 +226,13 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
           ← Back to {topicName}
         </a>
         {' / '}
-        <strong>{paper.title}</strong>
+        <strong 
+          onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+          style={{ cursor: 'pointer' }}
+          title="Click to scroll to top"
+        >
+          {paper.title}
+        </strong>
       </nav>
 
       <div className="paper-detail">

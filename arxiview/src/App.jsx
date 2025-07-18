@@ -15,6 +15,7 @@ const App = () => {
   const [selectedTopic, setSelectedTopic] = useState(null);
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [selectedPaperId, setSelectedPaperId] = useState(null);
+  const [lastSelectedPaperId, setLastSelectedPaperId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
   const [configStatus, setConfigStatus] = useState('initializing');
   const [tocHeaders, setTocHeaders] = useState([]);
@@ -51,6 +52,7 @@ const App = () => {
   };
 
   const handlePaperSelect = (paper, paperId) => {
+    setLastSelectedPaperId(paperId);
     setSelectedPaper(paper);
     setSelectedPaperId(paperId);
     setCurrentView('paper-detail');
@@ -95,6 +97,7 @@ const App = () => {
             topicName={selectedTopic}
             onPaperSelect={handlePaperSelect}
             onBackToTopics={handleBackToTopics}
+            lastSelectedPaperId={lastSelectedPaperId}
           />
         );
       case 'paper-detail':

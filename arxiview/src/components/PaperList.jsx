@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper, getTopics, movePaper } from '../api';
 import TableOfContents from './TableOfContents';
 
@@ -44,7 +44,7 @@ const highlightText = (text, searchQuery, searchField, currentField) => {
   return parts;
 };
 
-const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
+const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaperId }) => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -67,6 +67,10 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
   const [availableTopics, setAvailableTopics] = useState([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
 
+  // Refs for scroll restoration and highlighting
+  const paperRefs = useRef({});
+  const [highlightedPaperId, setHighlightedPaperId] = useState(null);
+
   useEffect(() => {
     if (topicName) {
       loadPapers();
@@ -74,6 +78,30 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
       setArxivSearchQuery(topicName);
     }
   }, [topicName]);
+
+  // Effect to handle scroll restoration and highlighting when returning to paper list
+  useEffect(() => {
+    if (lastSelectedPaperId && papers.length > 0) {
+      const timer = setTimeout(() => {
+        const paperElement = paperRefs.current[lastSelectedPaperId];
+        if (paperElement) {
+          // Scroll to the element
+          paperElement.scrollIntoView({ 
+            behavior: 'smooth', 
+            block: 'center' 
+          });
+          
+          // Highlight the paper for 1 second
+          setHighlightedPaperId(lastSelectedPaperId);
+          setTimeout(() => {
+            setHighlightedPaperId(null);
+          }, 1000);
+        }
+      }, 100); // Small delay to ensure DOM is updated
+
+      return () => clearTimeout(timer);
+    }
+  }, [lastSelectedPaperId, papers]);
 
   const loadPapers = async () => {
     try {
@@ -457,7 +485,8 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics }) => {
                     return (
                       <div
                         key={paperId}
-                        className="paper-item"
+                        ref={el => paperRefs.current[paperId] = el}
+                        className={`paper-item ${highlightedPaperId === paperId ? 'highlighted' : ''}`}
                       >
                         <div
                           className="paper-content"

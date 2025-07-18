@@ -159,6 +159,22 @@ body {
   background-color: var(--color-hover);
 }
 
+.paper-item.highlighted {
+  background-color: var(--color-highlight-bg) !important;
+  animation: highlightFade 1s ease-out;
+}
+
+@keyframes highlightFade {
+  0% {
+    background-color: var(--color-highlight-bg);
+    transform: scale(1.02);
+  }
+  100% {
+    background-color: var(--color-hover);
+    transform: scale(1);
+  }
+}
+
 .paper-item:last-child {
   border-bottom: none;
 }
