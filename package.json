@@ -1,21 +1,38 @@
 {
   "name": "arxivjs",
   "version": "1.0.0",
-  "description": "ArxivJs",
+  "description": "ArxivJs - Full-stack paper management system",
   "keywords": [
-    "ArxivJs"
+    "ArxivJs",
+    "React",
+    "Express",
+    "Research Papers"
   ],
   "license": "ISC",
   "author": "Doosik Kim",
   "type": "commonjs",
   "main": "main.js",
+  "homepage": "./",
   "scripts": {
     "start": "electron .",
-    "package:win": "electron-packager . arxivjs --platform=win32 --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
-    "package:linux": "electron-packager . arxivjs --platform=linux --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
-    "dev": "nodemon index.js --verbose --ignore arxivjsdata/",
+    "dev": "npm run build && nodemon index.js --verbose --ignore arxivjsdata/ --ignore public/",
     "server": "node index.js",
-    "client": "cd arxiview && npm run dev",
+    "client": "vite",
+    "build": "vite build",
+    "build:watch": "vite build --watch",
+    "preview": "vite preview",
+    "dev:separate": "concurrently \"npm run dev\" \"npm run client\"",
+    "dev:unified": "concurrently \"npm run build:watch\" \"nodemon index.js --verbose --ignore arxivjsdata/ --ignore public/\"",
+    "build:all": "npm run build",
+    "package:win": "npm run build && electron-packager . arxivjs --platform=win32 --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
+    "package:linux": "npm run build && electron-packager . arxivjs --platform=linux --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
+    "electron": "electron .",
+    "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8765 && electron .\"",
+    "build-electron": "npm run build && electron .",
+    "dist": "npm run build && electron-builder",
+    "dist:win": "npm run build && electron-builder --win",
+    "dist:mac": "npm run build && electron-builder --mac",
+    "dist:linux": "npm run build && electron-builder --linux",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "dependencies": {
@@ -23,14 +40,100 @@
     "axios": "^1.10.0",
     "dotenv": "^17.0.1",
     "express": "^5.1.0",
+    "marked": "^16.0.0",
     "multer": "^2.0.1",
     "nodemon": "^3.1.10",
     "pdf-parse": "^1.1.1",
     "pdfjs-dist": "^5.3.93",
-    "xml2js": "^0.6.2"
+    "react": "^19.1.0",
+    "react-dom": "^19.1.0",
+    "react-router-dom": "^7.6.3",
+    "xml2js": "^0.6.2",
+    "yargs-parser": "^21.1.1"
   },
   "devDependencies": {
-    "electron": "^37.2.0",
-    "electron-packager": "^17.1.2"
+    "@types/react": "^19.1.8",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^4.6.0",
+    "concurrently": "^9.2.0",
+    "cross-env": "^7.0.3",
+    "electron": "^37.2.1",
+    "electron-builder": "^26.0.12",
+    "electron-packager": "^17.1.2",
+    "vite": "^7.0.4",
+    "wait-on": "^8.0.3"
+  },
+  "build": {
+    "appId": "com.arxivjs.app",
+    "productName": "ArxivJS",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "client/electron/**/*",
+      "index.js",
+      "main.js",
+      "node_modules/**/*"
+    ],
+    "extraMetadata": {
+      "main": "main.js"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "client/electron/icon.ico",
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": [
+            "x64",
+            "arm64"
+          ]
+        }
+      ],
+      "icon": "client/electron/icon.icns",
+      "category": "public.app-category.productivity"
+    },
+    "linux": {
+      "target": [
+        {
+          "target": "AppImage",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "deb",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "client/electron/icon.png",
+      "category": "Office"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ArxivJS"
+    }
   }
 }

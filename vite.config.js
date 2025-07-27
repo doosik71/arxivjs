@@ -9,9 +9,10 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react()],
     base: './', // Important for Electron
+    publicDir: 'assets', // Avoid conflict with build output
     server: {
       host: env.HOST || 'localhost',
-      port: parseInt(env.PORT, 10) || 8766,
+      port: parseInt(env.PORT, 10) || 8765,
       proxy: {
         '/api': {
           target: env.TARGET || 'http://localhost:8765',
@@ -21,8 +22,9 @@ export default defineConfig(({ mode }) => {
       }
     },
     build: {
-      outDir: 'dist',
+      outDir: 'public',
       assetsDir: 'assets',
+      emptyOutDir: false,
       rollupOptions: {
         output: {
           manualChunks: undefined

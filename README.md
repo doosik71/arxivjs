@@ -1,6 +1,6 @@
-# arxivjs
+# ArxivJS
 
-arxivjs is a Node.js-based application, available as both a **web application** and a **desktop application**, that interacts with the arXiv API. It allows users to manage paper topics, search for papers related to those topics on arxiv.org, automatically summarize them using Gemini, and save the information for easy retrieval.
+ArxivJS is a comprehensive **full-stack research paper management system** that combines a Node.js Express backend with a modern React frontend. Available as both a **web application** and **Electron desktop application**, it provides a unified interface for discovering, organizing, and summarizing research papers from arXiv and other sources using AI-powered summaries.
 
 ## Installation
 
@@ -13,7 +13,7 @@ cd arxivjs
 
 ### 2. Install dependencies
 
-Make sure you have Node.js and npm installed. Then, run the following command in the project root directory:
+Make sure you have Node.js (v16+) and npm installed. The project uses a unified dependency management system for both frontend and backend:
 
 ```bash
 npm install
@@ -72,28 +72,136 @@ Here is the paper content:
 {context}
 ```
 
+## Features
+
+### Backend (Express Server)
+
+- 🔍 **arXiv Integration**: Search and fetch papers by keywords and date ranges
+- 📁 **Topic Management**: Create and organize research topics
+- 🤖 **AI Summaries**: Generate paper summaries using Google's Gemini API
+- 📄 **PDF Processing**: Extract text from uploaded PDFs or URLs
+- 🌐 **RESTful API**: Complete API for all operations
+- 🔄 **Real-time Streaming**: Live AI summary generation
+
+### Frontend (React Client)
+
+- ⚛️ **Modern React**: Built with React 19 and Vite
+- 🎨 **8 Custom Themes**: Multiple color schemes with persistence
+- 🔍 **Advanced Search**: Real-time filtering with text highlighting
+- 📖 **Table of Contents**: Auto-generated TOC with scroll tracking
+- 🧮 **Math Rendering**: Full LaTeX support with MathJax
+- 📱 **Responsive Design**: Optimized for mobile and desktop
+- 🌐 **Edge Reader Support**: Semantic markup for better accessibility
+
+### Cross-Platform Support
+
+- 🖥️ **Electron Desktop**: Native applications for Windows, macOS, and Linux
+- 🌍 **Web Application**: Single-port deployment for easy hosting
+- ⚡ **Unified Development**: Integrated build and development process
+
 ## Usage
 
-You can run arxivjs as a web application or a desktop application.
+### Development
 
-### Web Application
+ArxivJS offers multiple development workflows:
 
-To start the web server, run the `run_arxivjs_server.bat` script or execute the following command from the project root directory:
+#### 1. Unified Development (Recommended)
+
+```bash
+npm run dev:unified
+```
+- Builds React in watch mode + runs Express server
+- Single port (8765-8768) with automatic rebuilding
+- Best for rapid development
+
+#### 2. Production-like Development
 
 ```bash
 npm run dev
 ```
+- Builds React once, then runs Express server
+- Single port deployment
+- Good for testing production build
 
-Once the server is running, open your web browser and navigate to `http://localhost:8765` (or the port specified in your configuration).
+#### 3. Separate Development
 
-### Desktop Application
+```bash
+npm run dev:separate
+```
+- React dev server (8765) + Express server (8766)
+- Hot module replacement for React
+- Traditional development approach
 
-To start the desktop application, run the `run_arxivjs_app.bat` script or directly execute the application at `dist/arxivjs-win32-x64/arxivjs.exe`.
+### Production
 
-## Screenshot
+#### Web Application
+
+```bash
+# Build and start production server
+npm run build
+npm run server
+```
+
+#### Desktop Application
+
+```bash
+# Start Electron app
+npm start
+
+# Build distribution packages
+npm run dist          # All platforms
+npm run dist:win      # Windows only
+npm run dist:mac      # macOS only
+npm run dist:linux    # Linux only
+```
+
+Once running, access the application at `http://localhost:8765` (or the automatically assigned port).
+
+## Project Structure
+
+```
+arxivjs/
+├── index.js              # Express server with API endpoints
+├── main.js               # Electron main process
+├── package.json          # Unified dependencies (frontend + backend)
+├── vite.config.js        # Vite build configuration
+├── index.html            # React app entry point
+├── src/                  # React source code
+│   ├── App.jsx           # Main React component
+│   ├── components/       # React components
+│   └── utils/            # Utilities (themes, config, etc.)
+├── public/               # Built React app (generated)
+├── client/electron/      # Electron configuration
+├── assets/               # Static assets
+└── arxivjsdata/          # User data (topics, papers, summaries)
+```
+
+## Architecture
+
+ArxivJS uses a **unified full-stack architecture**:
+
+- **Express Backend**: Handles API requests, arXiv integration, AI summarization, and PDF processing
+- **React Frontend**: Modern UI with advanced features like search, themes, and math rendering  
+- **Single Port Deployment**: Both frontend and API served from the same port (8765-8768)
+- **Vite Build System**: Compiles React app into `public/` directory for Express to serve
+- **Electron Wrapper**: Cross-platform desktop application support
+
+## Screenshots
 
 ![Topic list](./public/topic_list.png)
 
 ![Paper List](./public/paper_list.png)
 
 ![Paper Detail](./public/paper_detail.png)
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the ISC License.

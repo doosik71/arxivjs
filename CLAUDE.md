@@ -4,41 +4,45 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-ArxivJS is a comprehensive research paper management system consisting of two applications:
+ArxivJS is a comprehensive research paper management system with a unified full-stack architecture:
 
-1. **ArxivJS (Main Application)**: A Node.js application with both web and desktop interfaces for managing arXiv papers and general PDF documents
-2. **ArxiView (Read-only Client)**: A React-based read-only interface for browsing and viewing papers with AI summaries
+**ArxivJS (Unified Full-Stack Application)**: A Node.js Express server with an integrated React client interface for managing arXiv papers and general PDF documents. The React client (formerly ArxiView) has been fully integrated into the main application using a flat project structure.
 
-### ArxivJS Features
+### Features
+
+#### Backend (Express Server)
 
 - Create and manage topic folders
 - Search arXiv papers by keywords and date ranges
 - Save papers to topic folders
 - Summarize any PDF document via URL or file upload
 - Generate AI-powered summaries using Google's Gemini API
-- Export as both web application and Electron desktop app
+- RESTful API endpoints for all operations
+- PDF processing and CORS proxy functionality
 
-### ArxiView Features
+#### Frontend (React Client)
 
-- Read-only interface for browsing topics and papers
+- Modern React-based interface for browsing topics and papers
 - Advanced search with text highlighting
 - Math expression rendering with MathJax
 - Table of Contents with scroll tracking
 - Multiple theme support (8 custom themes)
-- Configurable backend URL via Settings modal
 - Edge Immersive Reader support
 - Responsive design for mobile and desktop
-- Available as both web app and Electron desktop application
+
+#### Cross-Platform Support
+
+- Web application (single port deployment)
+- Electron desktop application for Windows, macOS, and Linux
+- Unified development and build process
 
 ## Architecture
 
-### ArxivJS (Main Application)
+ArxivJS uses a unified full-stack architecture with integrated frontend and backend:
 
-The main application uses a simple client-server architecture:
+### Unified Full-Stack Structure
 
-### ArxiView (React Client)
-
-ArxiView is a modern React application that consumes the ArxivJS API:
+The application combines an Express.js server with a React frontend in a single project:
 
 #### Frontend Stack
 
@@ -77,14 +81,14 @@ ArxiView is a modern React application that consumes the ArxivJS API:
 - **ArXiv API integration** for searching and fetching paper metadata
 - **File upload handling** using multer for PDF file processing
 
-### Client Side (public/script.js)
+### React Client Side (src/)
 
-- **Vanilla JavaScript** single-page application
-- **Five main views**: Topic List, Paper List, Paper Detail, PDF Summary, Option
+- **React 19 application** with modern functional components and hooks
+- **Component-based architecture**: TopicList, PaperList, PaperDetail, etc.
 - **Real-time streaming** for AI summary generation
-- **Dynamic UI updates** without page refreshes
-- **Theme system** with multiple color schemes and localStorage persistence
-- **Client-side PDF processing** using PDF.js for text extraction
+- **State management** using React hooks and context
+- **Theme system** with 8 custom themes and localStorage persistence
+- **Advanced UI features**: search highlighting, TOC, responsive design
 
 ### Desktop App (main.js)
 
@@ -94,42 +98,19 @@ ArxiView is a modern React application that consumes the ArxivJS API:
 
 ## Key File Structure
 
-### ArxivJS (Main Application)
+### ArxivJS (Unified Full-Stack Application)
 
 ```text
 ├── index.js          # Main Express server with all API endpoints
 ├── main.js           # Electron app entry point
 ├── preload.js        # Electron preload script
-├── public/
-│   ├── index.html    # Single-page web interface
-│   ├── script.js     # Client-side JavaScript (extensive)
-│   ├── style.css     # Application styling with CSS variables
-│   ├── theme-blue.css     # Blue theme color scheme
-│   ├── theme-red.css      # Red theme color scheme
-│   ├── theme-green.css    # Green theme color scheme
-│   ├── theme-ocean.css    # Ocean theme color scheme
-│   ├── theme-winter.css   # Winter theme color scheme
-│   ├── theme-spring.css   # Spring theme color scheme
-│   ├── theme-summer.css   # Summer theme color scheme
-│   └── theme-autumn.css   # Autumn theme color scheme
-└── arxivjsdata/      # Data directory (created at runtime)
-    ├── userprompt.txt # Required: User's custom prompt for AI summarization
-    └── [topics]/      # Topic folders containing .json and .md files
-```
-
-### ArxiView (React Client)
-
-```text
-arxiview/
-├── package.json      # React dependencies and scripts with Electron support
-├── vite.config.js    # Vite configuration with proxy to backend
-├── index.html        # HTML entry point with meta tags for Immersive Reader
-├── electron/
-│   └── main.js       # Electron main process configuration
-├── src/
+├── package.json      # Unified dependencies (server + client)
+├── vite.config.js    # Vite configuration for React client
+├── index.html        # React app entry point
+├── src/              # React source code
 │   ├── main.jsx      # React app entry point
 │   ├── App.jsx       # Main application component with routing
-│   ├── api.js        # Centralized API client with configurable backend URL
+│   ├── api.js        # Centralized API client
 │   ├── index.css     # Global styles with CSS custom properties
 │   ├── components/
 │   │   ├── TopicList.jsx      # Topic grid with search and highlighting
@@ -137,23 +118,41 @@ arxiview/
 │   │   ├── PaperDetail.jsx    # Paper viewer with TOC and summary
 │   │   ├── TableOfContents.jsx # TOC with scroll tracking
 │   │   ├── ThemeSelector.jsx   # Theme dropdown component
-│   │   ├── SettingsModal.jsx   # Settings modal for backend URL configuration
+│   │   ├── SettingsModal.jsx   # Settings modal
+│   │   ├── ChatBox.jsx        # AI chat interface
 │   │   └── Footer.jsx         # Site footer with GitHub link
 │   └── utils/
 │       ├── themes.js          # 8 custom themes with color definitions
 │       ├── markdownRenderer.jsx # Advanced markdown with math support
 │       └── config.js          # Configuration management utility
+├── public/           # Built React application (generated by Vite)
+│   ├── index.html    # Built React app
+│   └── assets/       # Built CSS and JS files
+├── client/           # Electron configuration
+│   └── electron/
+│       ├── main.js   # Electron main process configuration
+│       └── preload.js # Electron preload script
+├── assets/           # Static assets (icons, etc.)
+└── arxivjsdata/      # Data directory (created at runtime)
+    ├── userprompt.txt # Required: User's custom prompt for AI summarization
+    └── [topics]/      # Topic folders containing .json and .md files
 ```
 
 ## Development Commands
 
-### ArxivJS (Main Application)
+### Unified Full-Stack Development
 
 #### Running the Application
 
 ```bash
-# Start development server (web only)
+# Production mode - Build React and run server on single port
 npm run dev
+
+# Development mode - Real-time React building with server restart
+npm run dev:unified
+
+# Separate development - React dev server + Express server (different ports)
+npm run dev:separate
 
 # Start Electron desktop app
 npm start
@@ -163,34 +162,23 @@ npm start
 ./run_arxivjs_app.sh       # Desktop app
 ```
 
-#### Building/Packaging
+#### Building
 
 ```bash
-# Package for Windows
-npm run package:win
-
-# Package for Linux
-npm run package:linux
-```
-
-### ArxiView (React Client)
-
-#### Running the Application
-
-```bash
-# From arxiview/ directory
-cd arxiview
-
-# Start development server (default port 8766)
-npm run dev
-
-# Build for production
+# Build React application for production
 npm run build
 
-# Preview production build
-npm run preview
+# Build with watch mode (auto-rebuild on changes)
+npm run build:watch
 
-# Electron desktop app development
+# Preview built application
+npm run preview
+```
+
+#### Electron Development and Packaging
+
+```bash
+# Electron development mode
 npm run electron-dev
 
 # Build and run Electron app
@@ -201,16 +189,45 @@ npm run dist          # All platforms
 npm run dist:win      # Windows
 npm run dist:mac      # macOS
 npm run dist:linux    # Linux
+
+# Legacy packaging (using electron-packager)
+npm run package:win   # Windows
+npm run package:linux # Linux
 ```
+
+#### Development Workflow Options
+
+1. **Unified Port Development** (Recommended)
+   ```bash
+   npm run dev:unified
+   ```
+   - Vite builds React in watch mode
+   - Express serves built files on single port (8765-8768)
+   - Automatic rebuild and server restart on changes
+
+2. **Production-like Development**
+   ```bash
+   npm run dev
+   ```
+   - Builds React once, then runs Express server
+   - Single port deployment (8765-8768)
+   - Manual rebuild required for React changes
+
+3. **Separate Development**
+   ```bash
+   npm run dev:separate
+   ```
+   - React dev server on port 8765
+   - Express server on port 8766
+   - Hot module replacement for React
 
 #### Development Notes
 
-- ArxiView requires ArxivJS backend to be running on port 8765
-- Vite proxy automatically forwards API calls to the backend
-- Hot module replacement (HMR) enabled for rapid development
-- Electron app available with packaging for Windows, macOS, and Linux
-- Distribution builds create installers in the `release/` directory
-- Backend URL configuration persists in localStorage
+- **Single port deployment**: Express server automatically finds available port (8765-8768)
+- **Vite configuration**: Builds to `public/` directory for Express to serve
+- **Hot reloading**: Available in `dev:unified` and `dev:separate` modes
+- **Electron integration**: Works with any development mode
+- **Cross-platform**: Windows, macOS, and Linux support
 
 ### Testing
 
@@ -307,7 +324,19 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 4. **Enter metadata**: Fill in paper title, authors, and publication year (URL method only)
 5. **Save to topic**: Store both summary and metadata in the selected topic folder
 
-## ArxiView Features (React Client)
+## Integration Notes
+
+### Migration from Separate Projects
+
+The project has been migrated from a two-application architecture (ArxivJS + ArxiView) to a unified full-stack application:
+
+1. **ArxiView source code** has been moved from `arxiview/` to `src/` (flat structure)
+2. **Dependencies merged** into single `package.json` with both frontend and backend packages
+3. **Build process unified** using Vite to build React app into `public/` directory
+4. **Port configuration simplified** to use single port for both frontend and API
+5. **Development workflows** support both unified and separate development modes
+
+## React Client Features
 
 ### Advanced Search & Highlighting
 
@@ -366,15 +395,16 @@ The PDF Summary feature allows users to summarize any PDF document (not just arX
 - Theme preferences are automatically saved and restored on application restart
 - CORS issues with external PDFs are handled through server-side proxy endpoints
 
-### ArxiView (React Client)
+### Unified Full-Stack Application
 
-- Read-only interface - no data modification capabilities
-- Requires ArxivJS backend running on port 8765 for API access
-- Uses modern React patterns (hooks, functional components)
-- Built with React 19 and Vite for optimal performance
-- MathJax loaded via CDN for math rendering
-- Available as both web application and Electron desktop app
-- Responsive design supports mobile and desktop browsers
-- All themes, backend URL, and search preferences stored in localStorage
-- Optimized for research paper reading and browsing experience
-- Cross-platform Electron packaging for Windows, macOS, and Linux
+- **Integrated architecture**: React frontend and Express backend in single project
+- **Single port deployment**: Both frontend and API served from same port (8765-8768)
+- **Modern React patterns**: Functional components, hooks, and context for state management
+- **Built with React 19 and Vite**: Optimal performance and modern development experience
+- **Real-time features**: Streaming AI summaries and live search functionality
+- **MathJax integration**: Full LaTeX math rendering support for research papers
+- **Cross-platform Electron**: Available as desktop application for Windows, macOS, and Linux
+- **Responsive design**: Optimized for both mobile and desktop browsers
+- **Theme persistence**: 8 custom themes with localStorage-based preferences
+- **Development flexibility**: Multiple development modes for different workflows
+- **Unified dependencies**: Single package.json manages both frontend and backend dependencies
