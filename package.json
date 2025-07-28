@@ -72,8 +72,10 @@
     "files": [
       "dist/**/*",
       "client/electron/**/*",
+      "public/**/*",
       "index.js",
       "main.js",
+      "preload.js",
       "node_modules/**/*"
     ],
     "extraMetadata": {
@@ -94,7 +96,7 @@
           ]
         }
       ],
-      "icon": "client/electron/icon.ico",
+      "icon": "assets/icon.ico",
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "mac": {
