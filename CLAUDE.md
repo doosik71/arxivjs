@@ -198,25 +198,31 @@ npm run package:linux # Linux
 #### Development Workflow Options
 
 1. **Unified Port Development** (Recommended)
+
    ```bash
    npm run dev:unified
    ```
+
    - Vite builds React in watch mode
    - Express serves built files on single port (8765-8768)
    - Automatic rebuild and server restart on changes
 
 2. **Production-like Development**
+
    ```bash
    npm run dev
    ```
+
    - Builds React once, then runs Express server
    - Single port deployment (8765-8768)
    - Manual rebuild required for React changes
 
 3. **Separate Development**
+
    ```bash
    npm run dev:separate
    ```
+
    - React dev server on port 8765
    - Express server on port 8766
    - Hot module replacement for React

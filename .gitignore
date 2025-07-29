@@ -1,7 +1,6 @@
 /.env
+/arxivjsdata/
+/dist/
 /node_modules/
-/arxivjsdata
-/dist
-/arxiview/node_modules/
-/release
-/public/assets
+/release/
+/temp/
