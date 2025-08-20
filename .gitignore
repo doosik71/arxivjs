@@ -1,5 +1,5 @@
 /.env
-/arxivjsdata/
+/arxivjsdata
 /dist/
 /node_modules/
 /release/
