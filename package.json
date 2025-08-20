@@ -9,7 +9,10 @@
     "Research Papers"
   ],
   "license": "ISC",
-  "author": "Doosik Kim",
+  "author": {
+    "name": "Doosik Kim",
+    "email": "doosik71@gmail.com"
+  },
   "type": "commonjs",
   "main": "main.js",
   "homepage": "./",

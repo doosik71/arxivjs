@@ -1,53 +1,22 @@
 import axios from 'axios';
-import { getBackendUrl } from './utils/config';
 
-let apiBaseUrl = null;
-
-// Get dynamic backend URL
 const getApiBaseUrl = () => {
-  if (apiBaseUrl) {
-    return apiBaseUrl;
-  }
-
-  // Check if running in development mode with Vite proxy
+  // In development, always use the relative path to the API proxy.
+  // Vite's proxy will handle forwarding the request to the correct backend.
   if (import.meta.env.DEV) {
-    apiBaseUrl = '/api';
-    return apiBaseUrl;
+    return '/api';
   }
-
-  // In production or when ARXIVIEW_BACKEND_URL is set, use direct backend URL
-  const backendUrl = window.ARXIVIEW_BACKEND_URL || getBackendUrl();
-  apiBaseUrl = backendUrl;
-  return backendUrl;
+  // In production, the client is served from the same host as the server,
+  // so relative paths work there too. If you were to host them separately,
+  // you would need to configure this, e.g., via an environment variable.
+  return ''; 
 };
 
-const api = axios.create();
+const api = axios.create({
+  baseURL: getApiBaseUrl()
+});
 
-// Update axios instance base URL
-export const updateApiConfig = (target) => {
-  const baseURL = target || getApiBaseUrl();
-  api.defaults.baseURL = baseURL;
-  apiBaseUrl = baseURL;
-  console.log(`API configured to use: ${baseURL}`);
-};
-
-// Initialize API configuration
-updateApiConfig();
-
-// Function to initialize backend URL from command line args
-export const initializeApi = async () => {
-  if (window.electron) {
-    try {
-      const args = await window.electron.getCommandLineArgs();
-      if (args && args.target) {
-        updateApiConfig(args.target);
-      }
-    } catch (error) {
-      console.error('Failed to get command line args:', error);
-    }
-  }
-};
-
+console.log(`API configured to use base URL: ${api.defaults.baseURL}`);
 
 export const getTopics = async () => {
   const response = await api.get('/topics');

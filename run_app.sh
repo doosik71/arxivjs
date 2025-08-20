@@ -1,3 +1,3 @@
 #!/bin/bash
 cd "$(dirname "$0")"
-dist/arxivjs-linux-x64/arxivjs
+release/ArxivJS-1.0.0.AppImage

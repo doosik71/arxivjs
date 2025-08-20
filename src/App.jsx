@@ -7,8 +7,6 @@ import ThemeSelector from './components/ThemeSelector';
 import Footer from './components/Footer';
 import SettingsModal from './components/SettingsModal';
 import { applyTheme, getStoredTheme } from './utils/themes';
-import { initializeConfig } from './utils/config';
-import { initializeApi, updateApiConfig } from './api';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('topics');
@@ -17,33 +15,12 @@ const App = () => {
   const [selectedPaperId, setSelectedPaperId] = useState(null);
   const [lastSelectedPaperId, setLastSelectedPaperId] = useState(null);
   const [showSettings, setShowSettings] = useState(false);
-  const [configStatus, setConfigStatus] = useState('initializing');
   const [tocHeaders, setTocHeaders] = useState([]);
 
-  // Initialize theme and backend configuration on app load
+  // Initialize theme on app load
   useEffect(() => {
-    const initializeApp = async () => {
-      // Apply stored theme
-      const storedTheme = getStoredTheme();
-      applyTheme(storedTheme);
-
-      // Initialize API from command line args
-      await initializeApi();
-
-      // Initialize backend configuration
-      try {
-        setConfigStatus('initializing');
-        const backendUrl = await initializeConfig();
-        updateApiConfig(); // This might be redundant if initializeApi already sets it
-        setConfigStatus('connected');
-        console.log(`Backend initialized at: ${backendUrl}`);
-      } catch (error) {
-        console.error('Failed to initialize backend config:', error);
-        setConfigStatus('error');
-      }
-    };
-
-    initializeApp();
+    const storedTheme = getStoredTheme();
+    applyTheme(storedTheme);
   }, []);
 
   const handleTopicSelect = (topicName) => {
@@ -69,18 +46,6 @@ const App = () => {
     setSelectedPaper(null);
     setSelectedPaperId(null);
     setCurrentView('papers');
-  };
-
-  const handleConfigUpdate = async (newConfig) => {
-    try {
-      setConfigStatus('updating');
-      updateApiConfig();
-      setConfigStatus('connected');
-      console.log('Configuration updated:', newConfig);
-    } catch (error) {
-      console.error('Failed to update configuration:', error);
-      setConfigStatus('error');
-    }
   };
 
   const handleTocUpdate = useCallback((headers) => {
@@ -129,20 +94,6 @@ const App = () => {
           <div className="header-content">
             <h1>ArxiView - Arxiv Paper Reader</h1>
             <div className="header-controls">
-              <div className="backend-status">
-                <span className={`status-indicator ${configStatus}`}>
-                  {configStatus === 'initializing' && '🔄'}
-                  {configStatus === 'connected' && '🟢'}
-                  {configStatus === 'error' && '🔴'}
-                  {configStatus === 'updating' && '⚙️'}
-                </span>
-                <span className="status-text">
-                  {configStatus === 'initializing' && 'Connecting...'}
-                  {configStatus === 'connected' && 'Connected'}
-                  {configStatus === 'error' && 'Connection Error'}
-                  {configStatus === 'updating' && 'Updating...'}
-                </span>
-              </div>
               <button 
                 className="settings-button"
                 onClick={() => setShowSettings(true)}
@@ -165,7 +116,10 @@ const App = () => {
       <SettingsModal 
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
-        onConfigUpdate={handleConfigUpdate}
+        onConfigUpdate={() => {
+          // This function can be simplified or removed if settings are no longer dynamic
+          console.log('Configuration updated.');
+        }}
       />
     </div>
   );
