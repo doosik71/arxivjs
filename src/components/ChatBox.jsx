@@ -29,18 +29,18 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
     setIsExpanded(true);
   };
 
-  const handleBlur = (e) => {
-    // Don't collapse if the new focused element is inside the chat box
-    if (!e.currentTarget.contains(e.relatedTarget)) {
-      setIsExpanded(false);
-    }
-  };
+  // const handleBlur = (e) => {
+  //   // Don't collapse if the new focused element is inside the chat box
+  //   if (!e.currentTarget.contains(e.relatedTarget)) {
+  //     setIsExpanded(false);
+  //   }
+  // };
 
   return (
     <div 
       className={`chat-container ${isExpanded ? 'expanded' : 'collapsed'}`}
       onFocus={handleFocus}
-      onBlur={handleBlur}
+      // onBlur={handleBlur}
       tabIndex={-1}
     >
       <div className="chat-box">

@@ -3,3 +3,6 @@
 /arxivjsdata
 /dist
 /arxiview/node_modules/
+/temp
+/public/assets/index-*.js
+/public/assets/index-*.css

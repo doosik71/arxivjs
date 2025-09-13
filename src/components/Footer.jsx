@@ -4,7 +4,7 @@ const Footer = () => {
       <div className="container">
         <div className="footer-content">
           <div className="footer-info">
-            <p>&copy; 2024 ArxiView - Read-only interface for ArxivJS</p>
+            <p>&copy; 2024 ArxiView</p>
             <p>A tool for browsing and viewing research papers with AI-generated summaries</p>
           </div>
           <div className="footer-links">
