@@ -9,7 +9,10 @@
     "Research Papers"
   ],
   "license": "ISC",
-  "author": "Doosik Kim",
+  "author": {
+    "name": "Doosik Kim",
+    "email": "doosik71@gmail.com"
+  },
   "type": "commonjs",
   "main": "main.js",
   "homepage": "./",
@@ -24,8 +27,6 @@
     "dev:separate": "concurrently \"npm run dev\" \"npm run client\"",
     "dev:unified": "concurrently \"npm run build:watch\" \"nodemon index.js --verbose --ignore arxivjsdata/ --ignore public/\"",
     "build:all": "npm run build",
-    "package:win": "npm run build && electron-packager . arxivjs --platform=win32 --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
-    "package:linux": "npm run build && electron-packager . arxivjs --platform=linux --arch=x64 --out=dist --overwrite --ignore=arxivjsdata --ignore=\"\\.env\"",
     "electron": "electron .",
     "electron-dev": "concurrently \"npm run dev\" \"wait-on http://localhost:8765 && electron .\"",
     "build-electron": "npm run build && electron .",
@@ -72,8 +73,10 @@
     "files": [
       "dist/**/*",
       "client/electron/**/*",
+      "public/**/*",
       "index.js",
       "main.js",
+      "preload.js",
       "node_modules/**/*"
     ],
     "extraMetadata": {
@@ -94,7 +97,7 @@
           ]
         }
       ],
-      "icon": "client/electron/icon.ico",
+      "icon": "assets/icon.ico",
       "artifactName": "${productName}-${version}-${arch}.${ext}"
     },
     "mac": {

@@ -1,47 +1,43 @@
 # arxivjs
 
-arxivjs는 arXiv API와 상호작용하는 Node 기반 웹 앱이다.
-arxivjs는 논문의 주제를 관리하고 논문 주제와 관련한 논문을 API를 이용하여 arxiv.org에서 검색하고 Gemini를 통해 논문을 자동 요약할 수 있며 이를 파일에 저장하여 사용자가 쉽게 논문 정보를 조회할 수 있다.
+arxivjs는 arXiv API와 상호작용하는 Node.js 기반 웹 앱으로, React와 Vite를 사용하여 구축된 `Arxiview` 클라이언트를 포함합니다. Electron을 통해 데스크톱 앱으로 패키징됩니다.
+arxivjs는 논문의 주제를 관리하고, 주제와 관련된 논문을 arXiv.org API를 통해 검색하며, Gemini를 이용해 논문을 요약하고 파일로 저장하여 사용자가 쉽게 논문 정보를 조회할 수 있도록 돕습니다.
 
 ## 사용하는 패키지
 
-* @google/generative-ai: Gemini에 논문 요약 요청을 위해 사용
-* axios: HTML 클라이언트 라이브러리
-* dotenv: 사용자 환경 설정을 읽는 라이브러리
-* express: 웹 앱 개발 프레임워크
-* nodemon: 앱 서버 자동 실행 라이브러리
-* xml2js: XML 파서
-* electron: 데스크톱 앱으로 패키징하기 위해 사용
+* **@google/generative-ai**: Gemini에 논문 요약 요청을 위해 사용
+* **axios**: HTTP 클라이언트 라이브러리
+* **dotenv**: 사용자 환경 설정을 읽는 라이브러리
+* **express**: 웹 앱 개발 프레임워크
+* **electron**: 데스크톱 앱 패키징을 위해 사용
+* **electron-builder**: Electron 앱 배포를 위한 빌더
+* **react**, **react-dom**: UI 구축을 위한 라이브러리
+* **vite**: 프론트엔드 빌드 도구
+* **nodemon**: 개발 중 서버 자동 재시작을 위해 사용
+* **xml2js**: XML 파서
+* **pdf-parse**: PDF 파일 텍스트 추출
 
 ## 소스 파일 구성
 
-* index.js: 앱 실행 및 백엔드 로직
-* public/index.html: 클라이언트 UI
-* public/script.js: 클라이언트 자바스크립트
-* public/style.css: 클라이언트 UI 스타일 정의
-* main.js: Electron 앱의 메인 프로세스
-* preload.js: Electron 앱의 preload 스크립트
-
-## Arxiview 앱
-
-`arxiview`는 React와 Vite를 사용하여 구축된 새로운 클라이언트 애플리케이션으로, 기존의 `public` 폴더 기반 클라이언트를 대체한다. Electron을 통해 데스크톱 앱으로도 패키징된다.
-
-### 주요 소스 파일 구성
-
-*   `arxiview/src/App.jsx`: 메인 애플리케이션 컴포넌트
-*   `arxiview/src/main.jsx`: 애플리케이션 진입점
-*   `arxiview/src/components/`: TopicList, PaperList, PaperDetail 등 UI 뷰를 위한 React 컴포넌트
-*   `arxiview/electron/main.js`: Arxiview 앱을 위한 Electron 메인 프로세스 스크립트
+* `index.js`: 앱 실행 및 백엔드 로직 (API 라우트, 파일 시스템 관리 등)
+* `main.js`: Electron 앱의 메인 프로세스
+* `preload.js`: Electron 앱의 preload 스크립트
+* `src/`: React 클라이언트(`Arxiview`) 소스 코드
+  * `src/main.jsx`: React 애플리케이션 진입점
+  * `src/App.jsx`: 메인 애플리케이션 컴포넌트 및 라우팅
+  * `src/components/`: TopicList, PaperList, PaperDetail 등 UI 뷰를 위한 React 컴포넌트
+* `vite.config.js`: Vite 설정 파일
 
 ## 실행 파일 구성
 
-* run_arxivjs_app.bat: Electron 앱을 실행한다.
-* run_arxivjs_server.bat: nodemon을 이용하여 로컬 서버를 실행한다.
-* run_gemini.bat: 앱 개발을 위해 gemini를 실행한다.
+* `run_arxivjs_app.bat`: Electron 앱을 실행한다.
+* `run_arxivjs_server.bat`: nodemon을 이용하여 로컬 개발 서버를 실행한다.
+* `run_gemini.bat`: 앱 개발을 위해 gemini를 실행한다.
 
 ## 특징 및 기능
 
-* Node.js와 Electron을 기반으로 하는 단일 페이지 데스크톱 애플리케이션이다.
+* Node.js와 Express 백엔드, React 프론트엔드를 사용하는 단일 페이지 애플리케이션(SPA)입니다.
+* Electron을 통해 크로스-플랫폼 데스크톱 애플리케이션으로 제공됩니다.
 * 앱이 시작될 때 `GEMINI_API_KEY` 환경 변수와 `userprompt.txt` 파일의 존재 여부를 확인하고, 없을 경우 에러 메시지를 표시한다.
 * 웹 UI 인터페이스 언어는 영어를 사용한다.
 * 소스 코드에서 정의된 모든 함수에는 영어로 작성된 docstring이 있다.
@@ -55,45 +51,34 @@ arxivjs는 논문의 주제를 관리하고 논문 주제와 관련한 논문을
 ### Topic List 화면의 주요 기능
 
 * 새로운 논문 주제를 생성하고 기존 주제 목록을 관리할 수 있다.
-* 새로운 주제를 추가하면, `arxivjsdata` 폴더 안에 주제와 동일한 이름의 폴더를 생성한다. Electron 앱에서는 사용자 데이터 디렉토리에, 로컬 서버에서는 프로젝트 루트에 생성된다.
-* 주제 이름은 영어, 한글, 숫자, 공백, 하이픈(-), 소괄호()를 포함할 수 있다.
-* 주제 목록은 카드(card) 형식으로 표시되며, 알파벳 순서로 정렬된다.
-* 각 카드에 마우스를 올리면 "Rename"과 "Delete" 버튼이 나타난다.
-* "Rename" 버튼으로 주제 이름을 변경하면 해당 폴더 이름도 함께 변경된다.
-* "Delete" 버튼으로 주제를 삭제할 수 있으며, 폴더가 비어있을 때만 삭제 가능하다.
+* 화면 상단에 있는 검색창을 통해 주제 목록을 실시간으로 필터링할 수 있다.
+* 주제 목록은 카드(card) 형식으로 표시되며, 각 카드에는 주제 이름과 함께 해당 주제에 포함된 논문의 수가 표시된다.
 * 주제 카드를 클릭하면 Paper List 화면으로 전환된다.
+* 각 카드 우측 상단의 '×' 버튼으로 주제를 삭제할 수 있다. 폴더가 비어있지 않으면 삭제가 실패하고 오류 메시지가 표시된다.
+* 화면 하단의 입력 폼을 통해 새로운 주제를 추가할 수 있다.
+* 새로운 주제를 추가하면, `arxivjsdata` 폴더 안에 주제와 동일한 이름의 폴더를 생성한다. Electron 앱에서는 사용자 데이터 디렉토리에, 로컬 서버에서는 프로젝트 루트에 생성된다.
 
 ### Paper List 화면의 주요 기능
 
 * 선택된 주제와 관련된 논문 목록을 표시하고 새로운 논문을 검색하여 추가할 수 있다.
 * 주제가 선택되지 않은 경우, 사용자에게 주제를 먼저 선택하라는 안내를 한다.
-* 화면 상단에 현재 선택된 주제의 이름이 표시된다.
-* 논문 목록은 "Title", "Authors", "Actions", "Year", "URL" 열을 가진 표 형식으로 표시된다.
-* 논문 정보는 `arxivjsdata/{주제명}/` 폴더 안의 JSON 파일에서 가져온다.
-* JSON 파일의 이름은 논문의 URL을 Base64로 인코딩한 것이다.
-* 논문 목록은 발표 연도 내림차순, 제목 오름차순으로 정렬된다.
-* 논문 제목을 클릭하면 Paper Detail 화면으로 이동한다.
+* 화면 상단에 현재 선택된 주제의 이름과 "Back to Topics" 링크가 표시된다.
+* 논문 목록은 발표 연도 내림차순으로 그룹화되고, 각 연도 내에서 제목 오름차순으로 정렬된다.
+* 오른쪽에는 연도별로 빠르게 이동할 수 있는 목차(Table of Contents)가 표시된다.
+* 기존 논문 목록을 대상으로 제목, 저자, 연도, 초록에 대한 로컬 검색 기능이 제공된다.
 * "Actions" 열의 "Move" 버튼으로 논문을 다른 주제로 옮길 수 있으며, "Delete" 버튼으로 삭제할 수 있다.
-* 하단의 검색 폼을 통해 arXiv에서 논문을 검색할 수 있다.
-* 검색 폼은 키워드 입력 필드, 검색 기간, 검색 결과 수량 선택 콤보 박스, "Search" 버튼으로 구성된다.
-* 키워드 필드에는 현재 주제명이 기본으로 입력되어 있다.
-* 검색 기간은 최근 30년까지 3년 단위로 선택할 수 있다.
-* 검색 결과 수량은 200, 500, 1000개 중에서 선택할 수 있다.
-* 검색 결과는 "Title", "Authors", "Year", "URL" 열을 가진 표로 표시된다.
+* 화면 하단의 접이식 섹션에서 arXiv에서 직접 논문을 검색하고 현재 주제에 추가할 수 있다.
+* 검색 폼은 키워드, 검색 기간, 결과 수량 선택 기능으로 구성된다.
+* 검색 결과에서 이미 추가된 논문은 비활성화 처리되어 중복 추가를 방지한다.
 
 ### Paper Detail 화면의 주요 기능
 
-* Paper List 또는 검색 결과에서 선택한 논문의 상세 정보를 표시한다.
-* 논문이 선택되지 않은 경우, 사용자에게 논문을 먼저 선택하라는 안내를 한다.
-* 화면 상단에 논문의 제목, 저자, 발표 연도, URL, 초록이 표시된다.
-* 화면 중앙은 수직 분할자를 이용하여 요약(왼쪽)과 PDF 뷰(오른쪽) 두 부분으로 나뉜다.
-* 분할자를 드래그하여 각 부분의 너비를 조절할 수 있다.
-* PDF 뷰어에는 논문의 PDF 파일이 표시된다.
-* 요약 부분에는 논문의 요약 내용이 표시된다.
-* 요약 정보가 없는 경우 "Summarize" 버튼이 표시된다.
-* "Summarize" 버튼을 클릭하면, 논문 PDF의 텍스트를 추출하여 Gemini API에 요약을 요청한다.
-* 요약 프롬프트는 `arxivjsdata/userprompt.txt` 파일에서 읽어온다.
-* Gemini의 응답은 스트림 방식으로 실시간으로 화면에 출력된다.
-* 요약이 완료되면, 논문 정보는 JSON 파일로, 요약 내용은 마크다운(.md) 파일로 `arxivjsdata/{주제명}/` 폴더에 저장된다.
-* 파일 이름은 논문 URL을 Base64로 인코딩하여 사용한다.
+* Paper List에서 선택한 논문의 상세 정보를 표시한다.
+* 화면 상단에 논문 제목, 저자, 발표 연도, URL, 초록 및 "Back to {Topic Name}" 링크가 표시된다.
+* 요약 정보가 있는 경우, 요약 내용과 함께 Gemini와 대화할 수 있는 **채팅창(ChatBox)**이 나타난다.
+* 요약 정보가 없는 경우 "Summarize" 버튼이 표시되며, 클릭 시 Gemini API를 통해 요약을 생성한다.
+* 생성된 요약은 스트리밍 방식으로 실시간 표시되며, 완료 후 저장된다.
+* 요약 내용 우측 상단에는 요약만 삭제할 수 있는 "Delete Summary" 버튼이 있다.
+* 요약문에서 추출된 목차 정보가 사이드 메뉴에 표시되어 문서 내 탐색을 돕는다.
 * 요약 내용은 마크다운 형식으로 렌더링되며, MathJax를 통해 수식을 지원한다. (`$...$` 및 `$$...$$` 형식 모두 지원)
+* SEO 및 접근성 향상을 위해 페이지의 메타데이터(title, description 등)가 동적으로 업데이트된다.

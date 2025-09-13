@@ -1,8 +1,11 @@
 /.env
+/arxivjsdata
+/dist/
 /node_modules/
 /arxivjsdata
 /dist
 /arxiview/node_modules/
+/release/
 /temp
 /public/assets/index-*.js
 /public/assets/index-*.css
