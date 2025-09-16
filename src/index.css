@@ -178,6 +178,7 @@ pre,
     background-color: var(--color-highlight-bg);
     transform: scale(1.02);
   }
+
   100% {
     background-color: var(--color-hover);
     transform: scale(1);
@@ -304,6 +305,35 @@ pre,
   background: #ffeaea;
   border-radius: 8px;
   margin: 1rem 0;
+}
+
+.error-boundary {
+  padding: 1rem;
+  background-color: #ffeaea;
+  border: 1px solid #e74c3c;
+  color: #c0392b;
+  border-radius: 8px;
+}
+
+.error-boundary h2 {
+  font-weight: bold;
+  margin-top: 0;
+  margin-bottom: 0.5rem;
+  font-size: 1.1rem;
+}
+
+.error-boundary p {
+  margin: 0;
+}
+
+.error-boundary pre {
+  margin-top: 1rem;
+  font-size: 0.875rem;
+  white-space: pre-wrap;
+  word-break: break-all;
+  background-color: #fADBD8;
+  padding: 0.5rem;
+  border-radius: 4px;
 }
 
 .paper-detail {

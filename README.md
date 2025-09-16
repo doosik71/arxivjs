@@ -110,6 +110,7 @@ ArxivJS offers multiple development workflows:
 ```bash
 npm run dev:unified
 ```
+
 - Builds React in watch mode + runs Express server
 - Single port (8765-8768) with automatic rebuilding
 - Best for rapid development
@@ -119,6 +120,7 @@ npm run dev:unified
 ```bash
 npm run dev
 ```
+
 - Builds React once, then runs Express server
 - Single port deployment
 - Good for testing production build
@@ -128,6 +130,7 @@ npm run dev
 ```bash
 npm run dev:separate
 ```
+
 - React dev server (8765) + Express server (8766)
 - Hot module replacement for React
 - Traditional development approach
@@ -159,7 +162,7 @@ Once running, access the application at `http://localhost:8765` (or the automati
 
 ## Project Structure
 
-```
+```text
 arxivjs/
 ├── index.js              # Express server with API endpoints
 ├── main.js               # Electron main process
@@ -185,14 +188,6 @@ ArxivJS uses a **unified full-stack architecture**:
 - **Single Port Deployment**: Both frontend and API served from the same port (8765-8768)
 - **Vite Build System**: Compiles React app into `public/` directory for Express to serve
 - **Electron Wrapper**: Cross-platform desktop application support
-
-## Screenshots
-
-![Topic list](./public/topic_list.png)
-
-![Paper List](./public/paper_list.png)
-
-![Paper Detail](./public/paper_detail.png)
 
 ## Contributing
 

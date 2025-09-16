@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
+import ErrorBoundary from './ErrorBoundary';
 
 const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
   const [summary, setSummary] = useState(null);
@@ -278,7 +279,9 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
               {summary && (
                 <div className="summary-preview">
                   <main className="formatted-summary" itemProp="description">
-                    {formatSummary(summary)}
+                    <ErrorBoundary>
+                      {formatSummary(summary)}
+                    </ErrorBoundary>
                   </main>
                 </div>
               )}
@@ -297,7 +300,9 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
                 </button>
               </div>
               <main className="formatted-summary" itemProp="description">
-                {formatSummary(summary)}
+                <ErrorBoundary>
+                  {formatSummary(summary)}
+                </ErrorBoundary>
               </main>
             </div>
           ) : (
