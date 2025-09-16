@@ -990,6 +990,12 @@ mjx-math {
   border-bottom-left-radius: 4px;
 }
 
+.chat-message-wrapper.assistant .message-content ol,
+.chat-message-wrapper.assistant .message-content ul {
+  margin: 1rem 0;
+  padding-left: 1rem;
+}
+
 .chat-input-form {
   display: flex;
   padding: 0.75rem;
