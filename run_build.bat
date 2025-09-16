@@ -1,2 +1,3 @@
 @cd /d %~dp0
-npm run build
+@REM npm run build
+npm run dist:win
