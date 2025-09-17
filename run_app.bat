@@ -1,2 +1,2 @@
 @cd /d %~dp0
-release\win-unpacked\ArxivJS.exe
+start release\win-unpacked\ArxivJS.exe
