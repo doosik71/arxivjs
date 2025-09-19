@@ -86,11 +86,11 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
         const paperElement = paperRefs.current[lastSelectedPaperId];
         if (paperElement) {
           // Scroll to the element
-          paperElement.scrollIntoView({ 
-            behavior: 'smooth', 
-            block: 'center' 
+          paperElement.scrollIntoView({
+            behavior: 'smooth',
+            block: 'center'
           });
-          
+
           // Highlight the paper for 1 second
           setHighlightedPaperId(lastSelectedPaperId);
           setTimeout(() => {
@@ -495,11 +495,13 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                           <div className="paper-title">
                             {highlightText(paper.title, searchQuery, searchField, 'title')}
                           </div>
-                          <div className="paper-authors">
-                            {highlightText(paper.authors, searchQuery, searchField, 'authors')}
-                          </div>
-                          <div className="paper-year">
-                            {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
+                          <div>
+                            <span className="paper-authors">
+                              {highlightText(paper.authors, searchQuery, searchField, 'authors')}
+                            </span>
+                            <span className="paper-year">
+                              {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
+                            </span>
                           </div>
                         </div>
                         <button
@@ -622,8 +624,8 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                         >
                           {paper.title}
                         </div>
-                        <div className="arxiv-paper-authors">{paper.authors}</div>
-                        <div className="arxiv-paper-meta">
+                        <div>
+                          <span className="arxiv-paper-authors">{paper.authors}</span>
                           <span className="arxiv-paper-year">{paper.year}</span>
                           <a
                             href={paper.url}

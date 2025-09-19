@@ -33,7 +33,7 @@ async function main() {
 
     app.on('window-all-closed', function () {
         server.close(() => {
-            console.log('Server closed');
+            // console.log('Server closed');
             if (process.platform !== 'darwin') {
                 app.quit();
             }

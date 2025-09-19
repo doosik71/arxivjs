@@ -94,7 +94,7 @@ const App = () => {
           <div className="header-content">
             <h1>ArxiView - Arxiv Paper Reader</h1>
             <div className="header-controls">
-              <button 
+              <button
                 className="settings-button"
                 onClick={() => setShowSettings(true)}
                 title="Backend Settings"
@@ -106,14 +106,14 @@ const App = () => {
           </div>
         </div>
       </header>
-      
+
       <main className="container">
         {renderCurrentView()}
       </main>
-      
+
       <Footer />
-      
-      <SettingsModal 
+
+      <SettingsModal
         isOpen={showSettings}
         onClose={() => setShowSettings(false)}
         onConfigUpdate={() => {

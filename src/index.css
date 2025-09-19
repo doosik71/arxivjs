@@ -269,7 +269,26 @@ pre,
 
 .paper-year {
   color: var(--color-text-secondary);
+  background: var(--color-hover);
   font-size: 0.9rem;
+  padding: 0 0.2rem;
+  margin: 0 0.5rem;
+  border-radius: 4px;
+}
+
+.paper-link {
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.paper-link::before {
+  content: "🔗";
+}
+
+.paper-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
 }
 
 .breadcrumb {
@@ -2076,8 +2095,8 @@ article h3:first-child {
 
 .arxiv-result-item {
   display: flex;
-  gap: 1rem;
-  padding: 1.5rem;
+  gap: 0.5rem;
+  padding: 1rem;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
   border-radius: 8px;
@@ -2126,25 +2145,20 @@ article h3:first-child {
   font-size: 0.95rem;
 }
 
-.arxiv-paper-meta {
-  display: flex;
-  gap: 1rem;
-  align-items: center;
-  margin-bottom: 0.75rem;
-}
-
 .arxiv-paper-year {
   color: var(--color-text-secondary);
   font-size: 0.9rem;
   background: var(--color-hover);
-  padding: 0.2rem 0.5rem;
+  padding: 0 0.3rem;
+  margin: 0 0.5rem;
   border-radius: 4px;
 }
 
 .arxiv-paper-link {
   color: var(--color-secondary);
   text-decoration: none;
-  font-size: 0.9rem;
+  font-size: 0.8rem;
+  margin: 0 0.5rem;
   transition: color 0.2s ease;
 }
 
@@ -2155,8 +2169,9 @@ article h3:first-child {
 
 .arxiv-paper-abstract {
   color: var(--color-text-secondary);
-  font-size: 0.9rem;
-  line-height: 1.5;
+  font-size: 0.8rem;
+  line-height: 1.2;
+  margin-top: 0.2rem;
   text-align: justify;
 }
 

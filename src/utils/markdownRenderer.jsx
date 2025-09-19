@@ -20,7 +20,7 @@ const initMathJax = () => {
       startup: {
         ready: () => {
           window.MathJax.startup.defaultReady();
-          console.log('MathJax is ready');
+          // console.log('MathJax is ready');
         }
       }
     };
@@ -31,7 +31,7 @@ const initMathJax = () => {
       mathJaxScript.src = 'https://cdn.jsdelivr.net/npm/mathjax@3/es5/tex-mml-chtml.js';
       mathJaxScript.async = true;
       mathJaxScript.onload = () => {
-        console.log('MathJax script loaded');
+        // console.log('MathJax script loaded');
       };
       document.head.appendChild(mathJaxScript);
     }

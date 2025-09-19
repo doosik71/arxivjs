@@ -30,15 +30,14 @@ if (electronApp) {
     try {
         fs.mkdir(dataPath, { recursive: true });
     } catch (e) {
-        console.log("arxivjsdata dir already exists");
+        // console.log("arxivjsdata dir already exists");
     }
 } else {
     try {
         fs.mkdir(dataPath, { recursive: true });
     } catch (e) {
-        console.log("arxivjsdata dir already exists");
+        // console.log("arxivjsdata dir already exists");
     }
-   
 }
 
 // Check userprompt.txt file.
@@ -66,7 +65,7 @@ app.use((req, res, next) => {
     res.header('Access-Control-Allow-Origin', '*');
     res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
     res.header('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
-    
+
     // Handle preflight requests
     if (req.method === 'OPTIONS') {
         res.sendStatus(200);
@@ -76,7 +75,7 @@ app.use((req, res, next) => {
 });
 
 // Configure multer for file uploads
-const upload = multer({ 
+const upload = multer({
     storage: multer.memoryStorage(),
     limits: {
         fileSize: 50 * 1024 * 1024 // 50MB limit
@@ -197,24 +196,24 @@ async function movePaper(req, res) {
         try {
             const existingPaperData = await fs.readFile(newPath, 'utf8');
             const existingPaper = JSON.parse(existingPaperData);
-            
+
             // Read the paper to be moved
             const movingPaperData = await fs.readFile(oldPath, 'utf8');
             const movingPaper = JSON.parse(movingPaperData);
-            
+
             // Compare dates and keep the newer one
             const existingDate = new Date(existingPaper.dateAdded || existingPaper.date || 0);
             const movingDate = new Date(movingPaper.dateAdded || movingPaper.date || 0);
-            
+
             if (movingDate > existingDate) {
                 // Moving paper is newer, replace the existing one
                 await fs.rename(oldPath, newPath);
-                
+
                 // Handle .md file - check if moving paper has a newer summary
                 try {
                     const existingMdStat = await fs.stat(newMdPath);
                     const movingMdStat = await fs.stat(oldMdPath);
-                    
+
                     if (movingMdStat.mtime > existingMdStat.mtime) {
                         await fs.rename(oldMdPath, newMdPath);
                     } else {
@@ -231,7 +230,7 @@ async function movePaper(req, res) {
                         }
                     }
                 }
-                
+
                 res.json({ message: 'Paper moved successfully. Newer version replaced existing paper.' });
             } else {
                 // Existing paper is newer or same date, just delete the moving paper
@@ -249,7 +248,7 @@ async function movePaper(req, res) {
             if (error.code === 'ENOENT') {
                 // Paper doesn't exist in target topic, proceed with normal move
                 await fs.rename(oldPath, newPath);
-                
+
                 try {
                     await fs.rename(oldMdPath, newMdPath);
                 } catch (mdError) {
@@ -257,7 +256,7 @@ async function movePaper(req, res) {
                         throw mdError;
                     }
                 }
-                
+
                 res.json({ message: 'Paper moved successfully.' });
             } else {
                 throw error;
@@ -326,7 +325,7 @@ async function searchArxiv(req, res) {
         const result = await parser.parseStringPromise(response.data);
         const entries = result.feed.entry;
 
-        console.log('Searching with query = ' + query);
+        // console.log('Searching with query = ' + query);
 
         if (!entries) {
             return res.json([]);
@@ -402,7 +401,7 @@ async function chatWithGemini(req, res) {
         }
 
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        
+
         const conversationHistory = history.slice(0, -1);
         const lastMessage = history[history.length - 1];
 
@@ -512,7 +511,7 @@ async function addPaperByUrl(req, res) {
 
         try {
             await fs.access(filePath);
-            console.log(`Paper already exists: ${filePath}`);
+            // console.log(`Paper already exists: ${filePath}`);
             res.status(200).json(paper);
         } catch (e) {
             await fs.mkdir(topicPath, { recursive: true });
@@ -556,7 +555,7 @@ async function extractPdfText(req, res) {
 
         const pdfParser = require('pdf-parse');
         const data = await pdfParser(req.file.buffer);
-        
+
         res.json({ text: data.text });
     } catch (error) {
         console.error('PDF text extraction error:', error);
@@ -567,7 +566,7 @@ async function extractPdfText(req, res) {
 async function summarizePdfText(req, res) {
     try {
         const { text, topicName } = req.body;
-        
+
         if (!text) {
             return res.status(400).json({ message: 'No text provided for summarization' });
         }
@@ -579,7 +578,7 @@ async function summarizePdfText(req, res) {
         // Read user prompt template
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', text);
-        
+
         // Initialize Gemini model
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContentStream(prompt);
@@ -609,13 +608,13 @@ async function summarizePdfText(req, res) {
 async function fetchPdfFromUrl(req, res) {
     try {
         const { url } = req.body;
-        
+
         if (!url) {
             return res.status(400).json({ message: 'PDF URL is required' });
         }
 
         // Fetch PDF from the URL
-        const response = await axios.get(url, { 
+        const response = await axios.get(url, {
             responseType: 'arraybuffer',
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
@@ -625,7 +624,7 @@ async function fetchPdfFromUrl(req, res) {
         // Set appropriate headers for PDF response
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Length', response.data.length);
-        
+
         // Send the PDF data
         res.send(Buffer.from(response.data));
 
@@ -638,7 +637,7 @@ async function fetchPdfFromUrl(req, res) {
 async function savePdfPaper(req, res) {
     try {
         const { paper, summary, topicName } = req.body;
-        
+
         if (!paper || !summary || !topicName) {
             return res.status(400).json({ message: 'Missing required data: paper, summary, or topicName' });
         }
@@ -649,7 +648,7 @@ async function savePdfPaper(req, res) {
         }
 
         const topicPath = path.join(dataPath, topicName);
-        
+
         // Check if topic exists
         try {
             await fs.access(topicPath);
@@ -664,7 +663,7 @@ async function savePdfPaper(req, res) {
 
         // Save paper metadata
         await fs.writeFile(jsonFilePath, JSON.stringify(paper, null, 2));
-        
+
         // Save summary
         await fs.writeFile(mdFilePath, summary);
 
@@ -749,7 +748,7 @@ async function startServer() {
             port = await findAvailablePort(8765, 9000, HOSTNAME);
         } catch (err) {
             console.error(err.message);
-            console.log('Defaulting to port 8765.');
+            // console.log('Defaulting to port 8765.');
             port = 8765;
         }
     }

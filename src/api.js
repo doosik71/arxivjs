@@ -9,14 +9,14 @@ const getApiBaseUrl = () => {
   // In production, the client is served from the same host as the server,
   // so relative paths work there too. If you were to host them separately,
   // you would need to configure this, e.g., via an environment variable.
-  return ''; 
+  return '';
 };
 
 const api = axios.create({
   baseURL: getApiBaseUrl()
 });
 
-console.log(`API configured to use base URL: ${api.defaults.baseURL}`);
+// console.log(`API configured to use base URL: ${api.defaults.baseURL}`);
 
 export const getTopics = async () => {
   const response = await api.get('/topics');

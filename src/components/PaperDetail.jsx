@@ -25,36 +25,36 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     if (paper) {
       // Update document title
       document.title = `${paper.title} - ArxiView`;
-      
+
       // Update meta description
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute('content', 
-          paper.abstract ? paper.abstract.substring(0, 160) + '...' : 
-          `Research paper: ${paper.title} by ${paper.authors}`
+        metaDescription.setAttribute('content',
+          paper.abstract ? paper.abstract.substring(0, 160) + '...' :
+            `Research paper: ${paper.title} by ${paper.authors}`
         );
       }
-      
+
       // Update Open Graph metadata
       const ogTitle = document.querySelector('meta[property="og:title"]');
       if (ogTitle) {
         ogTitle.setAttribute('content', paper.title);
       }
-      
+
       const ogDescription = document.querySelector('meta[property="og:description"]');
       if (ogDescription) {
-        ogDescription.setAttribute('content', 
-          paper.abstract ? paper.abstract.substring(0, 200) + '...' : 
-          `Research paper by ${paper.authors}, published in ${paper.year}`
+        ogDescription.setAttribute('content',
+          paper.abstract ? paper.abstract.substring(0, 200) + '...' :
+            `Research paper by ${paper.authors}, published in ${paper.year}`
         );
       }
-      
+
       // Add article metadata
       const articleAuthor = document.querySelector('meta[property="article:author"]');
       if (articleAuthor) {
         articleAuthor.setAttribute('content', paper.authors);
       }
-      
+
       // Add publication date if available
       let articlePublished = document.querySelector('meta[property="article:published_time"]');
       if (!articlePublished) {
@@ -64,13 +64,13 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
       }
       articlePublished.setAttribute('content', `${paper.year}-01-01`);
     }
-    
+
     // Cleanup on unmount
     return () => {
       document.title = 'ArxiView - Paper Reader';
       const metaDescription = document.querySelector('meta[name="description"]');
       if (metaDescription) {
-        metaDescription.setAttribute('content', 
+        metaDescription.setAttribute('content',
           'A read-only interface for browsing and viewing research papers and AI-generated summaries'
         );
       }
@@ -106,9 +106,9 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     try {
       setIsGeneratingSummary(true);
       setSummaryError(null);
-      
+
       const response = await generatePaperSummary(topicName, paper);
-      
+
       // Check if streaming is supported
       if (!response.body || !response.body.getReader) {
         // Fallback to regular response
@@ -120,17 +120,17 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let summaryText = '';
-      
+
       setSummary(''); // Clear existing summary to show streaming
-      
+
       try {
         while (true) {
           const { done, value } = await reader.read();
           if (done) break;
-          
+
           const chunk = decoder.decode(value, { stream: true });
           const lines = chunk.split('\n\n');
-          
+
           for (const line of lines) {
             if (line.startsWith('data: ')) {
               try {
@@ -150,7 +150,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
       } finally {
         reader.releaseLock();
       }
-      
+
     } catch (err) {
       setSummaryError('Failed to generate summary: ' + (err.message || 'Unknown error'));
       console.error('Error generating summary:', err);
@@ -168,7 +168,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     const newHistory = [...chatHistory, { role: 'user', content: message }];
     setChatHistory(newHistory);
     setIsChatLoading(true);
-  
+
     try {
       const response = await chatWithGemini(topicName, paperId, newHistory);
       setChatHistory([...newHistory, { role: 'assistant', content: response.message }]);
@@ -227,7 +227,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
           ← Back to {topicName}
         </a>
         {' / '}
-        <strong 
+        <strong
           onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
           style={{ cursor: 'pointer' }}
           title="Click to scroll to top"
@@ -240,7 +240,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
         <header>
           <div className="paper-header">
             <h1>{paper.title}</h1>
-            <button 
+            <button
               onClick={handleDeletePaper}
               disabled={isDeleting}
               className="delete-button"
@@ -249,12 +249,14 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
               {isDeleting ? '⏳' : '×'}
             </button>
           </div>
-          
+
           <div className="paper-meta" itemScope itemType="https://schema.org/ScholarlyArticle">
             <meta itemProp="name" content={paper.title} />
-            <p><strong>Authors:</strong> <span itemProp="author">{paper.authors}</span></p>
-            <p><strong>Year:</strong> <time itemProp="datePublished">{paper.year}</time></p>
-            <p><strong>URL:</strong> <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url">{paper.url}</a></p>
+            <div>
+              <span itemProp="author">{paper.authors}</span>
+              <span className="paper-year"><time itemProp="datePublished">{paper.year}</time></span>
+              <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
+            </div>
           </div>
         </header>
 
@@ -290,7 +292,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
             <div className="summary-view">
               <div className="summary-header">
                 <h2>Summary</h2>
-                <button 
+                <button
                   onClick={handleDeleteSummary}
                   disabled={isDeletingSummary}
                   className="delete-summary-button"
@@ -308,7 +310,7 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
           ) : (
             <div className="no-summary">
               <p>No summary available yet.</p>
-              <button 
+              <button
                 onClick={handleGenerateSummary}
                 disabled={isGeneratingSummary}
                 className="summarize-button"
