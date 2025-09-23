@@ -18,6 +18,10 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [citationInput, setCitationInput] = useState('');
 
   useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [paperId]);
+
+  useEffect(() => {
     setPaper(initialPaper);
     setIsEditingCitation(false); // Reset editing state when paper changes
   }, [initialPaper]);
