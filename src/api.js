@@ -56,8 +56,13 @@ export const deleteTopic = async (topicName) => {
 };
 
 export const searchArxivPapers = async (keyword, year, count = 100, sort = 'relevance') => {
+  const cleanedKeyword = keyword
+    .replace(/[^a-zA-Z0-9\uAC00-\uD7A3\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
   const params = new URLSearchParams({
-    keyword,
+    keyword: cleanedKeyword,
     count: count.toString(),
     sort
   });
@@ -66,6 +71,7 @@ export const searchArxivPapers = async (keyword, year, count = 100, sort = 'rele
     params.append('year', year);
   }
 
+  console.log(params.toString());
   const response = await api.get(`/search?${params.toString()}`);
   return response.data;
 };
