@@ -545,6 +545,34 @@ app.post('/papers/:topicName', savePaper);
 app.put('/papers/:topicName/:paperId', movePaper);
 app.delete('/papers/:topicName/:paperId', deletePaper);
 app.delete('/paper-summary/:topicName/:paperId', deletePaperSummary);
+
+async function updateCitation(req, res) {
+    try {
+        const { topicName, paperId } = req.params;
+        const { citation } = req.body;
+
+        if (typeof citation !== 'number') {
+            return res.status(400).json({ message: 'Citation count must be a number.' });
+        }
+
+        const paperPath = path.join(dataPath, topicName, paperId + '.json');
+
+        const data = await fs.readFile(paperPath, 'utf-8');
+        const paper = JSON.parse(data);
+        paper.citation = citation;
+
+        await fs.writeFile(paperPath, JSON.stringify(paper, null, 2));
+
+        res.json({ message: 'Citation count updated successfully.', paper });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return res.status(404).json({ message: 'Paper not found.' });
+        }
+        res.status(500).json({ message: error.message });
+    }
+}
+
+app.post('/papers/:topicName/:paperId/citation', updateCitation);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/chat/:topicName/:paperId', chatWithGemini);

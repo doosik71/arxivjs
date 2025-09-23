@@ -1,10 +1,11 @@
 import { useState, useEffect } from 'react';
-import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary } from '../api';
+import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
 
-const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
+const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
+  const [paper, setPaper] = useState(initialPaper);
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
   const [summaryError, setSummaryError] = useState(null);
@@ -13,6 +14,13 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeletingSummary, setIsDeletingSummary] = useState(false);
+  const [isEditingCitation, setIsEditingCitation] = useState(false);
+  const [citationInput, setCitationInput] = useState('');
+
+  useEffect(() => {
+    setPaper(initialPaper);
+    setIsEditingCitation(false); // Reset editing state when paper changes
+  }, [initialPaper]);
 
   useEffect(() => {
     if (paperId && topicName) {
@@ -175,7 +183,8 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     } catch (error) {
       console.error('Chat error:', error);
       setChatHistory([...newHistory, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-    } finally {
+    }
+    finally {
       setIsChatLoading(false);
     }
   };
@@ -213,6 +222,38 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
     } finally {
       setIsDeletingSummary(false);
     }
+  };
+
+  const handleSaveCitation = async () => {
+    const count = parseInt(citationInput, 10);
+    if (isNaN(count) || count < 0) {
+      alert('Please enter a valid non-negative number.');
+      return;
+    }
+    try {
+      const updatedData = await updateCitationCount(topicName, paperId, count);
+      setPaper(updatedData.paper);
+      setIsEditingCitation(false);
+      setCitationInput('');
+    } catch (error) {
+      console.error('Failed to update citation count:', error);
+      alert('Failed to save citation count. Please try again.');
+    }
+  };
+
+  const openScholarSearch = () => {
+    const scholarUrl = `https://scholar.google.com/scholar?q=${encodeURIComponent(paper.title)}`;
+    window.open(scholarUrl, '_blank', 'noopener,noreferrer');
+  };
+
+  const handleStartEditingCitation = () => {
+    setCitationInput(paper.citation !== undefined ? paper.citation.toString() : '');
+    setIsEditingCitation(true);
+  };
+
+  const handleCancelEditingCitation = () => {
+    setIsEditingCitation(false);
+    setCitationInput('');
   };
 
   const formatSummary = (summaryText) => {
@@ -256,6 +297,36 @@ const PaperDetail = ({ paper, paperId, topicName, onBackToPapers, onTocUpdate })
               <span itemProp="author">{paper.authors}</span>
               <span className="paper-year"><time itemProp="datePublished">{paper.year}</time></span>
               <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
+
+              <div className="citation-info">
+                {isEditingCitation ? (
+                  <>
+                    <input
+                      type="number"
+                      value={citationInput}
+                      onChange={(e) => setCitationInput(e.target.value)}
+                      placeholder="Enter count"
+                      className="citation-input-inline"
+                      autoFocus
+                    />
+                    <button onClick={handleSaveCitation} className="citation-button-save">Save</button>
+                    <button onClick={handleCancelEditingCitation} className="citation-button-cancel">Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar">🎓</button>
+                    {paper.citation !== undefined ? (
+                      <div className="citation-display" onClick={handleStartEditingCitation} title="Click to edit citation count">
+                        <span className="citation-count">🔖{paper.citation}</span>
+                      </div>
+                    ) : (
+                      <div className="citation-add" onClick={handleStartEditingCitation} title="Add citation count">
+                        <span className="citation-count">🔖N/A</span>
+                      </div>
+                    )}
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </header>

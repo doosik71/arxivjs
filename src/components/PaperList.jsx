@@ -499,9 +499,10 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                             <span className="paper-authors">
                               {highlightText(paper.authors, searchQuery, searchField, 'authors')}
                             </span>
-                            <span className="paper-year">
-                              {highlightText(paper.year.toString(), searchQuery, searchField, 'year')}
-                            </span>
+                            <span className="paper-year">{paper.year}</span>
+                            {paper.citation !== undefined && (
+                              <span className="citation-list-display">🔖{paper.citation}</span>
+                            )}
                           </div>
                         </div>
                         <button

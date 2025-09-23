@@ -120,4 +120,9 @@ export const movePaper = async (sourceTopic, targetTopic, paperId) => {
   return response.data;
 };
 
+export const updateCitationCount = async (topicName, paperId, citation) => {
+  const response = await api.post(`/papers/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}/citation`, { citation });
+  return response.data;
+};
+
 export default api;
