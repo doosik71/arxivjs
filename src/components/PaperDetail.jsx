@@ -309,6 +309,11 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                       type="number"
                       value={citationInput}
                       onChange={(e) => setCitationInput(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          handleSaveCitation();
+                        }
+                      }}
                       placeholder="Enter count"
                       className="citation-input-inline"
                       autoFocus
@@ -321,7 +326,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                     <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar">🎓</button>
                     {paper.citation !== undefined ? (
                       <div className="citation-display" onClick={handleStartEditingCitation} title="Click to edit citation count">
-                        <span className="citation-count">🔖{paper.citation}</span>
+                        <span className="citation-count">🔖{paper.citation.toLocaleString()}</span>
                       </div>
                     ) : (
                       <div className="citation-add" onClick={handleStartEditingCitation} title="Add citation count">
