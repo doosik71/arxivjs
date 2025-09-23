@@ -158,7 +158,19 @@ async function getPapers(req, res) {
         for (const file of files) {
             if (path.extname(file) === '.json') {
                 const content = await fs.readFile(path.join(topicPath, file), 'utf-8');
-                papers.push(JSON.parse(content));
+                const paper = JSON.parse(content);
+
+                // Check for summary
+                const baseName = path.basename(file, '.json');
+                const mdPath = path.join(topicPath, baseName + '.md');
+                try {
+                    await fs.access(mdPath);
+                    paper.hasSummary = true;
+                } catch (e) {
+                    paper.hasSummary = false;
+                }
+
+                papers.push(paper);
             }
         }
         papers.sort((a, b) => {

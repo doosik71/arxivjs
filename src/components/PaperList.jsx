@@ -492,7 +492,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                           className="paper-content"
                           onClick={() => onPaperSelect(paper, paperId)}
                         >
-                          <div className="paper-title">
+                          <div className="paper-title" style={{ color: paper.hasSummary ? '#3498db' : 'inherit' }}>
                             {highlightText(paper.title, searchQuery, searchField, 'title')}
                           </div>
                           <div>

@@ -4,39 +4,39 @@ import { getTopics, createTopic, deleteTopic, getPapers } from '../api';
 // Utility function to highlight search terms in text
 const highlightText = (text, searchQuery) => {
   if (!searchQuery.trim()) return text;
-  
+
   const searchTerm = searchQuery.toLowerCase();
   const textLower = text.toLowerCase();
-  
+
   if (!textLower.includes(searchTerm)) return text;
-  
+
   // Find all occurrences of the search term
   const parts = [];
   let lastIndex = 0;
   let index = textLower.indexOf(searchTerm, lastIndex);
-  
+
   while (index !== -1) {
     // Add text before the match
     if (index > lastIndex) {
       parts.push(text.substring(lastIndex, index));
     }
-    
+
     // Add the highlighted match
     parts.push(
       <mark key={`${index}-${searchTerm}`} className="search-highlight">
         {text.substring(index, index + searchTerm.length)}
       </mark>
     );
-    
+
     lastIndex = index + searchTerm.length;
     index = textLower.indexOf(searchTerm, lastIndex);
   }
-  
+
   // Add remaining text
   if (lastIndex < text.length) {
     parts.push(text.substring(lastIndex));
   }
-  
+
   return parts;
 };
 
@@ -56,7 +56,7 @@ const TopicList = ({ onTopicSelect }) => {
     try {
       setLoading(true);
       const topicNames = await getTopics();
-      
+
       // Get paper count for each topic
       const topicsWithCounts = await Promise.all(
         topicNames.map(async (topicName) => {
@@ -75,7 +75,7 @@ const TopicList = ({ onTopicSelect }) => {
           }
         })
       );
-      
+
       setTopics(topicsWithCounts);
     } catch (err) {
       setError('Failed to load topics');
@@ -140,14 +140,14 @@ const TopicList = ({ onTopicSelect }) => {
   return (
     <div>
       <h2>Research Topics</h2>
-      
+
       {error && (
         <div className="error-message">
           {error}
           <button onClick={() => setError(null)} className="error-close">×</button>
         </div>
       )}
-      
+
       {topics.length > 0 && (
         <div className="topic-search-container">
           <div className="search-box">
@@ -159,7 +159,7 @@ const TopicList = ({ onTopicSelect }) => {
               className="search-input"
             />
             {searchQuery && (
-              <button 
+              <button
                 onClick={clearSearch}
                 className="search-clear"
                 title="Clear search"
@@ -191,9 +191,14 @@ const TopicList = ({ onTopicSelect }) => {
               key={topic.name}
               className="topic-card"
             >
-              <h3 onClick={() => onTopicSelect(topic.name)}>{highlightText(topic.name, searchQuery)}</h3>
+              <h3
+                onClick={() => onTopicSelect(topic.name)}
+                style={{ color: topic.count === 0 ? 'inherit' : '#3498db' }}
+              >
+                {highlightText(topic.name, searchQuery)}
+              </h3>
               <div className="topic-paper-count">{topic.count} papers</div>
-              <button 
+              <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDeleteTopic(topic.name);
@@ -219,8 +224,8 @@ const TopicList = ({ onTopicSelect }) => {
             className="topic-input"
             disabled={isCreating}
           />
-          <button 
-            type="submit" 
+          <button
+            type="submit"
             disabled={!newTopicName.trim() || isCreating}
             className="add-button"
           >
