@@ -449,16 +449,13 @@ async function chatWithGemini(req, res) {
 async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName } = req.body;
-        const { url, title, authors, year, abstract } = paper;
+        const { url } = paper;
 
         const fileName = Buffer.from(url).toString('base64');
         const topicPath = path.join(dataPath, topicName);
         await fs.mkdir(topicPath, { recursive: true });
 
-        const jsonFilePath = path.join(topicPath, fileName + '.json');
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        const paperDetails = { url, title, authors, year, abstract };
-        await fs.writeFile(jsonFilePath, JSON.stringify(paperDetails, null, 2));
         const pdfUrl = url.replace('/abs/', '/pdf/');
         const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
         const pdfParser = require('pdf-parse');
