@@ -57,7 +57,7 @@ export const deleteTopic = async (topicName) => {
 
 export const searchArxivPapers = async (keyword, year, count = 100, sort = 'relevance') => {
   const cleanedKeyword = keyword
-    .replace(/[^a-zA-Z0-9\uAC00-\uD7A3\s]/g, ' ')
+    .replace(/[^a-zA-Z0-9\.\uAC00-\uD7A3\s]/g, ' ')
     .replace(/\s+/g, ' ')
     .trim();
 
