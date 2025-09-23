@@ -271,7 +271,7 @@ pre,
   color: var(--color-text-secondary);
   background: var(--color-hover);
   font-size: 0.9rem;
-  padding: 0 0.2rem;
+  padding: 0.1rem 0.3rem;
   margin: 0 0.5rem;
   border-radius: 4px;
 }
@@ -280,6 +280,7 @@ pre,
   color: var(--color-secondary);
   text-decoration: none;
   font-size: 0.8rem;
+  margin-left: 0.5rem;
 }
 
 .paper-link::before {
@@ -1999,7 +2000,6 @@ article h3:first-child {
 
 /* Citation Info Styles */
 .citation-info {
-  margin-left: 1rem;
   display: inline-flex;
   align-items: center;
   gap: 0.5rem;
@@ -2019,7 +2019,7 @@ article h3:first-child {
 
 .citation-count {
   color: var(--color-primary);
-  background-color: var(--color-hover);
+  background-color: #fee;
   padding: 0 0.3rem 0 0.2rem;
   border-radius: 4px;
   transition: all 0.2s ease;
@@ -2027,11 +2027,11 @@ article h3:first-child {
 
 .citation-list-display {
   color: var(--color-primary);
-  background-color: var(--color-hover);
-  padding: 0.1rem 0.2rem;
+  background-color: #fee;
+  padding: 0.15rem 0.2rem;
   border-radius: 4px;
   font-size: 0.85rem;
-  margin-left: 0.3rem;
+  margin-left: 0.2rem;
   display: inline-block;
 }
 
@@ -2062,6 +2062,10 @@ article h3:first-child {
   cursor: pointer;
   transition: all 0.2s ease;
   font-weight: 500;
+}
+
+.scholar-search-button {
+  background-color: lightcyan;
 }
 
 .scholar-search-button:hover,
@@ -2464,6 +2468,26 @@ article h3:first-child {
   gap: 0.5rem;
   margin-bottom: 1.5rem;
   color: var(--color-primary);
+}
+
+.paper-summary .summary-view table {
+  width: 100%;
+}
+
+.paper-summary .summary-view table thead th {
+  border-top: 2px solid var(--color-border);
+  border-bottom: 2px solid var(--color-border);
+  text-align: center;
+}
+
+.paper-summary .summary-view table tbody td {
+  border-bottom: 1px solid var(--color-border);
+  padding-left: 0.2rem;
+  padding-right: 0.2rem;
+}
+
+.paper-summary .summary-view table tbody tr:last-child td {
+  border-bottom: 2px solid var(--color-border);
 }
 
 /* Print-specific styles */

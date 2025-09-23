@@ -300,8 +300,6 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
             <div>
               <span itemProp="author">{paper.authors}</span>
               <span className="paper-year"><time itemProp="datePublished">{paper.year}</time></span>
-              <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
-
               <div className="citation-info">
                 {isEditingCitation ? (
                   <>
@@ -323,7 +321,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   </>
                 ) : (
                   <>
-                    <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar">🎓</button>
+                    <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar" type="button">🎓</button>
                     {paper.citation !== undefined ? (
                       <div className="citation-display" onClick={handleStartEditingCitation} title="Click to edit citation count">
                         <span className="citation-count">🔖{paper.citation.toLocaleString()}</span>
@@ -336,6 +334,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   </>
                 )}
               </div>
+              <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
             </div>
           </div>
         </header>
