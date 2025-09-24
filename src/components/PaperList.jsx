@@ -501,7 +501,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                             </span>
                             <span className="paper-year">{paper.year}</span>
                             {paper.citation !== undefined && (
-                              <span className="citation-list-display">🔖{paper.citation.toLocaleString()}</span>
+                              <span className="citation-list-display">{paper.citation >= 100 ? '🔖' : '🏷️'}{paper.citation.toLocaleString()}</span>
                             )}
                           </div>
                         </div>

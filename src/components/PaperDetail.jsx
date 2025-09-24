@@ -324,11 +324,11 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                     <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar" type="button">🎓</button>
                     {paper.citation !== undefined ? (
                       <div className="citation-display" onClick={handleStartEditingCitation} title="Click to edit citation count">
-                        <span className="citation-count">🔖{paper.citation.toLocaleString()}</span>
+                        <span className="citation-count">{paper.citation >= 100 ? '🔖' : '🏷️'}{paper.citation.toLocaleString()}</span>
                       </div>
                     ) : (
                       <div className="citation-add" onClick={handleStartEditingCitation} title="Add citation count">
-                        <span className="citation-count">🔖N/A</span>
+                        <span className="citation-count">🏷️?</span>
                       </div>
                     )}
                   </>
