@@ -2490,6 +2490,17 @@ article h3:first-child {
   border-bottom: 2px solid var(--color-border);
 }
 
+.paper-summary .summary-view code {
+  background-color: #eee;
+  padding-left: 0.1rem;
+  padding-right: 0.1rem;
+  border-radius: 0.2rem;
+}
+
+.paper-summary .summary-view .MathJax:hover {
+  background-color: #ff8;
+}
+
 /* Print-specific styles */
 @media print {
 
