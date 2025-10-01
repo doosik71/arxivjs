@@ -6,6 +6,7 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const pdfParser = require('pdf-parse');
 require('dotenv').config();
 
 // Initialize electron application.
@@ -384,6 +385,44 @@ async function getPaperSummary(req, res) {
     }
 }
 
+/**
+ * Fetches a PDF from an arXiv abstract URL, extracts its text content, and caches it.
+ * @param {string} arxivAbsUrl - The URL of the arXiv abstract page (e.g., https://arxiv.org/abs/...).
+ * @param {string} topicName - The name of the topic folder to cache the text file in.
+ * @returns {Promise<string>} A promise that resolves with the extracted text.
+ */
+async function getPdfTextFromUrl(arxivAbsUrl, topicName) {
+    const fileName = Buffer.from(arxivAbsUrl).toString('base64');
+    const topicPath = path.join(dataPath, topicName);
+    const txtCachePath = path.join(topicPath, fileName + '.txt');
+
+    // Check for cache first
+    try {
+        const cachedText = await fs.readFile(txtCachePath, 'utf-8');
+        if (cachedText) {
+            return cachedText;
+        }
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            console.warn('Error reading PDF text cache:', error.message);
+        }
+    }
+
+    // If no cache, fetch, parse, and save
+    const pdfUrl = arxivAbsUrl.replace('/abs/', '/pdf/');
+    const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
+    const data = await pdfParser(response.data);
+    const pdfText = data.text;
+
+    try {
+        await fs.writeFile(txtCachePath, pdfText, 'utf-8');
+    } catch (writeError) {
+        console.error('Failed to write PDF text cache file:', writeError.message);
+    }
+
+    return pdfText;
+}
+
 async function chatWithGemini(req, res) {
     try {
         const { topicName, paperId } = req.params;
@@ -393,19 +432,28 @@ async function chatWithGemini(req, res) {
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
 
         let paperContext = '';
+        let paper;
+
         try {
             const paperData = await fs.readFile(jsonPath, 'utf-8');
-            const paper = JSON.parse(paperData);
-            paperContext += `Title: ${paper.title}\nAuthors: ${paper.authors}\nAbstract: ${paper.abstract}\n\n`;
+            paper = JSON.parse(paperData);
         } catch (error) {
-            // Ignore if json file doesn't exist
+            return res.status(404).json({ message: 'Paper JSON not found.' });
         }
 
         try {
-            const summary = await fs.readFile(mdPath, 'utf-8');
-            paperContext += `AI Summary:\n${summary}`;
-        } catch (error) {
-            // Ignore if summary file doesn't exist
+            // Try to get full text from PDF (with caching)
+            paperContext = await getPdfTextFromUrl(paper.url, topicName);
+        } catch (pdfError) {
+            console.warn('Failed to get full paper text, falling back to summary.', pdfError.message);
+            // Fallback to abstract and summary
+            paperContext += `Title: ${paper.title}\nAuthors: ${paper.authors}\nAbstract: ${paper.abstract}\n\n`;
+            try {
+                const summary = await fs.readFile(mdPath, 'utf-8');
+                paperContext += `AI Summary:\n${summary}`;
+            } catch (summaryError) {
+                // Ignore if summary file doesn't exist
+            }
         }
 
         if (!paperContext) {
@@ -456,12 +504,11 @@ async function summarizeAndSave(req, res) {
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        const pdfUrl = url.replace('/abs/', '/pdf/');
-        const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
-        const pdfParser = require('pdf-parse');
-        const data = await pdfParser(response.data);
+        
+        const pdfText = await getPdfTextFromUrl(url, topicName);
+
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
-        const prompt = userPrompt.replace('{context}', data.text);
+        const prompt = userPrompt.replace('{context}', pdfText);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
         const result = await model.generateContentStream(prompt);
 
@@ -590,7 +637,6 @@ async function extractPdfText(req, res) {
             return res.status(400).json({ message: 'File must be a PDF' });
         }
 
-        const pdfParser = require('pdf-parse');
         const data = await pdfParser(req.file.buffer);
 
         res.json({ text: data.text });
