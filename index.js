@@ -321,17 +321,24 @@ async function searchArxiv(req, res) {
             count = 100;
         }
 
-        keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+");
-        let query = `http://export.arxiv.org/api/query?search_query=all:${keyword}`;
+        const isArxivId = /^[0-9]{4}\.[0-9]{5}(v[0-9]+)?$/.test(keyword.trim());
+        let query;
 
-        if (year) {
-            const [start, end] = year.split('~').map(Number);
-            const startDate = `${start}01010000`;
-            const endDate = `${end}12312359`;
-            query += `+AND+submittedDate:[${startDate}+TO+${endDate}]`;
+        if (isArxivId) {
+            query = `https://export.arxiv.org/api/query?id_list=${keyword.trim()}&max_results=1`;
+        } else {
+            keyword = keyword.replace(/[<>#%{}|\\^~\[\]`'"`;\/?:@&=+$,!\s]/g, " ").replace(/\s+/g, " ").trim().replace(/\s/g, "+");
+            query = `https://export.arxiv.org/api/query?search_query=all:${keyword}`;
+
+            if (year) {
+                const [start, end] = year.split('~').map(Number);
+                const startDate = `${start}01010000`;
+                const endDate = `${end}12312359`;
+                query += `+AND+submittedDate:[${startDate}+TO+${endDate}]`;
+            }
+
+            query += `&max_results=${count}&sortBy=relevance&sortOrder=descending`;
         }
-
-        query += `&max_results=${count}&sortBy=relevance&sortOrder=descending`;
 
         const response = await axios.get(query);
         const parser = new xml2js.Parser({ explicitArray: false });
@@ -354,7 +361,7 @@ async function searchArxiv(req, res) {
             abstract: entry.summary.trim()
         }));
 
-        if (sort == 'submittedDate') {
+        if (sort === 'submittedDate') {
             papers.sort((a, b) => {
                 if (b.year !== a.year) {
                     return b.year - a.year;
@@ -504,7 +511,7 @@ async function summarizeAndSave(req, res) {
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        
+
         const pdfText = await getPdfTextFromUrl(url, topicName);
 
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
