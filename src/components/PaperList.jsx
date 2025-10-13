@@ -87,7 +87,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
         if (paperElement) {
           // Scroll to the element
           paperElement.scrollIntoView({
-            behavior: 'smooth',
+            behavior: 'auto',
             block: 'center'
           });
 
