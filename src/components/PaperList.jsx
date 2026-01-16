@@ -487,6 +487,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                         key={paperId}
                         ref={el => paperRefs.current[paperId] = el}
                         className={`paper-item ${highlightedPaperId === paperId ? 'highlighted' : ''}`}
+                        style={{ backgroundColor: paper.citation === undefined && highlightedPaperId !== paperId ? 'gainsboro' : undefined }}
                       >
                         <div
                           className="paper-content"

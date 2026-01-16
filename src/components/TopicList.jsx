@@ -190,6 +190,7 @@ const TopicList = ({ onTopicSelect }) => {
             <div
               key={topic.name}
               className="topic-card"
+              style={{ backgroundColor: topic.count === 0 ? 'gainsboro' : undefined }}
             >
               <h3
                 onClick={() => onTopicSelect(topic.name)}
