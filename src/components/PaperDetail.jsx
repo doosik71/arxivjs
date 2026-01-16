@@ -262,17 +262,23 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
 
   const handleAutoUpdateCitation = async () => {
     setIsUpdatingCitation(true);
+
+    let success = true;
+
     try {
       const updatedData = await fetchAndUpdateCitation(topicName, paperId);
       setPaper(updatedData.paper);
       if (updatedData.message && updatedData.message.includes('Could not find')) {
-        alert(updatedData.message);
+        success = false;
       }
     } catch (error) {
-      console.error('Failed to update citation count:', error);
-      alert('Failed to update citation count. Please check the console for more details.');
+      success = false;
     } finally {
       setIsUpdatingCitation(false);
+    }
+
+    if (!success) {
+      openScholarSearch();
     }
   };
 
