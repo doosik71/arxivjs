@@ -1,0 +1,27 @@
+[
+  {
+    "id": "five-section",
+    "value": "아래는 논문의 텍스트이다. ① 문제 정의, ② 기여 내용, ③ 제안 방법, ④ 실험 결과, ⑤ 결론으로 나누어 논문의 핵심 내용을 A4 용지 1쪽 분량으로 정리하라. 내용은 개조식(bullet points)으로 작성하라. 문체는 경어체(~입니다)가 아닌 평서체(~이다)를 사용하라. 수식은 '$' (inline math) 또는 '$$' (block math)로 태깅하라. 해당 핵심 내용이 없으면 없음으로 기재하라.",
+    "label": "논문의 문제 정의, 기여 내용, 제안 방법, 실험 결과, 결론을 요약하라."
+  },
+  {
+    "id": "summarization",
+    "value": "Please summarize the following paper.\n\nThe summary **must be written in Korean** and **must follow Markdown syntax** using a clear hierarchical structure with headings, bullet points, and formatting where appropriate.\nEnsure the content is **concise, accurate, and easy to understand** for a technical but general audience.\n\nPlease follow these formatting rules:\n\n- At the very top, display:\n  - The **paper title** on the first line as a '#' heading.\n  - The **author list** on the second line as plain text (comma-separated), below the title.\n\n- Then use the following summary structure:\n  - ## 🧩 Problem to Solve\n    - Clearly describe the main research problem or question the paper aims to address.\n  - ## ✨ Key Contributions\n    - List the core findings and novel contributions as bullet points.\n  - ## 📎 Related Works\n    - Mention key prior works referenced in the paper.\n  - ## 🛠️ Methodology\n    - Describe the approach or algorithm used, preferably with steps or bullet points.\n  - ## 📊 Results\n    - Summarize quantitative or qualitative results briefly.\n  - ## 🧠 Insights & Discussion\n    - Explain the implications, any limitations, or significance of the results.\n  - ## 📌 TL;DR\n    - Provide a TL;DR summary of this paper, highlighting the main problem, proposed method, and key findings.\n\n- Guidelines for writing in Markdown format:\n  1. Use braces around multi-character subscripts or superscripts in MathJax to avoid rendering errors.\n  2. Use $...$ for inline math and $$...$$ for block math to ensure compatibility with MathJax.\n  3. Do not use backticks (`) for math; use dollar signs ($) to allow proper MathJax rendering.\n\nHere is the paper content",
+    "label": "논문을 '해결하고자 하는 문제', '주요 기여', '관련 연구', '방법론', '결과', 'TLDR'으로 요약하라."
+  },
+  {
+    "id": "blog",
+    "value": "아래는 논문의 텍스트이다. 논문에서 해결하고자 하는 문제, 제안하는 방법, 실험 결과 및 결론을 상세히 설명하는 블로그 글을 작성하라. 문체는 경어체(~입니다)가 아닌 평서체(~이다)를 사용하라. 수식은 '$' (inline math) 또는 '$$' (block math)로 태깅하라.",
+    "label": "논문의 방법론을 설명하는 블로그 글을 작성하라."
+  },
+  {
+    "id": "abstract",
+    "value": "아래는 논문의 텍스트이다. 논문의 초록을 발췌하여 한국어로 번역하라. 문체는 경어체(~입니다)가 아닌 평서체(~이다)를 사용하라. 수식은 '$' (inline math) 또는 '$$' (block math)로 태깅하라.",
+    "label": "논문의 초록을 한국어로 번역하라."
+  },
+  {
+    "id": "methodology",
+    "value": "아래는 논문의 텍스트이다. 논문에서 제안하는 방법론을 상세히 설명하라. 문체는 경어체(~입니다)가 아닌 평서체(~이다)를 사용하라. 중요한 수식이 있으면 수식이 의미하는 내용을 상세히 설명하라. 수식은 '$' (inline math) 또는 '$$' (block math)로 태깅하라.",
+    "label": "논문에서 제안하는 방법론을 설명하라."
+  }
+]

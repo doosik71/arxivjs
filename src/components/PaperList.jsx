@@ -3,13 +3,13 @@ import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper, getTopics,
 import TableOfContents from './TableOfContents';
 
 // Utility function to highlight search terms in text
-const highlightText = (text, searchQuery, searchField, currentField) => {
-  if (!searchQuery.trim()) return text;
+const highlightText = (text, paperSearchQuery, searchField, currentField) => {
+  if (!paperSearchQuery.trim()) return text;
 
   // Only highlight if we're searching in 'all' fields or the current field matches
   if (searchField !== 'all' && searchField !== currentField) return text;
 
-  const searchTerm = searchQuery.toLowerCase();
+  const searchTerm = paperSearchQuery.toLowerCase();
   const textLower = text.toLowerCase();
 
   if (!textLower.includes(searchTerm)) return text;
@@ -44,13 +44,21 @@ const highlightText = (text, searchQuery, searchField, currentField) => {
   return parts;
 };
 
-const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaperId }) => {
+const PaperList = ({
+  topicName,
+  onPaperSelect,
+  onBackToTopics,
+  lastSelectedPaperId,
+  paperSearchQuery,
+  setPaperSearchQuery,
+  paperSearchField,
+  setPaperSearchField,
+  paperMinCitations,
+  setPaperMinCitations,
+}) => {
   const [papers, setPapers] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchField, setSearchField] = useState('all');
-  const [minCitations, setMinCitations] = useState(0);
 
   // New paper search states
   const [arxivSearchQuery, setArxivSearchQuery] = useState('');
@@ -144,27 +152,27 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
     });
   };
 
-  let filteredPapers = filterPapers(papers, searchQuery, searchField);
-  if (minCitations > 0) {
-    filteredPapers = filteredPapers.filter(paper => (paper.citation || 0) >= minCitations);
+  let filteredPapers = filterPapers(papers, paperSearchQuery, paperSearchField);
+  if (paperMinCitations > 0) {
+    filteredPapers = filteredPapers.filter(paper => (paper.citation || 0) >= paperMinCitations);
   }
 
   const handleSearchChange = (e) => {
-    setSearchQuery(e.target.value);
+    setPaperSearchQuery(e.target.value);
   };
 
   const handleFieldChange = (e) => {
-    setSearchField(e.target.value);
+    setPaperSearchField(e.target.value);
   };
 
   const handleMinCitationChange = (e) => {
-    setMinCitations(Number(e.target.value));
+    setPaperMinCitations(Number(e.target.value));
   };
 
   const clearSearch = () => {
-    setSearchQuery('');
-    setSearchField('all');
-    setMinCitations(0);
+    setPaperSearchQuery('');
+    setPaperSearchField('all');
+    setPaperMinCitations(0);
   };
 
   // ArXiv search functions
@@ -434,11 +442,11 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
               <input
                 type="text"
                 placeholder="Search papers..."
-                value={searchQuery}
+                value={paperSearchQuery}
                 onChange={handleSearchChange}
                 className="search-input"
               />
-              {searchQuery && (
+              {paperSearchQuery && (
                 <button
                   onClick={clearSearch}
                   className="search-clear"
@@ -449,7 +457,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
               )}
             </div>
             <select
-              value={searchField}
+              value={paperSearchField}
               onChange={handleFieldChange}
               className="search-field-select"
             >
@@ -460,7 +468,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
               <option value="abstract">Abstract</option>
             </select>
             <select
-              value={minCitations}
+              value={paperMinCitations}
               onChange={handleMinCitationChange}
               className="search-field-select"
             >
@@ -477,10 +485,10 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
             </select>
           </div>
 
-          {(searchQuery || minCitations > 0) && (
+          {(paperSearchQuery || paperMinCitations > 0) && (
             <div className="search-info">
               {filteredPapers.length} of {papers.length} papers found
-              {searchField !== 'all' && ` in ${searchField}`}
+              {paperSearchField !== 'all' && ` in ${paperSearchField}`}
             </div>
           )}
         </div>
@@ -518,11 +526,11 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                           onClick={() => onPaperSelect(paper, paperId)}
                         >
                           <div className="paper-title" style={{ color: paper.hasSummary ? '#3498db' : 'inherit' }}>
-                            {highlightText(paper.title, searchQuery, searchField, 'title')}
+                            {highlightText(paper.title, paperSearchQuery, paperSearchField, 'title')}
                           </div>
                           <div>
                             <span className="paper-authors">
-                              {highlightText(paper.authors, searchQuery, searchField, 'authors')}
+                              {highlightText(paper.authors, paperSearchQuery, paperSearchField, 'authors')}
                             </span>
                             <span className="paper-year">{paper.year}</span>
                             {paper.citation !== undefined && (

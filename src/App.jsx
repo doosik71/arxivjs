@@ -17,6 +17,11 @@ const App = () => {
   const [showSettings, setShowSettings] = useState(false);
   const [tocHeaders, setTocHeaders] = useState([]);
 
+  // Persisted search state for PaperList
+  const [paperSearchQuery, setPaperSearchQuery] = useState('');
+  const [paperSearchField, setPaperSearchField] = useState('all');
+  const [paperMinCitations, setPaperMinCitations] = useState(0);
+
   // Initialize theme on app load
   useEffect(() => {
     const storedTheme = getStoredTheme();
@@ -63,6 +68,12 @@ const App = () => {
             onPaperSelect={handlePaperSelect}
             onBackToTopics={handleBackToTopics}
             lastSelectedPaperId={lastSelectedPaperId}
+            paperSearchQuery={paperSearchQuery}
+            setPaperSearchQuery={setPaperSearchQuery}
+            paperSearchField={paperSearchField}
+            setPaperSearchField={setPaperSearchField}
+            paperMinCitations={paperMinCitations}
+            setPaperMinCitations={setPaperMinCitations}
           />
         );
       case 'paper-detail':

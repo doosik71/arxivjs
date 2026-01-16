@@ -1779,6 +1779,38 @@ article h3:first-child {
   font-size: 0.8rem;
 }
 
+.chat-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chat-maximize-btn {
+  background: none;
+  border: none;
+  color: var(--color-text-secondary);
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: background-color 0.2s, color 0.2s;
+}
+
+.chat-maximize-btn:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.chat-container.maximized {
+  top: 2rem;
+  right: 2rem;
+  bottom: 2rem;
+  left: 2rem;
+  width: auto;
+  max-width: none;
+  height: auto;
+  transform: none;
+}
+
 /* Adjustments for main content to not be overlapped by collapsed chat */
 .App main {
   padding-bottom: 60px;
@@ -1996,6 +2028,70 @@ article h3:first-child {
   outline: none;
   border-color: var(--color-secondary);
   box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+/* Prompt Menu Styles */
+.chat-input-container {
+  position: relative;
+  display: flex;
+  flex-grow: 1;
+}
+
+.prompt-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  padding: 0;
+  border: 1px solid var(--color-border);
+  background: var(--color-background);
+  color: var(--color-text-secondary);
+  border-radius: 8px;
+  margin-right: 0.5rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.prompt-menu-btn:hover {
+  background: var(--color-hover);
+  color: var(--color-text);
+}
+
+.prompt-menu {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  width: 100%;
+  background: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  margin-bottom: 0.5rem;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1002;
+}
+
+.prompt-item {
+  display: block;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: none;
+  color: var(--color-text);
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+  transition: background-color 0.2s ease;
+}
+
+.prompt-item:hover {
+  background: var(--color-hover);
+}
+
+.chat-input {
+  flex-grow: 1;
 }
 
 /* Citation Info Styles */
