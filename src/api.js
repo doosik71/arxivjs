@@ -97,7 +97,9 @@ export const generatePaperSummary = async (topicName, paper) => {
   });
 
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorData = await response.json();
+    console.error('Error from server:', errorData);
+    throw new Error(`HTTP error! status: ${response.status} - ${errorData.message}`);
   }
 
   return response;

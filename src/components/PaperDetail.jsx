@@ -162,7 +162,6 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       } finally {
         reader.releaseLock();
       }
-
     } catch (err) {
       setSummaryError('Failed to generate summary: ' + (err.message || 'Unknown error'));
       console.error('Error generating summary:', err);

@@ -505,15 +505,13 @@ async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName } = req.body;
         const { url } = paper;
-
         const fileName = Buffer.from(url).toString('base64');
         const topicPath = path.join(dataPath, topicName);
+
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-
         const pdfText = await getPdfTextFromUrl(url, topicName);
-
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', pdfText);
         const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
@@ -538,6 +536,7 @@ async function summarizeAndSave(req, res) {
         await fs.writeFile(mdFilePath, summaryContent);
     } catch (error) {
         console.error('Error in /summarize-and-save:', error);
+
         if (!res.headersSent) {
             res.status(500).json({ message: error.message });
         } else {
