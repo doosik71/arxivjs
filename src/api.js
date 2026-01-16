@@ -127,4 +127,9 @@ export const updateCitationCount = async (topicName, paperId, citation) => {
   return response.data;
 };
 
+export const fetchAndUpdateCitation = async (topicName, paperId) => {
+  const response = await api.get(`/papers/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}/update-citation`);
+  return response.data;
+};
+
 export default api;

@@ -50,6 +50,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
   const [error, setError] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [searchField, setSearchField] = useState('all');
+  const [minCitations, setMinCitations] = useState(0);
 
   // New paper search states
   const [arxivSearchQuery, setArxivSearchQuery] = useState('');
@@ -143,7 +144,10 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
     });
   };
 
-  const filteredPapers = filterPapers(papers, searchQuery, searchField);
+  let filteredPapers = filterPapers(papers, searchQuery, searchField);
+  if (minCitations > 0) {
+    filteredPapers = filteredPapers.filter(paper => (paper.citation || 0) >= minCitations);
+  }
 
   const handleSearchChange = (e) => {
     setSearchQuery(e.target.value);
@@ -153,9 +157,14 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
     setSearchField(e.target.value);
   };
 
+  const handleMinCitationChange = (e) => {
+    setMinCitations(Number(e.target.value));
+  };
+
   const clearSearch = () => {
     setSearchQuery('');
     setSearchField('all');
+    setMinCitations(0);
   };
 
   // ArXiv search functions
@@ -252,7 +261,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
   };
 
   const handleDeletePaper = async (paper) => {
-    const paperId = btoa(paper.url);
+    const paperId = paper.id || btoa(paper.url);
 
     if (!window.confirm(`Are you sure you want to delete this paper?\n\n"${paper.title}"`)) {
       return;
@@ -316,7 +325,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
   const handleMoveToTopic = async (targetTopicName) => {
     if (!selectedPaper) return;
 
-    const paperId = btoa(selectedPaper.url);
+    const paperId = selectedPaper.id || btoa(selectedPaper.url);
 
     try {
       // Store current scroll position
@@ -450,9 +459,25 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
               <option value="year">Year</option>
               <option value="abstract">Abstract</option>
             </select>
+            <select
+              value={minCitations}
+              onChange={handleMinCitationChange}
+              className="search-field-select"
+            >
+              <option value={0}>Citations: All</option>
+              <option value={10}>&ge; 10</option>
+              <option value={20}>&ge; 20</option>
+              <option value={50}>&ge; 50</option>
+              <option value={80}>&ge; 80</option>
+              <option value={100}>&ge; 100</option>
+              <option value={200}>&ge; 200</option>
+              <option value={500}>&ge; 500</option>
+              <option value={800}>&ge; 800</option>
+              <option value={1000}>&ge; 1000</option>
+            </select>
           </div>
 
-          {searchQuery && (
+          {(searchQuery || minCitations > 0) && (
             <div className="search-info">
               {filteredPapers.length} of {papers.length} papers found
               {searchField !== 'all' && ` in ${searchField}`}
@@ -467,8 +492,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
         </div>
       ) : filteredPapers.length === 0 ? (
         <div className="no-results">
-          No papers match your search "{searchQuery}"
-          {searchField !== 'all' && ` in ${searchField}`}.
+          No papers match your search criteria.
         </div>
       ) : (
         <div className="paper-list-view">
@@ -481,7 +505,7 @@ const PaperList = ({ topicName, onPaperSelect, onBackToTopics, lastSelectedPaper
                 </div>
                 <div className="paper-list">
                   {papers.map((paper) => {
-                    const paperId = btoa(paper.url);
+                    const paperId = paper.id || btoa(paper.url);
                     return (
                       <div
                         key={paperId}

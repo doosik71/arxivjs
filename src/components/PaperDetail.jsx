@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount } from '../api';
+import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
@@ -16,6 +16,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [isDeletingSummary, setIsDeletingSummary] = useState(false);
   const [isEditingCitation, setIsEditingCitation] = useState(false);
   const [citationInput, setCitationInput] = useState('');
+  const [isUpdatingCitation, setIsUpdatingCitation] = useState(false);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -259,6 +260,22 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setCitationInput('');
   };
 
+  const handleAutoUpdateCitation = async () => {
+    setIsUpdatingCitation(true);
+    try {
+      const updatedData = await fetchAndUpdateCitation(topicName, paperId);
+      setPaper(updatedData.paper);
+      if (updatedData.message && updatedData.message.includes('Could not find')) {
+        alert(updatedData.message);
+      }
+    } catch (error) {
+      console.error('Failed to update citation count:', error);
+      alert('Failed to update citation count. Please check the console for more details.');
+    } finally {
+      setIsUpdatingCitation(false);
+    }
+  };
+
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
     return parseMarkdownWithMath(summaryText);
@@ -330,6 +347,9 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                         <span className="citation-count">🏷️?</span>
                       </div>
                     )}
+                    <button onClick={handleAutoUpdateCitation} disabled={isUpdatingCitation || isEditingCitation} className="citation-update-button" title="Update citation count from Semantic Scholar">
+                      {isUpdatingCitation ? '⏳' : '🔃'}
+                    </button>
                   </>
                 )}
               </div>

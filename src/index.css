@@ -523,7 +523,7 @@ pre,
 
 .search-box {
   position: relative;
-  max-width: 400px;
+  max-width: 600px;
   margin: 0 auto;
 }
 
@@ -2097,6 +2097,31 @@ article h3:first-child {
   background-color: var(--color-hover);
   border-color: var(--color-text-secondary);
   color: var(--color-text);
+}
+
+.citation-update-button {
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  font-size: 1.1rem;
+  /* Match scholar button */
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-secondary);
+  transition: all 0.2s ease;
+}
+
+.citation-update-button:hover:not(:disabled) {
+  transform: scale(1.2);
+  color: var(--color-primary);
+}
+
+.citation-update-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .citation-input-inline {

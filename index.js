@@ -160,6 +160,7 @@ async function getPapers(req, res) {
             if (path.extname(file) === '.json') {
                 const content = await fs.readFile(path.join(topicPath, file), 'utf-8');
                 const paper = JSON.parse(content);
+                paper.id = path.basename(file, '.json');
 
                 // Check for summary
                 const baseName = path.basename(file, '.json');
@@ -189,9 +190,33 @@ async function getPapers(req, res) {
 async function savePaper(req, res) {
     try {
         const { paper } = req.body;
-        const fileName = Buffer.from(paper.url).toString('base64') + '.json';
-        await fs.writeFile(path.join(dataPath, req.params.topicName, fileName), JSON.stringify(paper, null, 2));
-        res.status(201).json({ message: 'Paper saved successfully.' });
+
+        // Sanitize title and authors
+        if (paper.title) {
+            paper.title = paper.title.replace(/\s+/g, ' ').trim();
+        }
+        if (paper.authors) {
+            paper.authors = paper.authors.replace(/\s+/g, ' ').trim();
+        }
+
+        const topicName = req.params.topicName;
+
+        if (paper.citation === undefined) {
+            const query = encodeURIComponent(`${paper.authors}, ${paper.title}`);
+            const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&fields=title,citationCount`;
+
+            try {
+                const response = await axios.get(url, { timeout: 5000 });
+                if (response.status === 200 && response.data.data && response.data.data.length > 0) {
+                    paper.citation = response.data.data[0].citationCount || 0;
+                }
+            } catch (error) { }
+        }
+
+        const fileName = Buffer.from(paper.url).toString('base64').replace(/\//g, '_') + '.json';
+        await fs.writeFile(path.join(dataPath, topicName, fileName), JSON.stringify(paper, null, 2));
+
+        res.status(201).json({ message: 'Paper saved successfully.', paper });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -596,6 +621,48 @@ app.put('/papers/:topicName/:paperId', movePaper);
 app.delete('/papers/:topicName/:paperId', deletePaper);
 app.delete('/paper-summary/:topicName/:paperId', deletePaperSummary);
 
+async function fetchAndUpdateCitation(req, res) {
+    try {
+        const { topicName, paperId } = req.params;
+        const paperPath = path.join(dataPath, topicName, paperId + '.json');
+
+        let paper;
+        try {
+            const data = await fs.readFile(paperPath, 'utf-8');
+            paper = JSON.parse(data);
+        } catch (error) {
+            if (error.code === 'ENOENT') {
+                return res.status(404).json({ message: 'Paper not found.' });
+            }
+            throw error;
+        }
+
+        console.log(paper.authors);
+        console.log(paper.title);
+
+        const query = encodeURIComponent(`${paper.authors}, ${paper.title}`);
+        const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&fields=title,citationCount`;
+
+        console.log(url);
+
+        const response = await axios.get(url, { timeout: 5000 });
+
+        if (response.status === 200 && response.data.data && response.data.data.length > 0) {
+            paper.citation = response.data.data[0].citationCount || 0;
+        } else {
+            // If not found, we don't update, just return the current paper
+            return res.json({ message: 'Could not find citation information on Semantic Scholar.', paper });
+        }
+
+        await fs.writeFile(paperPath, JSON.stringify(paper, null, 2));
+
+        res.json({ message: 'Citation count updated successfully.', paper });
+    } catch (error) {
+        console.error('Error updating citation from Semantic Scholar:', error.message);
+        res.status(500).json({ message: 'Failed to update citation count.' });
+    }
+}
+
 async function updateCitation(req, res) {
     try {
         const { topicName, paperId } = req.params;
@@ -622,6 +689,7 @@ async function updateCitation(req, res) {
     }
 }
 
+app.get('/papers/:topicName/:paperId/update-citation', fetchAndUpdateCitation);
 app.post('/papers/:topicName/:paperId/citation', updateCitation);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
