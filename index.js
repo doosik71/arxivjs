@@ -193,22 +193,26 @@ async function getCitationCount(authors, title) {
         .replace(/\s+/g, ' '); // Collapse multiple spaces into one
     const query = encodeURIComponent(`${firstAuthor} ${title}`);
     const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&fields=title,citationCount`;
-    const apiKey = process.env.SEMANTICSCHOLAR_API_KEY;
-    const headers = apiKey ? { 'x-api-key': apiKey } : {};
+    // const apiKey = process.env.SEMANTICSCHOLAR_API_KEY;
+    // const headers = apiKey ? { 'x-api-key': apiKey } : {};
 
     try {
         const response = await axios.get(url, {
-            headers: headers,
+            // headers: headers,
             timeout: 5000
         });
-        if (response.status === 200 && response.data.data && response.data.data.length > 0) {
-            return response.data.data[0].citationCount || 0;
+        if (response.status === 200) {
+            if (response.data.data && response.data.data.length > 0) {
+                return response.data.data[0].citationCount || 0;
+            } else {
+                return 0;
+            }
         }
     } catch (error) {
         console.error('Error fetching citation count from Semantic Scholar:', error.message);
-        console.log(url);
     }
-    return 0;
+
+    return undefined;
 }
 
 async function savePaper(req, res) {
@@ -226,7 +230,11 @@ async function savePaper(req, res) {
         const topicName = req.params.topicName;
 
         if (paper.citation === undefined) {
-            paper.citation = await getCitationCount(paper.authors, paper.title);
+            const citationCount = await getCitationCount(paper.authors, paper.title);
+
+            if (citationCount !== undefined) {
+                paper.citation = citationCount;
+            }
         }
 
         const fileName = Buffer.from(paper.url).toString('base64').replace(/\//g, '_') + '.json';
@@ -655,7 +663,7 @@ async function fetchAndUpdateCitation(req, res) {
 
         const citationCount = await getCitationCount(paper.authors, paper.title);
 
-        if (citationCount > 0) {
+        if (citationCount !== undefined) {
             paper.citation = citationCount;
         } else {
             // If not found, we don't update, just return the current paper

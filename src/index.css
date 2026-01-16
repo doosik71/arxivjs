@@ -1755,17 +1755,12 @@ article h3:first-child {
 .chat-container.expanded {
   transform: translateY(0);
   height: 60vh;
-  max-height: 500px;
 }
 
 .chat-container .chat-box {
   height: 100%;
   border-radius: 8px 8px 0 0;
   box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.chat-container .chat-header {
-  cursor: pointer;
 }
 
 .chat-controls {
@@ -1785,7 +1780,8 @@ article h3:first-child {
   gap: 0.5rem;
 }
 
-.chat-maximize-btn {
+.chat-container .chat-maximize-btn,
+.chat-container .chat-expand-btn {
   background: none;
   border: none;
   color: var(--color-text-secondary);
@@ -1795,19 +1791,20 @@ article h3:first-child {
   transition: background-color 0.2s, color 0.2s;
 }
 
-.chat-maximize-btn:hover {
+.chat-container .chat-maximize-btn:hover,
+.chat-container .chat-expand-btn:hover {
   background: var(--color-hover);
   color: var(--color-text);
 }
 
 .chat-container.maximized {
-  top: 2rem;
-  right: 2rem;
-  bottom: 2rem;
-  left: 2rem;
-  width: auto;
+  position: fixed;
+  top: 5vh;
+  left: 5vw;
+  width: 90vw;
+  height: 90vh;
   max-width: none;
-  height: auto;
+  max-height: none;
   transform: none;
 }
 
