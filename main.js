@@ -19,6 +19,8 @@ async function main() {
         // The server is now running, load the URL
         mainWindow.loadURL(`http://${hostname}:${port}`);
 
+        console.log(`Server running at http://${hostname}:${port}`)
+
         // Open the DevTools.
         // mainWindow.webContents.openDevTools();
     }

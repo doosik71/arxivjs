@@ -187,11 +187,78 @@ async function getPapers(req, res) {
     }
 }
 
-async function getCitationCount(authors, title) {
-    const firstAuthor = authors.split(',')[0].trim()
-        .replace(/[^a-zA-Z0-9\s]/g, ' ') // Replace special characters with a space
-        .replace(/\s+/g, ' '); // Collapse multiple spaces into one
-    const query = encodeURIComponent(`${firstAuthor} ${title}`);
+/**
+ * Get DOI from arXiv using title and author.
+ * @param {string} title - The title of the paper.
+ * @param {string} author - The first author of the paper.
+ * @returns {Promise<string|null>} A promise that resolves with the DOI or null.
+ */
+async function getArxivDOI(title, author) {
+    // The title and author strings are pre-processed in getCitationCount.
+    const firstAuthor = author.split(',')[0].trim().replace(/\s+/g, ' ');
+    const processedTitle = title.replace(/"/g, ''); // Remove quotes for query
+
+    const query = `ti:"${processedTitle}"+AND+au:${firstAuthor.replace(/ /g, '+')}`;
+    const apiUrl = `https://export.arxiv.org/api/query?search_query=${query}&max_results=1`;
+
+    try {
+        const response = await axios.get(apiUrl, { timeout: 5000 });
+        const parser = new xml2js.Parser({ explicitArray: false, tagNameProcessors: [xml2js.processors.stripPrefix] });
+        const result = await parser.parseStringPromise(response.data);
+
+        if (result.feed && result.feed.entry) {
+            const entry = result.feed.entry;
+            if (entry.doi) {
+                return entry.doi._ || entry.doi;
+            }
+            if (entry.link) {
+                const doiLink = Array.isArray(entry.link) ? entry.link.find(l => l.$.title === 'doi') : (entry.link.$.title === 'doi' ? entry.link : null);
+                if (doiLink) {
+                    return doiLink.$.href.replace('https://doi.org/', '');
+                }
+            }
+        }
+    } catch (error) {
+        // console.wanr("Cound not fetch DOI from arXiv:", error.message);
+    }
+}
+
+/**
+ * Get citation count from Semantic Scholar using DOI.
+ * @param {string} doi - The DOI of the paper.
+ * @returns {Promise<number|undefined>} A promise that resolves with the citation count or undefined.
+ */
+async function getCitationCountFromDOI(doi) {
+    // console.info("getCitationCountFromDOI(): " + doi);
+
+    const apiUrl = `https://api.semanticscholar.org/graph/v1/paper/DOI:${doi}?fields=citationCount`;
+
+    try {
+        const response = await axios.get(apiUrl, { timeout: 5000 });
+        if (response.status === 200 && response.data) {
+            return response.data.citationCount;
+        }
+    } catch (error) {
+        if (error.response && error.response.status !== 404) {
+            // console.error(`Error fetching citation count for DOI ${doi}:`, error.message);
+        }
+    }
+
+    // console.warn("Could not find citation count from DOI.");
+}
+
+/**
+ * Get citation count from Semantic Scholar by searching with author and title.
+ * @param {string} authors - The authors of the paper.
+ * @param {string} title - The title of the paper.
+ * @returns {Promise<number|undefined>} A promise that resolves with the citation count or undefined.
+ */
+async function getCitationCountBySearch(authors, title) {
+    // The authors and title strings are pre-processed in getCitationCount.
+    const firstAuthor = authors.split(',')[0].trim().replace(/\s+/g, ' ');
+    const processedTitle = title.replace(/\s+/g, ' ');
+
+    const query = encodeURIComponent(`${firstAuthor} ${processedTitle}`);
     const url = `https://api.semanticscholar.org/graph/v1/paper/search?query=${query}&fields=title,citationCount`;
     // const apiKey = process.env.SEMANTICSCHOLAR_API_KEY;
     // const headers = apiKey ? { 'x-api-key': apiKey } : {};
@@ -202,17 +269,43 @@ async function getCitationCount(authors, title) {
             timeout: 5000
         });
         if (response.status === 200) {
-            if (response.data.data && response.data.data.length > 0) {
+            if (response.data && response.data.data && response.data.data.length > 0) {
                 return response.data.data[0].citationCount || 0;
             } else {
                 return 0;
             }
         }
     } catch (error) {
-        console.error('Error fetching citation count from Semantic Scholar:', error.message);
+        // console.warn('Cound not fetch citation count by search:', error.message);
+    }
+}
+
+/**
+ * Get citation count for a paper.
+ * It first tries to get DOI from arXiv and then use it to get citation count.
+ * If that fails, it falls back to searching by author and title.
+ * @param {string} authors - The authors of the paper.
+ * @param {string} title - The title of the paper.
+ * @returns {Promise<number|undefined>} A promise that resolves with the citation count or undefined.
+ */
+async function getCitationCount(authors, title) {
+    // Pre-process authors and title to remove newlines and collapse multiple spaces.
+    const processedAuthors = authors.replace(/\s+/g, ' ').trim();
+    const processedTitle = title.replace(/\s+/g, ' ').trim();
+
+    const doi = await getArxivDOI(processedTitle, processedAuthors);
+
+    if (doi !== undefined) {
+        const citationCount = await getCitationCountFromDOI(doi.trim());
+        if (citationCount !== undefined) {
+            return citationCount;
+        }
     }
 
-    return undefined;
+    // console.warn("Could not find DOI from arXiv.");
+
+    // Fallback to searching by author and title
+    return await getCitationCountBySearch(processedAuthors, processedTitle);
 }
 
 async function savePaper(req, res) {
