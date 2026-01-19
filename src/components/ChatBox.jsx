@@ -43,7 +43,10 @@ const CopyButtons = ({ content, messageContentRefs, index }) => {
       </div>
       <div className="copy-btn-wrapper">
         <button onClick={copyAsMarkdown} className="copy-btn" title="Copy as Markdown">
-          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h2v10H7V7zm4 0h2v4h2V7h2v10h-2v-4h-2v4h-2V7z" /></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+            <rect x="3" y="3" width="18" height="18" rx="3" ry="3" fill="none" stroke="black" stroke-width="2" />
+            <path d="M7 18V8L12 13L17 8V18" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="miter" />
+          </svg>
         </button>
         {activeTooltip === 'md' && <div className="tooltip">Copied as Markdown!</div>}
       </div>
@@ -76,15 +79,15 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
     if (isExpanded && chatHistoryRef.current) {
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
-  
+
     // Typeset math in the last message if it's from the assistant
     if (isExpanded && window.MathJax) {
       const lastMessageIndex = chatHistory.length - 1;
       if (lastMessageIndex < 0) return;
-  
+
       const lastMessage = chatHistory[lastMessageIndex];
       const lastMessageRef = messageContentRefs.current[lastMessageIndex];
-  
+
       if (lastMessage && lastMessage.role === 'assistant' && lastMessageRef) {
         // Clear previous typesetting before re-typesetting the streaming content
         window.MathJax.typesetClear([lastMessageRef]);
