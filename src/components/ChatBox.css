@@ -1,0 +1,59 @@
+/* Styles for ChatBox Copy Buttons */
+.chat-message {
+  position: relative;
+}
+
+.copy-buttons-container {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s ease-in-out;
+  z-index: 1; /* Ensure it's above message content but below tooltip */
+}
+
+.chat-message:hover .copy-buttons-container {
+  opacity: 1;
+}
+
+.copy-btn-wrapper {
+  position: relative;
+}
+
+.copy-btn {
+  background: var(--chat-bg-color, var(--color-surface)); /* Added fallback */
+  border: 1px solid var(--border-color);
+  border-radius: 4px;
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-btn:hover {
+  background: var(--chat-input-bg-color, var(--color-hover)); /* Added fallback */
+}
+
+.copy-btn svg {
+  fill: var(--text-color);
+  width: 16px;
+  height: 16px;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #333;
+  color: white;
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  white-space: nowrap;
+  margin-bottom: 5px;
+  z-index: 10;
+}

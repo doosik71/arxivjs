@@ -13,9 +13,6 @@ const initMathJax = () => {
         processEnvironments: true
       },
       options: {
-        renderActions: {
-          addMenu: [0, '', '']
-        }
       },
       startup: {
         ready: () => {

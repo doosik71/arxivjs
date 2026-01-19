@@ -1,6 +1,62 @@
 import { useState, useEffect, useRef } from 'react';
 import { parseMarkdownWithMath } from '../utils/markdownRenderer';
 import prompts from '../../prompt.json';
+import './ChatBox.css';
+
+const CopyButtons = ({ content, messageContentRefs, index }) => {
+  const [activeTooltip, setActiveTooltip] = useState('');
+
+  const showTooltip = (type) => {
+    setActiveTooltip(type);
+    setTimeout(() => setActiveTooltip(''), 2000);
+  };
+
+  const copyAsRichText = () => {
+    if (messageContentRefs.current && messageContentRefs.current[index]) {
+      console.log("copyAsRichText");
+      const html = messageContentRefs.current[index].innerHTML;
+      const blob = new Blob([html], { type: 'text/html' });
+      const data = new ClipboardItem({ 'text/html': blob });
+      navigator.clipboard.write([data]).then(() => showTooltip('rich'));
+    }
+  };
+
+  const copyAsMarkdown = () => {
+    console.log("copyAsMarkdown");
+    navigator.clipboard.writeText(content).then(() => showTooltip('md'));
+  };
+
+  const copyAsHtml = () => {
+    if (messageContentRefs.current && messageContentRefs.current[index]) {
+      console.log("copyAsHtml");
+      navigator.clipboard.writeText(messageContentRefs.current[index].innerHTML).then(() => showTooltip('html'));
+    }
+  };
+
+  return (
+    <div className="copy-buttons-container">
+      <div className="copy-btn-wrapper">
+        <button onClick={copyAsRichText} className="copy-btn" title="Copy as Rich Text">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h12V9h-5V4H6zm10 2.5L18.5 9H16v-2.5z" /></svg>
+        </button>
+        {activeTooltip === 'rich' && <div className="tooltip">Copied as Rich Text!</div>}
+      </div>
+      <div className="copy-btn-wrapper">
+        <button onClick={copyAsMarkdown} className="copy-btn" title="Copy as Markdown">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 3h18v18H3V3zm2 2v14h14V5H5zm2 2h2v10H7V7zm4 0h2v4h2V7h2v10h-2v-4h-2v4h-2V7z" /></svg>
+        </button>
+        {activeTooltip === 'md' && <div className="tooltip">Copied as Markdown!</div>}
+      </div>
+      <div className="copy-btn-wrapper">
+        <button onClick={copyAsHtml} className="copy-btn" title="Copy as HTML">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" /></svg>
+        </button>
+        {activeTooltip === 'html' && <div className="tooltip">Copied as HTML!</div>}
+      </div>
+    </div>
+  );
+};
+// END: CopyButtons Component
 
 const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
   const [message, setMessage] = useState('');
@@ -9,6 +65,7 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
   const [showPrompts, setShowPrompts] = useState(false);
   const chatHistoryRef = useRef(null);
   const inputRef = useRef(null);
+  const messageContentRefs = useRef({});
 
   useEffect(() => {
     if (isExpanded && chatHistoryRef.current) {
@@ -95,9 +152,19 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
               {chatHistory.map((chat, index) => (
                 <div key={index} className={`chat-message-wrapper ${chat.role}`}>
                   <div className="chat-message">
-                    <div className="message-content">
+                    <div
+                      className="message-content"
+                      ref={el => messageContentRefs.current[index] = el}
+                    >
                       {chat.role === 'assistant' ? parseMarkdownWithMath(chat.content) : chat.content}
                     </div>
+                    {chat.role === 'assistant' && (
+                      <CopyButtons
+                        content={chat.content}
+                        messageContentRefs={messageContentRefs}
+                        index={index}
+                      />
+                    )}
                   </div>
                 </div>
               ))}
