@@ -90,7 +90,11 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
 
       if (lastMessage && lastMessage.role === 'assistant' && lastMessageRef) {
         // Clear previous typesetting before re-typesetting the streaming content
-        window.MathJax.typesetClear([lastMessageRef]);
+        try {
+          window.MathJax.typesetClear([lastMessageRef]);
+        } catch (err) {
+          console.error('MathJax clearing error on new message:', err);
+        }
         window.MathJax.typesetPromise([lastMessageRef]).catch((err) => {
           console.error('MathJax rendering error on new message:', err);
         });
