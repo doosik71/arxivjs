@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
@@ -17,6 +17,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [isEditingCitation, setIsEditingCitation] = useState(false);
   const [citationInput, setCitationInput] = useState('');
   const [isUpdatingCitation, setIsUpdatingCitation] = useState(false);
+  const summaryRef = useRef(null);
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -100,6 +101,14 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       onTocUpdate([]);
     };
   }, [summary, onTocUpdate]);
+  
+  useEffect(() => {
+    if (summaryRef.current && window.MathJax) {
+      window.MathJax.typesetPromise([summaryRef.current]).catch((err) => {
+        console.error('MathJax rendering error:', err);
+      });
+    }
+  }, [summary, isGeneratingSummary]);
 
   const loadSummary = async () => {
     try {
@@ -182,14 +191,63 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsChatLoading(true);
 
     try {
-      const response = await chatWithGemini(topicName, paperId, newHistory);
-      setChatHistory([...newHistory, { role: 'assistant', content: response.message }]);
+        const response = await chatWithGemini(topicName, paperId, newHistory);
+
+        if (!response.body) {
+            throw new Error("Streaming not supported");
+        }
+
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+        let assistantResponse = '';
+
+        // Add a placeholder for the assistant's message
+        setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: '' }]);
+
+        while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+
+            const chunk = decoder.decode(value, { stream: true });
+            const lines = chunk.split('\n\n');
+
+            for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                    try {
+                        const jsonData = line.substring(6).trim();
+                        if (jsonData && jsonData !== '[DONE]') {
+                            const data = JSON.parse(jsonData);
+                            assistantResponse += data;
+                            // Update the last message in the history
+                            setChatHistory(prevHistory => {
+                                const updatedHistory = [...prevHistory];
+                                updatedHistory[updatedHistory.length - 1].content = assistantResponse;
+                                return updatedHistory;
+                            });
+                        }
+                    } catch (e) {
+                        console.warn('Failed to parse chat stream chunk:', line);
+                    }
+                }
+            }
+        }
+        reader.releaseLock();
+
     } catch (error) {
-      console.error('Chat error:', error);
-      setChatHistory([...newHistory, { role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' }]);
-    }
-    finally {
-      setIsChatLoading(false);
+        console.error('Chat error:', error);
+        setChatHistory(prevHistory => {
+            const newHistory = [...prevHistory];
+            // If the last message is an empty assistant message (placeholder), replace it.
+            if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant' && newHistory[newHistory.length - 1].content === '') {
+                newHistory[newHistory.length - 1].content = 'Sorry, I encountered an error. Please try again.';
+            } else {
+                // Otherwise, add a new error message
+                newHistory.push({ role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' });
+            }
+            return newHistory;
+        });
+    } finally {
+        setIsChatLoading(false);
     }
   };
 
@@ -384,7 +442,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
               </div>
               {summary && (
                 <div className="summary-preview">
-                  <main className="formatted-summary" itemProp="description">
+                  <main className="formatted-summary" itemProp="description" ref={summaryRef}>
                     <ErrorBoundary>
                       {formatSummary(summary)}
                     </ErrorBoundary>
@@ -405,7 +463,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   {isDeletingSummary ? '⏳' : '×'}
                 </button>
               </div>
-              <main className="formatted-summary" itemProp="description">
+              <main className="formatted-summary" itemProp="description" ref={summaryRef}>
                 <ErrorBoundary>
                   {formatSummary(summary)}
                 </ErrorBoundary>

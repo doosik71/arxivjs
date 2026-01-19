@@ -1,8 +1,8 @@
-import React, { useEffect, useRef } from 'react';
+import React from 'react';
 import { marked } from 'marked';
 
 // MathJax configuration
-const initMathJax = () => {
+export const initMathJax = () => {
   if (typeof window !== 'undefined' && !window.MathJax) {
     window.MathJax = {
       tex: {
@@ -144,39 +144,6 @@ const generateId = (text) => {
     .replace(/^-+|-+$/g, ''); // Remove leading/trailing hyphens
 };
 
-// MathJax Component for rendering math expressions
-const MathJaxComponent = ({ children }) => {
-  const mathRef = useRef(null);
-
-  useEffect(() => {
-    const renderMath = () => {
-      if (mathRef.current && window.MathJax && window.MathJax.typesetPromise) {
-        window.MathJax.typesetPromise([mathRef.current]).catch((err) => {
-          console.error('MathJax rendering error:', err);
-        });
-      }
-    };
-
-    // If MathJax is already loaded, render immediately
-    if (window.MathJax && window.MathJax.startup && window.MathJax.startup.document) {
-      renderMath();
-    } else {
-      // Wait for MathJax to load
-      const checkMathJax = setInterval(() => {
-        if (window.MathJax && window.MathJax.startup && window.MathJax.startup.document) {
-          clearInterval(checkMathJax);
-          renderMath();
-        }
-      }, 100);
-
-      // Cleanup interval after 10 seconds
-      setTimeout(() => clearInterval(checkMathJax), 10000);
-    }
-  }, [children]);
-
-  return <div ref={mathRef}>{children}</div>;
-};
-
 export const parseMarkdownWithMath = (text) => {
   if (!text) return [];
 
@@ -201,7 +168,7 @@ export const parseMarkdownWithMath = (text) => {
   const elements = parseHTMLToReact(htmlContent);
 
   // Wrap all elements in MathJax component for math rendering
-  return [<MathJaxComponent key="mathjax-wrapper">{elements}</MathJaxComponent>];
+  return elements;
 };
 
 const parseHTMLToReact = (htmlContent) => {

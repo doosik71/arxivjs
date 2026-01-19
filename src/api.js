@@ -41,8 +41,24 @@ export const getPaperSummary = async (topicName, paperId) => {
 };
 
 export const chatWithGemini = async (topicName, paperId, history) => {
-  const response = await api.post(`/chat/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`, { history });
-  return response.data;
+  const baseURL = api.defaults.baseURL || '';
+  const url = `${baseURL}/chat/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ history })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Error from server:', errorData);
+    throw new Error(`HTTP error! status: ${response.status} - ${errorData.message}`);
+  }
+
+  return response;
 };
 
 export const createTopic = async (topicName) => {

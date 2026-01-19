@@ -631,15 +631,29 @@ async function chatWithGemini(req, res) {
             ],
         });
 
-        const result = await chat.sendMessage(lastMessage.content);
-        const response = await result.response;
-        const text = response.text();
+        const result = await chat.sendMessageStream(lastMessage.content);
 
-        res.json({ message: text });
+        res.setHeader('Content-Type', 'text/event-stream');
+        res.setHeader('Cache-Control', 'no-cache');
+        res.setHeader('Connection', 'keep-alive');
+        res.flushHeaders();
+
+        for await (const chunk of result.stream) {
+            const textChunk = chunk.text?.();
+            if (textChunk) {
+                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
+            }
+        }
+
+        res.end();
 
     } catch (error) {
         console.error('Error in /chat:', error);
-        res.status(500).json({ message: error.message });
+        if (!res.headersSent) {
+            res.status(500).json({ message: error.message });
+        } else {
+            res.end();
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { parseMarkdownWithMath } from '../utils/markdownRenderer';
+import { parseMarkdownWithMath, initMathJax } from '../utils/markdownRenderer';
 import prompts from '../../prompt.json';
 import './ChatBox.css';
 
@@ -68,10 +68,32 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
   const messageContentRefs = useRef({});
 
   useEffect(() => {
+    initMathJax();
+  }, []);
+
+  useEffect(() => {
+    // Scroll to bottom
     if (isExpanded && chatHistoryRef.current) {
       chatHistoryRef.current.scrollTop = chatHistoryRef.current.scrollHeight;
     }
-  }, [chatHistory, isLoading, isExpanded]);
+  
+    // Typeset math in the last message if it's from the assistant
+    if (isExpanded && window.MathJax) {
+      const lastMessageIndex = chatHistory.length - 1;
+      if (lastMessageIndex < 0) return;
+  
+      const lastMessage = chatHistory[lastMessageIndex];
+      const lastMessageRef = messageContentRefs.current[lastMessageIndex];
+  
+      if (lastMessage && lastMessage.role === 'assistant' && lastMessageRef) {
+        // Clear previous typesetting before re-typesetting the streaming content
+        window.MathJax.typesetClear([lastMessageRef]);
+        window.MathJax.typesetPromise([lastMessageRef]).catch((err) => {
+          console.error('MathJax rendering error on new message:', err);
+        });
+      }
+    }
+  }, [chatHistory, isExpanded]);
 
   const handleInputChange = (e) => {
     setMessage(e.target.value);
