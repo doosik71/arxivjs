@@ -1808,11 +1808,6 @@ article h3:first-child {
   transform: none;
 }
 
-/* Adjustments for main content to not be overlapped by collapsed chat */
-.App main {
-  padding-bottom: 60px;
-}
-
 /* Topic Management Styles */
 .add-topic-form {
   position: sticky;

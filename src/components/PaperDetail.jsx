@@ -3,8 +3,66 @@ import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, del
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
+import './PaperDetail.css';
 
 const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
+  // Component for summary copy buttons
+  const CopySummaryButtons = () => {
+    const [activeTooltip, setActiveTooltip] = useState('');
+
+    const showTooltip = (type) => {
+      setActiveTooltip(type);
+      setTimeout(() => setActiveTooltip(''), 2000);
+    };
+
+    const copyAsRichText = () => {
+      if (summaryRef.current) {
+        const html = summaryRef.current.innerHTML;
+        const blob = new Blob([html], { type: 'text/html' });
+        const data = new ClipboardItem({ 'text/html': blob });
+        navigator.clipboard.write([data]).then(() => showTooltip('rich'));
+      }
+    };
+
+    const copyAsMarkdown = () => {
+      if (summary) {
+        navigator.clipboard.writeText(summary).then(() => showTooltip('md'));
+      }
+    };
+
+    const copyAsHtml = () => {
+      if (summaryRef.current) {
+        navigator.clipboard.writeText(summaryRef.current.innerHTML).then(() => showTooltip('html'));
+      }
+    };
+
+    return (
+      <div className="copy-buttons-container">
+        <div className="copy-btn-wrapper">
+          <button onClick={copyAsRichText} className="copy-btn" title="Copy as Rich Text">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M6 2h8l6 6v12a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2zm0 2v16h12V9h-5V4H6zm10 2.5L18.5 9H16v-2.5z" /></svg>
+          </button>
+          {activeTooltip === 'rich' && <div className="tooltip">Copied as Rich Text!</div>}
+        </div>
+        <div className="copy-btn-wrapper">
+          <button onClick={copyAsMarkdown} className="copy-btn" title="Copy as Markdown">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+              <rect x="3" y="3" width="18" height="18" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2" />
+              <path d="M7 18V8L12 13L17 8V18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter" />
+            </svg>
+          </button>
+          {activeTooltip === 'md' && <div className="tooltip">Copied as Markdown!</div>}
+        </div>
+        <div className="copy-btn-wrapper">
+          <button onClick={copyAsHtml} className="copy-btn" title="Copy as HTML">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z" /></svg>
+          </button>
+          {activeTooltip === 'html' && <div className="tooltip">Copied as HTML!</div>}
+        </div>
+      </div>
+    );
+  };
+
   const [paper, setPaper] = useState(initialPaper);
   const [summary, setSummary] = useState(null);
   const [loadingSummary, setLoadingSummary] = useState(true);
@@ -101,7 +159,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       onTocUpdate([]);
     };
   }, [summary, onTocUpdate]);
-  
+
   useEffect(() => {
     if (summaryRef.current && window.MathJax) {
       window.MathJax.typesetPromise([summaryRef.current]).catch((err) => {
@@ -191,63 +249,63 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsChatLoading(true);
 
     try {
-        const response = await chatWithGemini(topicName, paperId, newHistory);
+      const response = await chatWithGemini(topicName, paperId, newHistory);
 
-        if (!response.body) {
-            throw new Error("Streaming not supported");
-        }
+      if (!response.body) {
+        throw new Error("Streaming not supported");
+      }
 
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-        let assistantResponse = '';
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let assistantResponse = '';
 
-        // Add a placeholder for the assistant's message
-        setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: '' }]);
+      // Add a placeholder for the assistant's message
+      setChatHistory(prevHistory => [...prevHistory, { role: 'assistant', content: '' }]);
 
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split('\n\n');
+        const chunk = decoder.decode(value, { stream: true });
+        const lines = chunk.split('\n\n');
 
-            for (const line of lines) {
-                if (line.startsWith('data: ')) {
-                    try {
-                        const jsonData = line.substring(6).trim();
-                        if (jsonData && jsonData !== '[DONE]') {
-                            const data = JSON.parse(jsonData);
-                            assistantResponse += data;
-                            // Update the last message in the history
-                            setChatHistory(prevHistory => {
-                                const updatedHistory = [...prevHistory];
-                                updatedHistory[updatedHistory.length - 1].content = assistantResponse;
-                                return updatedHistory;
-                            });
-                        }
-                    } catch (e) {
-                        console.warn('Failed to parse chat stream chunk:', line);
-                    }
-                }
+        for (const line of lines) {
+          if (line.startsWith('data: ')) {
+            try {
+              const jsonData = line.substring(6).trim();
+              if (jsonData && jsonData !== '[DONE]') {
+                const data = JSON.parse(jsonData);
+                assistantResponse += data;
+                // Update the last message in the history
+                setChatHistory(prevHistory => {
+                  const updatedHistory = [...prevHistory];
+                  updatedHistory[updatedHistory.length - 1].content = assistantResponse;
+                  return updatedHistory;
+                });
+              }
+            } catch (e) {
+              console.warn('Failed to parse chat stream chunk:', line);
             }
+          }
         }
-        reader.releaseLock();
+      }
+      reader.releaseLock();
 
     } catch (error) {
-        console.error('Chat error:', error);
-        setChatHistory(prevHistory => {
-            const newHistory = [...prevHistory];
-            // If the last message is an empty assistant message (placeholder), replace it.
-            if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant' && newHistory[newHistory.length - 1].content === '') {
-                newHistory[newHistory.length - 1].content = 'Sorry, I encountered an error. Please try again.';
-            } else {
-                // Otherwise, add a new error message
-                newHistory.push({ role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' });
-            }
-            return newHistory;
-        });
+      console.error('Chat error:', error);
+      setChatHistory(prevHistory => {
+        const newHistory = [...prevHistory];
+        // If the last message is an empty assistant message (placeholder), replace it.
+        if (newHistory.length > 0 && newHistory[newHistory.length - 1].role === 'assistant' && newHistory[newHistory.length - 1].content === '') {
+          newHistory[newHistory.length - 1].content = 'Sorry, I encountered an error. Please try again.';
+        } else {
+          // Otherwise, add a new error message
+          newHistory.push({ role: 'assistant', content: 'Sorry, I encountered an error. Please try again.' });
+        }
+        return newHistory;
+      });
     } finally {
-        setIsChatLoading(false);
+      setIsChatLoading(false);
     }
   };
 
@@ -454,14 +512,17 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
             <div className="summary-view">
               <div className="summary-header">
                 <h2>Summary</h2>
-                <button
-                  onClick={handleDeleteSummary}
-                  disabled={isDeletingSummary}
-                  className="delete-summary-button"
-                  title="Delete summary"
-                >
-                  {isDeletingSummary ? '⏳' : '×'}
-                </button>
+                <div className="summary-actions">
+                  <CopySummaryButtons />
+                  <button
+                    onClick={handleDeleteSummary}
+                    disabled={isDeletingSummary}
+                    className="delete-summary-button"
+                    title="Delete summary"
+                  >
+                    {isDeletingSummary ? '⏳' : '×'}
+                  </button>
+                </div>
               </div>
               <main className="formatted-summary" itemProp="description" ref={summaryRef}>
                 <ErrorBoundary>

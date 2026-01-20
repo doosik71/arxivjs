@@ -44,8 +44,8 @@ const CopyButtons = ({ content, messageContentRefs, index }) => {
       <div className="copy-btn-wrapper">
         <button onClick={copyAsMarkdown} className="copy-btn" title="Copy as Markdown">
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
-            <rect x="3" y="3" width="18" height="18" rx="3" ry="3" fill="none" stroke="black" stroke-width="2" />
-            <path d="M7 18V8L12 13L17 8V18" fill="none" stroke="black" stroke-width="1.5" stroke-linejoin="miter" />
+            <rect x="3" y="3" width="18" height="18" rx="3" ry="3" fill="none" stroke="currentColor" stroke-width="2" />
+            <path d="M7 18V8L12 13L17 8V18" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linejoin="miter" />
           </svg>
         </button>
         {activeTooltip === 'md' && <div className="tooltip">Copied as Markdown!</div>}

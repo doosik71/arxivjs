@@ -1,0 +1,78 @@
+.summary-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.summary-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+/* Styles adapted from ChatBox.css */
+.copy-buttons-container {
+  position: static; /* Override absolute positioning from ChatBox.css */
+  opacity: 1; /* Override opacity from ChatBox.css */
+  display: flex;
+  gap: 0.25rem;
+  background-color: var(--background-color-offset);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 2px;
+}
+
+.copy-btn-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.copy-btn {
+  background: none;
+  border: none;
+  color: var(--text-color);
+  cursor: pointer;
+  border-radius: 4px;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.copy-btn:hover {
+  background-color: var(--background-color);
+}
+
+.copy-btn svg {
+  width: 16px;
+  height: 16px;
+  fill: currentColor;
+}
+
+.tooltip {
+  position: absolute;
+  bottom: 125%;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: var(--background-color-dark);
+  color: var(--text-color-light);
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+  z-index: 10;
+}
+
+.tooltip::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: var(--background-color-dark) transparent transparent transparent;
+}
