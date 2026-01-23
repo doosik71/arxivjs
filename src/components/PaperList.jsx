@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper, getTopics, movePaper } from '../api';
 import TableOfContents from './TableOfContents';
+import './PaperList.css';
 
 // Utility function to highlight search terms in text
 const highlightText = (text, paperSearchQuery, searchField, currentField) => {
@@ -75,6 +76,7 @@ const PaperList = ({
   const [selectedPaper, setSelectedPaper] = useState(null);
   const [availableTopics, setAvailableTopics] = useState([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
+  const [topicFilter, setTopicFilter] = useState('');
 
   // Refs for scroll restoration and highlighting
   const paperRefs = useRef({});
@@ -359,6 +361,7 @@ const PaperList = ({
     setShowMoveModal(false);
     setSelectedPaper(null);
     setAvailableTopics([]);
+    setTopicFilter('');
   };
 
   const groupPapersByYear = (papers) => {
@@ -393,6 +396,10 @@ const PaperList = ({
       level: 1,
     }
   ];
+
+  const filteredTopics = availableTopics.filter(topic =>
+    topic.name.toLowerCase().includes(topicFilter.toLowerCase())
+  );
 
 
   if (loading) {
@@ -717,8 +724,25 @@ const PaperList = ({
               ) : (
                 <div className="topic-selection">
                   <p>Select destination topic:</p>
+                  <div className="topic-filter-container">
+                    <input
+                      type="text"
+                      placeholder="Filter topics..."
+                      value={topicFilter}
+                      onChange={(e) => setTopicFilter(e.target.value)}
+                      className="topic-filter-input"
+                    />
+                    {topicFilter && (
+                      <button
+                        onClick={() => setTopicFilter('')}
+                        className="topic-filter-clear-button"
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
                   <div className="topic-list">
-                    {availableTopics.map((topic) => (
+                    {filteredTopics.map((topic) => (
                       <button
                         key={topic.name}
                         onClick={() => handleMoveToTopic(topic.name)}
