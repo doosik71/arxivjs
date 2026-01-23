@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { getTopics, createTopic, deleteTopic, getPapers } from '../api';
+import './TopicList.css';
+
 
 // Utility function to highlight search terms in text
 const highlightText = (text, searchQuery) => {
@@ -204,7 +206,7 @@ const TopicList = ({ onTopicSelect }) => {
                   e.stopPropagation();
                   handleDeleteTopic(topic.name);
                 }}
-                className="delete-button"
+                className="topic-delete-button"
                 title="Delete topic"
               >
                 ×

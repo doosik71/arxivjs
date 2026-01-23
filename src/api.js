@@ -148,4 +148,10 @@ export const fetchAndUpdateCitation = async (topicName, paperId) => {
   return response.data;
 };
 
+
+export const translateText = async (text) => {
+  const response = await api.post('/translate', { text });
+  return response.data.translatedText;
+};
+
 export default api;

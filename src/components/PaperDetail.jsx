@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation } from '../api';
+import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
@@ -75,7 +75,25 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [isEditingCitation, setIsEditingCitation] = useState(false);
   const [citationInput, setCitationInput] = useState('');
   const [isUpdatingCitation, setIsUpdatingCitation] = useState(false);
+  const [translatedAbstract, setTranslatedAbstract] = useState('');
+  const [isTranslated, setIsTranslated] = useState(false);
+  const [isTranslating, setIsTranslating] = useState(false);
   const summaryRef = useRef(null);
+
+  const handleTranslate = async () => {
+    if (!paper.abstract) return;
+    setIsTranslating(true);
+    try {
+      const translation = await translateText(paper.abstract);
+      setTranslatedAbstract(translation);
+      setIsTranslated(true);
+    } catch (error) {
+      console.error('Translation failed:', error);
+      // Optionally, show an error to the user
+    } finally {
+      setIsTranslating(false);
+    }
+  };
 
   useEffect(() => {
     window.scrollTo(0, 0);
@@ -84,6 +102,9 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   useEffect(() => {
     setPaper(initialPaper);
     setIsEditingCitation(false); // Reset editing state when paper changes
+    setIsTranslated(false);
+    setTranslatedAbstract('');
+    setIsTranslating(false);
   }, [initialPaper]);
 
   useEffect(() => {
@@ -426,7 +447,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
             <button
               onClick={handleDeletePaper}
               disabled={isDeleting}
-              className="delete-button"
+              className="paper-delete-button"
               title="Delete paper"
             >
               {isDeleting ? '⏳' : '×'}
@@ -483,11 +504,24 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
         <section className="paper-abstract">
           <h2>Abstract</h2>
           <div itemProp="abstract">
-            <p>{paper.abstract}</p>
+            <p>{isTranslated ? translatedAbstract : paper.abstract}</p>
+          </div>
+          <div className="abstract-actions">
+            {isTranslating ? (
+              <div className="loading-spinner"></div>
+            ) : isTranslated ? (
+              <button onClick={() => setIsTranslated(false)} className="translate-button" title="Show Original">
+                원문
+              </button>
+            ) : (
+              <button onClick={handleTranslate} className="translate-button" title="Translate to Korean">
+                번역
+              </button>
+            )}
           </div>
         </section>
 
-        <section className="paper-summary">
+        <section className={`paper-summary${isGeneratingSummary ? ' generating-in-progress' : ''}`}>
           {loadingSummary ? (
             <div className="loading">Loading summary...</div>
           ) : summaryError ? (

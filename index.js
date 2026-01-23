@@ -835,6 +835,28 @@ async function addPaperByUrl(req, res) {
     }
 }
 
+
+async function translateText(req, res) {
+    try {
+        const { text } = req.body;
+        if (!text) {
+            return res.status(400).json({ message: 'Text to translate is required.' });
+        }
+
+        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const prompt = `Translate the following English text to Korean:\n\n${text}`;
+        const result = await model.generateContent(prompt);
+        const response = await result.response;
+        const translatedText = response.text();
+
+        res.json({ translatedText });
+    } catch (error) {
+        console.error('Error in /translate:', error);
+        res.status(500).json({ message: 'Failed to translate text.' });
+    }
+}
+
+app.post('/translate', translateText);
 app.get('/topics', getTopics);
 app.post('/topics', createTopic);
 app.put('/topics/:oldName', renameTopic);
