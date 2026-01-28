@@ -74,6 +74,7 @@ const PaperList = ({
   // Move paper states
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [selectedPaper, setSelectedPaper] = useState(null);
+  const [cachedTopics, setCachedTopics] = useState([]); // Cache for topics
   const [availableTopics, setAvailableTopics] = useState([]);
   const [loadingTopics, setLoadingTopics] = useState(false);
   const [topicFilter, setTopicFilter] = useState('');
@@ -294,42 +295,43 @@ const PaperList = ({
     }
   };
 
-  const handleMovePaper = async (paper) => {
-    setSelectedPaper(paper);
+  const loadAndPrepareTopics = async (forceRefresh = false) => {
     setLoadingTopics(true);
-    setShowMoveModal(true);
-
     try {
-      const topics = await getTopics();
-      // Filter out the current topic and transform to objects with name and count
-      const filteredTopics = topics
-        .filter(topic => topic !== topicName)
-        .map(async (topic) => {
-          try {
-            const topicPapers = await getPapers(topic);
-            return {
-              name: topic,
-              count: topicPapers.length
-            };
-          } catch (error) {
-            console.error(`Error getting papers for topic ${topic}:`, error);
-            return {
-              name: topic,
-              count: 0
-            };
-          }
-        });
+      let topicsToProcess = cachedTopics;
+      if (forceRefresh || topicsToProcess.length === 0) {
+        const topicNames = await getTopics();
+        const topicDetails = await Promise.all(
+          topicNames.map(async (name) => {
+            try {
+              const papersInTopic = await getPapers(name);
+              return { name, count: papersInTopic.length };
+            } catch (error) {
+              console.error(`Error getting papers for topic ${name}:`, error);
+              return { name, count: 0 };
+            }
+          })
+        );
+        setCachedTopics(topicDetails);
+        topicsToProcess = topicDetails;
+      }
 
-      // Wait for all async operations to complete
-      const resolvedTopics = await Promise.all(filteredTopics);
-      setAvailableTopics(resolvedTopics);
+      const filtered = topicsToProcess.filter(topic => topic.name !== topicName);
+      setAvailableTopics(filtered);
+
     } catch (err) {
       window.alert('Failed to load topics: ' + (err.response?.data?.message || err.message));
       console.error('Error loading topics:', err);
-      setShowMoveModal(false);
+      setShowMoveModal(false); // Close modal on error
     } finally {
       setLoadingTopics(false);
     }
+  };
+
+  const handleMovePaper = (paper) => {
+    setSelectedPaper(paper);
+    setShowMoveModal(true);
+    loadAndPrepareTopics(false); // Load from cache if available
   };
 
   const handleMoveToTopic = async (targetTopicName) => {
@@ -343,6 +345,10 @@ const PaperList = ({
 
       await movePaper(topicName, targetTopicName, paperId);
       await loadPapers(); // Reload the papers list
+
+      // After moving a paper, the topic counts change, so we should refresh the cache
+      await loadAndPrepareTopics(true);
+
 
       // Restore scroll position after a brief delay to allow for re-render
       setTimeout(() => {
@@ -360,8 +366,8 @@ const PaperList = ({
   const closeMoveModal = () => {
     setShowMoveModal(false);
     setSelectedPaper(null);
+    // Keep cached topics, but clear available topics for the modal
     setAvailableTopics([]);
-    setTopicFilter('');
   };
 
   const groupPapersByYear = (papers) => {
@@ -740,6 +746,17 @@ const PaperList = ({
                         ×
                       </button>
                     )}
+                    <button
+                      onClick={() => loadAndPrepareTopics(true)}
+                      className="topic-refresh-button"
+                      title="Refresh topic list"
+                      disabled={loadingTopics}
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16">
+                        <path fillRule="evenodd" d="M8 3a5 5 0 1 0 4.546 2.914.5.5 0 0 1 .908-.417A6 6 0 1 1 8 2v1z"/>
+                        <path d="M8 4.466V.534a.25.25 0 0 1 .41-.192l2.36 1.966c.12.1.12.284 0 .384L8.41 4.658A.25.25 0 0 1 8 4.466z"/>
+                      </svg>
+                    </button>
                   </div>
                   <div className="topic-list">
                     {filteredTopics.map((topic) => (
