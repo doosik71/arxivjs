@@ -239,23 +239,6 @@ pre,
   border-radius: 4px;
 }
 
-.paper-link {
-  color: var(--color-secondary);
-  text-decoration: none;
-  font-size: 0.8rem;
-  margin-left: 0.5rem;
-}
-
-.paper-link::before {
-  content: "🔗";
-}
-
-.paper-link:hover {
-  color: var(--color-primary);
-  text-decoration: underline;
-}
-
-
 .loading {
   text-align: center;
   padding: 2rem;

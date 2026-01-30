@@ -4,7 +4,17 @@
   gap: 0.5rem;
 }
 
-/* Styles adapted from ChatBox.css */
+.paper-link {
+  color: var(--color-secondary);
+  text-decoration: none;
+  font-size: 0.8rem;
+}
+
+.paper-link:hover {
+  color: var(--color-primary);
+  text-decoration: underline;
+}
+
 .copy-buttons-container {
   position: static;
   /* Override absolute positioning from ChatBox.css */
@@ -600,4 +610,9 @@ mjx-math {
   border-top: 2px solid var(--color-secondary);
   border-radius: 50%;
   animation: spin 1s linear infinite;
+}
+
+.paper-url-container {
+  display: flex;
+  align-items: center;
 }

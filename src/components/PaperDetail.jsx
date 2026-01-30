@@ -78,7 +78,18 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [translatedAbstract, setTranslatedAbstract] = useState('');
   const [isTranslated, setIsTranslated] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
+  const [linkCopied, setLinkCopied] = useState(false);
   const summaryRef = useRef(null);
+
+  const handleCopyLink = async () => {
+    try {
+      await navigator.clipboard.writeText(paper.url);
+      setLinkCopied(true);
+      setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link: ', err);
+    }
+  };
 
   const handleTranslate = async () => {
     if (!paper.abstract) return;
@@ -496,7 +507,15 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   </>
                 )}
               </div>
-              <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
+              <div className="paper-url-container">
+                <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
+                <div className="copy-btn-wrapper">
+                  <button onClick={handleCopyLink} className="copy-btn" title="Copy link to clipboard">
+                    🔗
+                  </button>
+                  {linkCopied && <div className="tooltip">Copied!</div>}
+                </div>
+              </div>
             </div>
           </div>
         </header>
