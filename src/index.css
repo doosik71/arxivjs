@@ -1298,6 +1298,23 @@ article h3:first-child {
   border-color: var(--color-secondary);
 }
 
+.engine-option-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.engine-option {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  color: var(--color-text);
+}
+
+.engine-option input[type="radio"] {
+  margin: 0;
+}
+
 .current-url {
   padding: 0.75rem;
   background: var(--color-surface);

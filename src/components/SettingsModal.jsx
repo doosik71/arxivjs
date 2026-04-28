@@ -1,229 +1,152 @@
-import { useState, useEffect } from 'react';
-import { getSavedConfig, saveConfig, testBackendConnection, discoverBackendPort, getBackendUrl } from '../utils/config';
+import { useEffect, useState } from 'react';
+import { getRuntimeConfig } from '../api';
+import { getSavedConfig, getSelectedSummaryEngine, saveConfig } from '../utils/config';
 
-// Get current frontend port
-const getCurrentPort = () => {
-  if (typeof window !== 'undefined') {
-    return parseInt(window.location.port) || (window.location.protocol === 'https:' ? 443 : 80);
+const DEFAULT_RUNTIME_CONFIG = {
+  port: null,
+  availableEngines: [],
+  defaultEngine: null
+};
+
+const formatEngineLabel = (engine) => {
+  if (engine === 'gemini') {
+    return 'Gemini';
   }
-  return null;
+  if (engine === 'ollama') {
+    return 'Ollama';
+  }
+  return engine;
 };
 
 const SettingsModal = ({ isOpen, onClose, onConfigUpdate }) => {
   const [config, setConfig] = useState(getSavedConfig());
-  const [testing, setTesting] = useState(false);
-  const [discovering, setDiscovering] = useState(false);
-  const [testResult, setTestResult] = useState(null);
+  const [runtimeConfig, setRuntimeConfig] = useState(DEFAULT_RUNTIME_CONFIG);
+  const [loadingRuntimeConfig, setLoadingRuntimeConfig] = useState(false);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    if (isOpen) {
-      setConfig(getSavedConfig());
-      setTestResult(null);
+    if (!isOpen) {
+      return;
+    }
+
+    const loadRuntimeConfig = async () => {
+      setLoadingRuntimeConfig(true);
       setError(null);
-    }
-  }, [isOpen]);
 
-  const handleInputChange = (field, value) => {
-    setConfig(prev => ({ ...prev, [field]: value }));
-    setTestResult(null);
-    setError(null);
-  };
+      try {
+        const runtime = await getRuntimeConfig();
+        const availableEngines = Array.isArray(runtime.availableEngines) ? runtime.availableEngines : [];
+        const selectedEngine = getSelectedSummaryEngine(availableEngines);
 
-  const handleTest = async () => {
-    setTesting(true);
-    setTestResult(null);
-    setError(null);
-
-    try {
-      const currentPort = getCurrentPort();
-      
-      // Check if trying to connect to self
-      if (currentPort && config.backendPort === currentPort && 
-          (config.backendHost === 'localhost' || config.backendHost === '127.0.0.1' || config.backendHost === window.location.hostname)) {
-        setTestResult({ 
-          success: false, 
-          message: `Cannot connect to port ${config.backendPort} - this is the current frontend port. Please use a different port.` 
+        setRuntimeConfig({
+          port: runtime.port ?? null,
+          availableEngines,
+          defaultEngine: runtime.defaultEngine || availableEngines[0] || null
         });
-        setTesting(false);
-        return;
-      }
-
-      const url = `${config.backendProtocol}://${config.backendHost}:${config.backendPort}`;
-      const isReachable = await testBackendConnection(url);
-      
-      if (isReachable) {
-        setTestResult({ success: true, message: `Backend is reachable at ${url}` });
-      } else {
-        setTestResult({ success: false, message: `Backend is not reachable at ${url}` });
-      }
-    } catch (err) {
-      setError(`Connection test failed: ${err.message}`);
-    } finally {
-      setTesting(false);
-    }
-  };
-
-  const handleAutoDiscover = async () => {
-    setDiscovering(true);
-    setTestResult(null);
-    setError(null);
-
-    try {
-      const discovered = await discoverBackendPort(config.backendHost, config.backendProtocol);
-      
-      if (discovered) {
-        setConfig(prev => ({
+        setConfig((prev) => ({
           ...prev,
-          backendPort: discovered.port,
-          backendHost: discovered.host,
-          backendProtocol: discovered.protocol
+          summaryEngine: selectedEngine
         }));
-        setTestResult({ 
-          success: true, 
-          message: `Backend auto-discovered at ${discovered.url}` 
-        });
-      } else {
-        setTestResult({ 
-          success: false, 
-          message: 'Auto-discovery failed. No backend found on common ports.' 
-        });
+      } catch (err) {
+        setRuntimeConfig(DEFAULT_RUNTIME_CONFIG);
+        setError(`Failed to load runtime settings: ${err.message}`);
+      } finally {
+        setLoadingRuntimeConfig(false);
       }
-    } catch (err) {
-      setError(`Auto-discovery failed: ${err.message}`);
-    } finally {
-      setDiscovering(false);
-    }
-  };
+    };
+
+    setConfig(getSavedConfig());
+    loadRuntimeConfig();
+  }, [isOpen]);
 
   const handleSave = () => {
     try {
-      const savedConfig = saveConfig(config);
-      const newUrl = `${config.backendProtocol}://${config.backendHost}:${config.backendPort}`;
-      
-      // Update global backend URL
-      window.ARXIVIEW_BACKEND_URL = newUrl;
-      
-      if (onConfigUpdate) {
-        onConfigUpdate(savedConfig);
-      }
-      
+      const availableEngines = runtimeConfig.availableEngines || [];
+      const fallbackEngine = getSelectedSummaryEngine(availableEngines);
+      const summaryEngine = availableEngines.includes(config.summaryEngine)
+        ? config.summaryEngine
+        : fallbackEngine;
+      const savedConfig = saveConfig({
+        ...config,
+        summaryEngine
+      });
+
+      onConfigUpdate?.(savedConfig);
       onClose();
     } catch (err) {
       setError(`Failed to save configuration: ${err.message}`);
     }
   };
 
-  const handleReset = () => {
-    setConfig({
-      backendProtocol: 'http',
-      backendHost: 'localhost', 
-      backendPort: 8765
-    });
-    setTestResult(null);
-    setError(null);
-  };
+  const engineOptions = runtimeConfig.availableEngines;
+  const selectedEngine = engineOptions.includes(config.summaryEngine)
+    ? config.summaryEngine
+    : runtimeConfig.defaultEngine || '';
 
-  if (!isOpen) return null;
+  if (!isOpen) {
+    return null;
+  }
 
   return (
     <div className="modal-overlay" onClick={onClose}>
-      <div className="modal-content" onClick={e => e.stopPropagation()}>
+      <div className="modal-content" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
-          <h2>Backend Server Settings</h2>
-          <button className="modal-close" onClick={onClose}>×</button>
+          <h2>AI Settings</h2>
+          <button className="modal-close" onClick={onClose}>x</button>
         </div>
-        
+
         <div className="modal-body">
           <div className="settings-form">
             <div className="form-group">
-              <label htmlFor="protocol">Protocol:</label>
-              <select
-                id="protocol"
-                value={config.backendProtocol}
-                onChange={e => handleInputChange('backendProtocol', e.target.value)}
-                className="form-control"
-              >
-                <option value="http">HTTP</option>
-                <option value="https">HTTPS</option>
-              </select>
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="host">Host:</label>
-              <input
-                id="host"
-                type="text"
-                value={config.backendHost}
-                onChange={e => handleInputChange('backendHost', e.target.value)}
-                placeholder="localhost"
-                className="form-control"
-              />
-            </div>
-
-            <div className="form-group">
-              <label htmlFor="port">Port:</label>
+              <label htmlFor="port">Backend Port:</label>
               <input
                 id="port"
-                type="number"
-                value={config.backendPort}
-                onChange={e => handleInputChange('backendPort', parseInt(e.target.value) || '')}
-                placeholder="8765"
-                min="1"
-                max="65535"
+                type="text"
+                value={loadingRuntimeConfig ? 'Loading...' : (runtimeConfig.port ?? 'Unavailable')}
+                readOnly
                 className="form-control"
               />
             </div>
 
-            <div className="current-url">
-              <strong>Backend URL:</strong> {config.backendProtocol}://{config.backendHost}:{config.backendPort}
+            <div className="form-group">
+              <span>Summary Engine:</span>
+              <div className="engine-option-list">
+                {engineOptions.length === 0 ? (
+                  <div className="form-control" aria-disabled="true">
+                    No engine available
+                  </div>
+                ) : (
+                  engineOptions.map((engine) => (
+                    <label key={engine} className="engine-option">
+                      <input
+                        type="radio"
+                        name="summaryEngine"
+                        value={engine}
+                        checked={selectedEngine === engine}
+                        onChange={(e) => setConfig((prev) => ({ ...prev, summaryEngine: e.target.value }))}
+                        disabled={loadingRuntimeConfig}
+                      />
+                      <span>{formatEngineLabel(engine)}</span>
+                    </label>
+                  ))
+                )}
+              </div>
             </div>
 
-            {error && (
-              <div className="error-message">
-                {error}
-              </div>
-            )}
-
-            {testResult && (
-              <div className={`test-result ${testResult.success ? 'success' : 'error'}`}>
-                {testResult.message}
-              </div>
-            )}
+            {error && <div className="error-message">{error}</div>}
           </div>
         </div>
 
         <div className="modal-footer">
           <div className="button-group">
-            <button
-              onClick={handleTest}
-              disabled={testing}
-              className="btn btn-secondary"
-            >
-              {testing ? 'Testing...' : 'Test Connection'}
-            </button>
-            
-            <button
-              onClick={handleAutoDiscover}
-              disabled={discovering}
-              className="btn btn-secondary"
-            >
-              {discovering ? 'Discovering...' : 'Auto Discover'}
-            </button>
-            
-            <button
-              onClick={handleReset}
-              className="btn btn-secondary"
-            >
-              Reset to Default
-            </button>
-          </div>
-          
-          <div className="button-group">
             <button onClick={onClose} className="btn btn-secondary">
               Cancel
             </button>
-            <button onClick={handleSave} className="btn btn-primary">
+            <button
+              onClick={handleSave}
+              className="btn btn-primary"
+              disabled={loadingRuntimeConfig || engineOptions.length === 0}
+            >
               Save
             </button>
           </div>

@@ -7,6 +7,8 @@ import ThemeSelector from './components/ThemeSelector';
 import Footer from './components/Footer';
 import SettingsModal from './components/SettingsModal';
 import { applyTheme, getStoredTheme } from './utils/themes';
+import { getRuntimeConfig } from './api';
+import { getSelectedSummaryEngine, saveConfig } from './utils/config';
 
 const App = () => {
   const [currentView, setCurrentView] = useState('topics');
@@ -26,6 +28,27 @@ const App = () => {
   useEffect(() => {
     const storedTheme = getStoredTheme();
     applyTheme(storedTheme);
+  }, []);
+
+  useEffect(() => {
+    const syncAvailableEngine = async () => {
+      try {
+        const runtimeConfig = await getRuntimeConfig();
+        const availableEngines = Array.isArray(runtimeConfig.availableEngines) ? runtimeConfig.availableEngines : [];
+
+        if (!availableEngines.length) {
+          return;
+        }
+
+        saveConfig({
+          summaryEngine: getSelectedSummaryEngine(availableEngines)
+        });
+      } catch (error) {
+        console.warn('Failed to sync runtime engine settings:', error);
+      }
+    };
+
+    syncAvailableEngine();
   }, []);
 
   const handleTopicSelect = (topicName) => {
@@ -108,7 +131,7 @@ const App = () => {
               <button
                 className="settings-button"
                 onClick={() => setShowSettings(true)}
-                title="Backend Settings"
+                title="AI Settings"
               >
                 ⚙️
               </button>

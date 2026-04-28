@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
+import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithPaper, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
+import { getSavedConfig } from '../utils/config';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
 import './PaperDetail.css';
@@ -321,7 +322,20 @@ const applyHighlightsRecursively = (node, highlights, keyPrefix = 'node') => {
   return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
 };
 
+const getEngineLabel = (engine) => {
+  if (engine === 'ollama') {
+    return 'Ollama';
+  }
+  if (engine === 'gemini') {
+    return 'Gemini';
+  }
+  return engine || 'AI';
+};
+
 const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
+  const selectedEngine = getSavedConfig().summaryEngine || 'gemini';
+  const engineLabel = getEngineLabel(selectedEngine);
+
   // Component for summary copy buttons
   const CopySummaryButtons = () => {
     const [activeTooltip, setActiveTooltip] = useState('');
@@ -420,7 +434,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     if (!paper.abstract) return;
     setIsTranslating(true);
     try {
-      const translation = await translateText(paper.abstract);
+      const translation = await translateText(paper.abstract, selectedEngine);
       setTranslatedAbstract(translation);
       setIsTranslated(true);
     } catch (error) {
@@ -628,7 +642,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       setHighlights([]);
       closeHighlightPopover();
 
-      const response = await generatePaperSummary(topicName, paper);
+      const response = await generatePaperSummary(topicName, paper, selectedEngine);
 
       // Check if streaming is supported
       if (!response.body || !response.body.getReader) {
@@ -691,7 +705,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsChatLoading(true);
 
     try {
-      const response = await chatWithGemini(topicName, paperId, newHistory);
+      const response = await chatWithPaper(topicName, paperId, newHistory, selectedEngine);
 
       if (!response.body) {
         throw new Error("Streaming not supported");
@@ -1048,7 +1062,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                 원문
               </button>
             ) : (
-              <button onClick={handleTranslate} className="translate-button" title="Translate to Korean">
+              <button onClick={handleTranslate} className="translate-button" title={`Translate to Korean with ${engineLabel}`}>
                 번역
               </button>
             )}
@@ -1119,8 +1133,9 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                 onClick={handleGenerateSummary}
                 disabled={isGeneratingSummary}
                 className="summarize-button"
+                title={`Generate summary with ${engineLabel}`}
               >
-                Generate Summary
+                {`Generate Summary with ${engineLabel}`}
               </button>
             </div>
           )}
@@ -1132,6 +1147,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
           chatHistory={chatHistory}
           isLoading={isChatLoading}
           onClearHistory={handleClearChatHistory}
+          engineLabel={engineLabel}
         />
       )}
       {highlightPopover.open && (

@@ -59,7 +59,12 @@ export const savePaperHighlights = async (topicName, paperId, highlights) => {
   return response.data.highlights || [];
 };
 
-export const chatWithGemini = async (topicName, paperId, history) => {
+export const getRuntimeConfig = async () => {
+  const response = await api.get('/server-info');
+  return response.data;
+};
+
+export const chatWithPaper = async (topicName, paperId, history, engine) => {
   const baseURL = api.defaults.baseURL || '';
   const url = `${baseURL}/chat/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`;
 
@@ -68,7 +73,7 @@ export const chatWithGemini = async (topicName, paperId, history) => {
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ history })
+    body: JSON.stringify({ history, engine })
   });
 
   if (!response.ok) {
@@ -116,7 +121,7 @@ export const savePaperToTopic = async (topicName, paper) => {
   return response.data;
 };
 
-export const generatePaperSummary = async (topicName, paper) => {
+export const generatePaperSummary = async (topicName, paper, engine) => {
   const baseURL = api.defaults.baseURL || '';
   const url = `${baseURL}/summarize-and-save`;
 
@@ -127,7 +132,8 @@ export const generatePaperSummary = async (topicName, paper) => {
     },
     body: JSON.stringify({
       paper,
-      topicName
+      topicName,
+      engine
     })
   });
 
@@ -168,8 +174,8 @@ export const fetchAndUpdateCitation = async (topicName, paperId) => {
 };
 
 
-export const translateText = async (text) => {
-  const response = await api.post('/translate', { text });
+export const translateText = async (text, engine) => {
+  const response = await api.post('/translate', { text, engine });
   return response.data.translatedText;
 };
 

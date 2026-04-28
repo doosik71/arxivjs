@@ -13,17 +13,49 @@ require('dotenv').config();
 // Initialize electron application.
 const { app: electronApp, dialog } = require('electron');
 
-// Initialize Gemini API.
-if (!process.env.GEMINI_API_KEY) {
+const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
+const OLLAMA_MODEL = process.env.OLLAMA_MODEL?.trim();
+const OLLAMA_API_URL = process.env.OLLAMA_API_URL?.trim()?.replace(/\/+$/, '');
+
+const llmProviders = {
+    gemini: process.env.GEMINI_API_KEY ? {
+        name: 'gemini',
+        model: GEMINI_MODEL,
+        client: new GoogleGenerativeAI(process.env.GEMINI_API_KEY)
+    } : null,
+    ollama: OLLAMA_API_URL && OLLAMA_MODEL ? {
+        name: 'ollama',
+        model: OLLAMA_MODEL,
+        apiUrl: OLLAMA_API_URL
+    } : null
+};
+
+function getAvailableLlmEngines() {
+    return Object.entries(llmProviders)
+        .filter(([, provider]) => Boolean(provider))
+        .map(([engine]) => engine);
+}
+
+function getDefaultLlmEngine() {
+    const availableEngines = getAvailableLlmEngines();
+    if (availableEngines.includes('gemini')) {
+        return 'gemini';
+    }
+    return availableEngines[0] || null;
+}
+
+function failStartup(message) {
     if (electronApp) {
-        dialog.showErrorBox('API Key Missing', 'GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.');
+        dialog.showErrorBox('LLM Configuration Error', message);
     } else {
-        console.error("Error: GEMINI_API_KEY is missing. Please set GEMINI_API_KEY in your .env file.");
+        console.error(`Error: ${message}`);
     }
     process.exit(1);
 }
 
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+if (getAvailableLlmEngines().length === 0) {
+    failStartup('Neither Gemini nor Ollama is configured. Please set GEMINI_API_KEY or both OLLAMA_API_URL and OLLAMA_MODEL in your .env file.');
+}
 
 // Initialize arxivjsdata folder.
 const dataPath = electronApp ? path.join(electronApp.getPath('userData'), 'arxivjsdata') : path.join(__dirname, 'arxivjsdata');
@@ -198,6 +230,208 @@ async function saveHighlightsFile(topicName, paperId, highlights) {
         version: 1,
         highlights
     }, null, 2));
+}
+
+function resolveEngine(requestedEngine) {
+    const normalizedEngine = typeof requestedEngine === 'string' ? requestedEngine.trim().toLowerCase() : '';
+    const availableEngines = getAvailableLlmEngines();
+
+    if (normalizedEngine && availableEngines.includes(normalizedEngine)) {
+        return normalizedEngine;
+    }
+
+    return getDefaultLlmEngine();
+}
+
+function getProviderOrThrow(engine) {
+    const resolvedEngine = resolveEngine(engine);
+    const provider = resolvedEngine ? llmProviders[resolvedEngine] : null;
+
+    if (!provider) {
+        throw new Error(`Requested engine "${engine || 'unknown'}" is not configured.`);
+    }
+
+    return { engine: resolvedEngine, provider };
+}
+
+function createSseResponse(res) {
+    res.setHeader('Content-Type', 'text/event-stream');
+    res.setHeader('Cache-Control', 'no-cache');
+    res.setHeader('Connection', 'keep-alive');
+    res.flushHeaders();
+}
+
+function writeSseChunk(res, chunk) {
+    if (chunk) {
+        res.write(`data: ${JSON.stringify(chunk)}\n\n`);
+    }
+}
+
+async function* parseOllamaNdjson(stream) {
+    let buffer = '';
+
+    for await (const chunk of stream) {
+        buffer += chunk.toString('utf-8');
+        const lines = buffer.split('\n');
+        buffer = lines.pop() || '';
+
+        for (const line of lines) {
+            const trimmedLine = line.trim();
+            if (!trimmedLine) {
+                continue;
+            }
+
+            yield JSON.parse(trimmedLine);
+        }
+    }
+
+    const trailingLine = buffer.trim();
+    if (trailingLine) {
+        yield JSON.parse(trailingLine);
+    }
+}
+
+async function* streamGeminiGenerate(prompt) {
+    const { provider } = getProviderOrThrow('gemini');
+    const model = provider.client.getGenerativeModel({ model: provider.model });
+    const result = await model.generateContentStream(prompt);
+
+    for await (const chunk of result.stream) {
+        const textChunk = chunk.text?.();
+        if (textChunk) {
+            yield textChunk;
+        }
+    }
+}
+
+async function* streamGeminiChat(history, paperContext) {
+    const { provider } = getProviderOrThrow('gemini');
+    const model = provider.client.getGenerativeModel({ model: provider.model });
+    const conversationHistory = history.slice(0, -1);
+    const lastMessage = history[history.length - 1];
+
+    const chat = model.startChat({
+        history: [
+            {
+                role: 'user',
+                parts: [{ text: `You are a helpful assistant. The user is asking questions about a research paper. Use the following context to answer their questions:\n\n${paperContext}` }],
+            },
+            {
+                role: 'model',
+                parts: [{ text: "Okay, I have the context of the paper. I'm ready to answer questions about it." }],
+            },
+            ...conversationHistory.map((entry) => ({
+                role: entry.role === 'assistant' ? 'model' : 'user',
+                parts: [{ text: entry.content }]
+            }))
+        ],
+    });
+
+    const result = await chat.sendMessageStream(lastMessage.content);
+    for await (const chunk of result.stream) {
+        const textChunk = chunk.text?.();
+        if (textChunk) {
+            yield textChunk;
+        }
+    }
+}
+
+async function* streamOllamaGenerate(prompt) {
+    const { provider } = getProviderOrThrow('ollama');
+    const response = await axios.post(`${provider.apiUrl}/api/generate`, {
+        model: provider.model,
+        prompt,
+        stream: true
+    }, {
+        responseType: 'stream'
+    });
+
+    for await (const entry of parseOllamaNdjson(response.data)) {
+        if (entry.response) {
+            yield entry.response;
+        }
+    }
+}
+
+async function* streamOllamaChat(history, paperContext) {
+    const { provider } = getProviderOrThrow('ollama');
+    const messages = [
+        {
+            role: 'system',
+            content: `You are a helpful assistant. The user is asking questions about a research paper. Use the following context to answer their questions:\n\n${paperContext}`
+        },
+        ...history.map((entry) => ({
+            role: entry.role,
+            content: entry.content
+        }))
+    ];
+
+    const response = await axios.post(`${provider.apiUrl}/api/chat`, {
+        model: provider.model,
+        messages,
+        stream: true
+    }, {
+        responseType: 'stream'
+    });
+
+    for await (const entry of parseOllamaNdjson(response.data)) {
+        const textChunk = entry.message?.content;
+        if (textChunk) {
+            yield textChunk;
+        }
+    }
+}
+
+async function generateSingleResponse(engine, prompt) {
+    const resolvedEngine = resolveEngine(engine);
+    const chunks = [];
+    const generator = resolvedEngine === 'ollama'
+        ? streamOllamaGenerate(prompt)
+        : streamGeminiGenerate(prompt);
+
+    for await (const chunk of generator) {
+        chunks.push(chunk);
+    }
+
+    return chunks.join('');
+}
+
+async function streamSummary(engine, prompt) {
+    const resolvedEngine = resolveEngine(engine);
+    return resolvedEngine === 'ollama'
+        ? streamOllamaGenerate(prompt)
+        : streamGeminiGenerate(prompt);
+}
+
+async function streamChat(engine, history, paperContext) {
+    const resolvedEngine = resolveEngine(engine);
+    return resolvedEngine === 'ollama'
+        ? streamOllamaChat(history, paperContext)
+        : streamGeminiChat(history, paperContext);
+}
+
+async function streamGeneratorToSse(res, generator) {
+    createSseResponse(res);
+
+    let fullText = '';
+    for await (const chunk of generator) {
+        writeSseChunk(res, chunk);
+        fullText += chunk;
+    }
+
+    res.end();
+    return fullText;
+}
+
+async function backupSummaryFile(summaryPath) {
+    try {
+        await fs.access(summaryPath);
+        await fs.copyFile(summaryPath, `${summaryPath}.bak`);
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            throw error;
+        }
+    }
 }
 
 // Establish API access points.
@@ -871,10 +1105,10 @@ async function getPdfTextFromUrl(arxivAbsUrl, topicName) {
     return pdfText;
 }
 
-async function chatWithGemini(req, res) {
+async function chatWithPaper(req, res) {
     try {
         const { topicName, paperId } = req.params;
-        const { history } = req.body;
+        const { history, engine } = req.body;
 
         const jsonPath = path.join(dataPath, topicName, paperId + '.json');
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
@@ -907,44 +1141,8 @@ async function chatWithGemini(req, res) {
         if (!paperContext) {
             return res.status(404).json({ message: 'Paper context not found.' });
         }
-
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-        const conversationHistory = history.slice(0, -1);
-        const lastMessage = history[history.length - 1];
-
-        const chat = model.startChat({
-            history: [
-                {
-                    role: "user",
-                    parts: [{ text: `You are a helpful assistant. The user is asking questions about a research paper. Use the following context to answer their questions:\n\n${paperContext}` }],
-                },
-                {
-                    role: "model",
-                    parts: [{ text: "Okay, I have the context of the paper. I'm ready to answer questions about it." }],
-                },
-                ...conversationHistory.map(h => ({
-                    role: h.role === 'assistant' ? 'model' : 'user',
-                    parts: [{ text: h.content }]
-                }))
-            ],
-        });
-
-        const result = await chat.sendMessageStream(lastMessage.content);
-
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-
-        for await (const chunk of result.stream) {
-            const textChunk = chunk.text?.();
-            if (textChunk) {
-                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
-            }
-        }
-
-        res.end();
+        const generator = await streamChat(engine, history, paperContext);
+        await streamGeneratorToSse(res, generator);
 
     } catch (error) {
         console.error('Error in /chat:', error);
@@ -958,7 +1156,7 @@ async function chatWithGemini(req, res) {
 
 async function summarizeAndSave(req, res) {
     try {
-        const { paper, topicName } = req.body;
+        const { paper, topicName, engine } = req.body;
         const { url } = paper;
         const fileName = Buffer.from(url).toString('base64');
         const topicPath = path.join(dataPath, topicName);
@@ -969,25 +1167,10 @@ async function summarizeAndSave(req, res) {
         const pdfText = await getPdfTextFromUrl(url, topicName);
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', pdfText);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const result = await model.generateContentStream(prompt);
+        const generator = await streamSummary(engine, prompt);
+        const summaryContent = await streamGeneratorToSse(res, generator);
 
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-
-        let summaryContent = '';
-        for await (const chunk of result.stream) {
-            const textChunk = chunk.text?.();
-            if (textChunk) {
-                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
-                summaryContent += textChunk;
-            }
-        }
-
-        res.end();
-
+        await backupSummaryFile(mdFilePath);
         await fs.writeFile(mdFilePath, summaryContent);
     } catch (error) {
         console.error('Error in /summarize-and-save:', error);
@@ -1044,16 +1227,16 @@ async function addPaperByUrl(req, res) {
 
 async function translateText(req, res) {
     try {
-        const { text } = req.body;
+        const { text, engine } = req.body;
         if (!text) {
             return res.status(400).json({ message: 'Text to translate is required.' });
         }
 
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const prompt = `Translate the following English text to Korean:\n\n${text}`;
-        const result = await model.generateContent(prompt);
-        const response = await result.response;
-        const translatedText = response.text();
+        const prompt = `Act as a professional academic translator.
+Translate the text below into Korean using a formal and scholarly tone.
+Do not include any conversational fillers like 'Here is the translation' or 'I hope this helps'.
+Return only the result.:\n\nText: ${text}`;
+        const translatedText = await generateSingleResponse(engine, prompt);
 
         res.json({ translatedText });
     } catch (error) {
@@ -1139,7 +1322,7 @@ app.get('/papers/:topicName/:paperId/update-citation', fetchAndUpdateCitation);
 app.post('/papers/:topicName/:paperId/citation', updateCitation);
 app.get('/search', searchArxiv);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
-app.post('/chat/:topicName/:paperId', chatWithGemini);
+app.post('/chat/:topicName/:paperId', chatWithPaper);
 app.post('/summarize-and-save', summarizeAndSave);
 app.post('/paper-by-url', addPaperByUrl);
 app.post('/extract-pdf-text', upload.single('pdf'), extractPdfText);
@@ -1168,7 +1351,7 @@ async function extractPdfText(req, res) {
 
 async function summarizePdfText(req, res) {
     try {
-        const { text, topicName } = req.body;
+        const { text, topicName, engine } = req.body;
 
         if (!text) {
             return res.status(400).json({ message: 'No text provided for summarization' });
@@ -1181,26 +1364,8 @@ async function summarizePdfText(req, res) {
         // Read user prompt template
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', text);
-
-        // Initialize Gemini model
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-        const result = await model.generateContentStream(prompt);
-
-        // Set up streaming response
-        res.setHeader('Content-Type', 'text/event-stream');
-        res.setHeader('Cache-Control', 'no-cache');
-        res.setHeader('Connection', 'keep-alive');
-        res.flushHeaders();
-
-        // Stream the summary
-        for await (const chunk of result.stream) {
-            const textChunk = chunk.text?.();
-            if (textChunk) {
-                res.write(`data: ${JSON.stringify(textChunk)}\n\n`);
-            }
-        }
-
-        res.end();
+        const generator = await streamSummary(engine, prompt);
+        await streamGeneratorToSse(res, generator);
 
     } catch (error) {
         console.error('PDF text summarization error:', error);
@@ -1281,11 +1446,14 @@ async function savePdfPaper(req, res) {
 let server;
 
 app.get('/server-info', (req, res) => {
+    const availableEngines = getAvailableLlmEngines();
     if (server && server.address()) {
         res.json({
             port: server.address().port,
             hostname: server.address().address,
             dataPath: dataPath,
+            availableEngines,
+            defaultEngine: getDefaultLlmEngine()
         });
     } else {
         res.status(503).json({ message: 'Server not available' });

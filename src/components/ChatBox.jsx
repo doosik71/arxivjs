@@ -61,7 +61,7 @@ const CopyButtons = ({ content, messageContentRefs, index }) => {
 };
 // END: CopyButtons Component
 
-const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
+const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory, engineLabel = 'AI' }) => {
   const [message, setMessage] = useState('');
   const [isExpanded, setIsExpanded] = useState(false);
   const [isMaximized, setIsMaximized] = useState(false);
@@ -150,7 +150,7 @@ const ChatBox = ({ onSendMessage, chatHistory, isLoading, onClearHistory }) => {
                 )}
               </button>
             )}
-            <h4>Chat with Gemini</h4>
+            <h4>Chat with {engineLabel}</h4>
           </div>
           <div className="chat-controls">
             {chatHistory.length > 0 && (
