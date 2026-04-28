@@ -110,19 +110,34 @@ function decodeHtmlEntities(text) {
         .replace(/&#39;/g, "'");
 }
 
+function fixKoreanFormatting(htmlContent) {
+    return htmlContent.replace(/\*\*([^*\r\n]+)\*\*/g, '<strong>$1</strong>');
+}
+
+function htmlToDisplayText(html) {
+    if (!html) {
+        return '';
+    }
+
+    // Preserve block-level separation without injecting spaces around inline tags like <strong>.
+    const blockBoundaryTags = /<\/?(?:address|article|aside|blockquote|br|caption|dd|div|dl|dt|figcaption|figure|footer|form|h[1-6]|header|hr|li|main|nav|ol|p|pre|section|table|tbody|td|tfoot|th|thead|tr|ul)[^>]*>/gi;
+    const withoutBlocks = html.replace(blockBoundaryTags, ' ');
+    const withoutTags = withoutBlocks.replace(/<[^>]+>/g, '');
+    return decodeHtmlEntities(withoutTags);
+}
+
 function markdownToDisplayText(markdownText) {
     const safeMarkdown = stripMathFromMarkdown(markdownText || '');
-    const html = marked.parse(safeMarkdown, {
+    let html = marked.parse(safeMarkdown, {
         mangle: false,
         headerIds: false
     });
+    html = fixKoreanFormatting(html);
 
-    return normalizeHighlightText(
-        decodeHtmlEntities(html.replace(/<[^>]+>/g, ' '))
-    );
+    return normalizeHighlightText(htmlToDisplayText(html));
 }
 
-function sanitizeHighlights(highlights, summaryText) {
+function sanitizeHighlights(highlights, summaryText, summaryFileName = 'unknown.md') {
     const displayText = markdownToDisplayText(summaryText || '');
     const uniqueHighlights = [];
     const seenTexts = new Set();
@@ -136,6 +151,7 @@ function sanitizeHighlights(highlights, summaryText) {
         }
 
         if (!displayText.includes(normalizedText)) {
+            console.warn(`[highlight-miss] ${summaryFileName} :: ${normalizedText}`);
             continue;
         }
 
@@ -786,7 +802,7 @@ async function getPaperHighlights(req, res) {
         const { topicName, paperId } = req.params;
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
-        const highlights = sanitizeHighlights(await loadHighlightsFile(topicName, paperId), summary);
+        const highlights = sanitizeHighlights(await loadHighlightsFile(topicName, paperId), summary, `${paperId}.md`);
 
         await saveHighlightsFile(topicName, paperId, highlights);
         res.json({ highlights });
@@ -804,7 +820,7 @@ async function updatePaperHighlights(req, res) {
         const { topicName, paperId } = req.params;
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
-        const highlights = sanitizeHighlights(req.body?.highlights, summary);
+        const highlights = sanitizeHighlights(req.body?.highlights, summary, `${paperId}.md`);
 
         await saveHighlightsFile(topicName, paperId, highlights);
         res.json({ highlights });

@@ -16,16 +16,26 @@ const HIGHLIGHT_COLORS = [
 ];
 
 const BLOCK_HIGHLIGHT_TAGS = new Set(['p', 'li', 'blockquote', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+const EXCLUDED_HIGHLIGHT_SELECTOR = 'pre, code, mjx-container, .MathJax, .latex-math-1, .latex-math-2';
 
 const normalizeHighlightText = (text) => (
   typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : ''
 );
 
 const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const MATH_SEGMENT_REGEX = /\$\$[\s\S]+?\$\$|\$([^\n\r$]+?)\$/g;
 
 const findHighlightByText = (highlights, text) => {
   const normalizedText = normalizeHighlightText(text);
   return highlights.find((highlight) => normalizeHighlightText(highlight.text) === normalizedText) || null;
+};
+
+const buildHighlightRenderKey = (paperId, highlights) => {
+  const signature = highlights
+    .map((highlight) => `${normalizeHighlightText(highlight.text)}:${highlight.color}`)
+    .join('|');
+
+  return `${paperId || 'paper'}::${signature}`;
 };
 
 const isExcludedHighlightNode = (node) => {
@@ -43,18 +53,107 @@ const isExcludedHighlightNode = (node) => {
     || className.includes('MathJax');
 };
 
-const collectHighlightableText = (node) => {
-  if (typeof node === 'string') {
-    return node;
+const isExcludedDomNode = (node) => {
+  if (!node) {
+    return false;
   }
 
-  if (typeof node === 'number' || node == null || !React.isValidElement(node) || isExcludedHighlightNode(node)) {
+  if (node.nodeType === Node.ELEMENT_NODE) {
+    return node.matches?.(EXCLUDED_HIGHLIGHT_SELECTOR) || false;
+  }
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.parentElement?.closest?.(EXCLUDED_HIGHLIGHT_SELECTOR) || false;
+  }
+
+  return false;
+};
+
+const collectSelectableTextFromDom = (node) => {
+  if (!node) {
     return '';
+  }
+
+  if (isExcludedDomNode(node)) {
+    return ' ';
+  }
+
+  if (node.nodeType === Node.TEXT_NODE) {
+    return node.textContent || '';
+  }
+
+  if (!node.childNodes?.length) {
+    return '';
+  }
+
+  return Array.from(node.childNodes)
+    .map((child) => collectSelectableTextFromDom(child))
+    .join('');
+};
+
+const extractHighlightTextFromRange = (range) => {
+  if (!range) {
+    return '';
+  }
+
+  const fragment = range.cloneContents();
+  return normalizeHighlightText(collectSelectableTextFromDom(fragment));
+};
+
+const collectHighlightableText = (node) => {
+  if (typeof node === 'string') {
+    return node.replace(MATH_SEGMENT_REGEX, ' ');
+  }
+
+  if (typeof node === 'number' || node == null || !React.isValidElement(node)) {
+    return '';
+  }
+
+  if (isExcludedHighlightNode(node)) {
+    return ' ';
   }
 
   return React.Children.toArray(node.props.children)
     .map((child) => collectHighlightableText(child))
     .join('');
+};
+
+const splitTextIntoMathAwareSegments = (text) => {
+  if (!text) {
+    return [];
+  }
+
+  const segments = [];
+  let lastIndex = 0;
+  let match;
+  MATH_SEGMENT_REGEX.lastIndex = 0;
+
+  while ((match = MATH_SEGMENT_REGEX.exec(text)) !== null) {
+    if (match.index > lastIndex) {
+      segments.push({
+        type: 'text',
+        raw: text.slice(lastIndex, match.index),
+        display: text.slice(lastIndex, match.index)
+      });
+    }
+
+    segments.push({
+      type: 'math',
+      raw: match[0],
+      display: ' '
+    });
+    lastIndex = match.index + match[0].length;
+  }
+
+  if (lastIndex < text.length) {
+    segments.push({
+      type: 'text',
+      raw: text.slice(lastIndex),
+      display: text.slice(lastIndex)
+    });
+  }
+
+  return segments;
 };
 
 const buildHighlightMap = (text, highlights) => {
@@ -87,53 +186,67 @@ const splitTextWithHighlightMap = (text, highlightMap, startOffset, keyPrefix) =
   }
 
   const segments = [];
-  let currentText = '';
-  let currentHighlight = highlightMap[startOffset] || null;
+  const mathAwareSegments = splitTextIntoMathAwareSegments(text);
   let segmentIndex = 0;
+  let offset = startOffset;
 
-  for (let index = 0; index < text.length; index += 1) {
-    const nextHighlight = highlightMap[startOffset + index] || null;
-    if (nextHighlight !== currentHighlight) {
-      if (currentText) {
-        segments.push(
-          currentHighlight ? (
-            <mark
-              key={`${keyPrefix}-highlight-${segmentIndex}`}
-              className={`summary-highlight summary-highlight-${currentHighlight.color}`}
-              data-highlight-text={currentHighlight.text}
-              data-highlight-color={currentHighlight.color}
-              tabIndex={0}
-              role="button"
-            >
-              {currentText}
-            </mark>
-          ) : currentText
-        );
-        segmentIndex += 1;
-      }
-      currentText = '';
-      currentHighlight = nextHighlight;
+  mathAwareSegments.forEach((segment) => {
+    if (segment.type === 'math') {
+      segments.push(segment.raw);
+      offset += segment.display.length;
+      return;
     }
 
-    currentText += text[index];
-  }
+    let currentText = '';
+    let currentHighlight = highlightMap[offset] || null;
 
-  if (currentText) {
-    segments.push(
-      currentHighlight ? (
-        <mark
-          key={`${keyPrefix}-highlight-${segmentIndex}`}
-          className={`summary-highlight summary-highlight-${currentHighlight.color}`}
-          data-highlight-text={currentHighlight.text}
-          data-highlight-color={currentHighlight.color}
-          tabIndex={0}
-          role="button"
-        >
-          {currentText}
-        </mark>
-      ) : currentText
-    );
-  }
+    for (let index = 0; index < segment.raw.length; index += 1) {
+      const nextHighlight = highlightMap[offset + index] || null;
+      if (nextHighlight !== currentHighlight) {
+        if (currentText) {
+          segments.push(
+            currentHighlight ? (
+              <mark
+                key={`${keyPrefix}-highlight-${segmentIndex}`}
+                className={`summary-highlight summary-highlight-${currentHighlight.color}`}
+                data-highlight-text={currentHighlight.text}
+                data-highlight-color={currentHighlight.color}
+                tabIndex={0}
+                role="button"
+              >
+                {currentText}
+              </mark>
+            ) : currentText
+          );
+          segmentIndex += 1;
+        }
+        currentText = '';
+        currentHighlight = nextHighlight;
+      }
+
+      currentText += segment.raw[index];
+    }
+
+    if (currentText) {
+      segments.push(
+        currentHighlight ? (
+          <mark
+            key={`${keyPrefix}-highlight-${segmentIndex}`}
+            className={`summary-highlight summary-highlight-${currentHighlight.color}`}
+            data-highlight-text={currentHighlight.text}
+            data-highlight-color={currentHighlight.color}
+            tabIndex={0}
+            role="button"
+          >
+            {currentText}
+          </mark>
+        ) : currentText
+      );
+      segmentIndex += 1;
+    }
+
+    offset += segment.display.length;
+  });
 
   return segments.length ? segments : text;
 };
@@ -141,7 +254,7 @@ const splitTextWithHighlightMap = (text, highlightMap, startOffset, keyPrefix) =
 const applyHighlightMapToNode = (node, highlightMap, state, keyPrefix = 'node') => {
   if (typeof node === 'string') {
     const startOffset = state.offset;
-    state.offset += node.length;
+    state.offset += node.replace(MATH_SEGMENT_REGEX, ' ').length;
     return splitTextWithHighlightMap(node, highlightMap, startOffset, keyPrefix);
   }
 
@@ -154,6 +267,7 @@ const applyHighlightMapToNode = (node, highlightMap, state, keyPrefix = 'node') 
   }
 
   if (isExcludedHighlightNode(node)) {
+    state.offset += 1;
     return node;
   }
 
@@ -769,47 +883,14 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
 
       const range = selection.getRangeAt(0);
       const container = summaryRef.current;
-      const normalizedText = normalizeHighlightText(selection.toString());
-      const startElement = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer;
-      const endElement = range.endContainer.nodeType === Node.TEXT_NODE ? range.endContainer.parentElement : range.endContainer;
+      const normalizedText = extractHighlightTextFromRange(range);
 
       if (!container || !normalizedText) {
+        clearSelection();
         return;
       }
 
       if (!container.contains(range.commonAncestorContainer)) {
-        return;
-      }
-
-      const excludedSelector = 'pre, code, mjx-container, .MathJax, .latex-math-1, .latex-math-2';
-      const isExcluded = (element) => element?.closest?.(excludedSelector);
-      const containsExcludedContent = () => {
-        if (isExcluded(startElement) || isExcluded(endElement)) {
-          return true;
-        }
-
-        const commonNode = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
-          ? range.commonAncestorContainer
-          : range.commonAncestorContainer.parentElement;
-
-        if (commonNode?.matches?.(excludedSelector)) {
-          return true;
-        }
-
-        const scopedRoot = commonNode?.querySelectorAll ? commonNode : container;
-        const excludedElements = scopedRoot.querySelectorAll?.(excludedSelector) || [];
-
-        for (const element of excludedElements) {
-          if (range.intersectsNode(element)) {
-            return true;
-          }
-        }
-
-        return false;
-      };
-
-      if (containsExcludedContent()) {
-        clearSelection();
         return;
       }
 
@@ -842,6 +923,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   };
 
   const activeHighlight = findHighlightByText(highlights, highlightPopover.text);
+  const summaryRenderKey = buildHighlightRenderKey(paperId, highlights);
 
   const arxivIdMatch = paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/);
   const arxivId = arxivIdMatch?.[1];
@@ -987,6 +1069,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
               {summary && (
                 <div className="summary-preview">
                   <main
+                    key={`preview-${summaryRenderKey}`}
                     className="formatted-summary"
                     itemProp="description"
                     ref={summaryRef}
@@ -1017,6 +1100,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                 </div>
               </div>
               <main
+                key={`summary-${summaryRenderKey}`}
                 className="formatted-summary"
                 itemProp="description"
                 ref={summaryRef}
