@@ -435,6 +435,17 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     return parseMarkdownWithMath(summaryText);
   };
 
+  const arxivIdMatch = paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/);
+  const arxivId = arxivIdMatch?.[1];
+  const paperLinks = arxivId ? [
+    { label: 'arxiv', href: `https://arxiv.org/abs/${arxivId}` },
+    { label: 'pdf', href: `https://arxiv.org/pdf/${arxivId}` },
+    { label: 'ar5iv', href: `https://ar5iv.labs.arxiv.org/html/${arxivId}` },
+    { label: 'alphaxiv', href: `https://www.alphaxiv.org/abs/${arxivId}` },
+  ] : [
+    { label: 'arxiv', href: paper.url },
+  ];
+
   return (
     <article>
       <nav className="breadcrumb">
@@ -491,7 +502,6 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   </>
                 ) : (
                   <>
-                    <button onClick={openScholarSearch} className="scholar-search-button" title="Search on Google Scholar" type="button">🎓</button>
                     {paper.citation !== undefined ? (
                       <div className="citation-display" onClick={handleStartEditingCitation} title="Click to edit citation count">
                         <span className="citation-count">{paper.citation >= 100 ? '🔖' : '🏷️'}{paper.citation.toLocaleString()}</span>
@@ -508,13 +518,28 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                 )}
               </div>
               <div className="paper-url-container">
-                <a href={paper.url} target="_blank" rel="noopener noreferrer" itemProp="url" className="paper-link">{paper.url}</a>
-                <div className="copy-btn-wrapper">
-                  <button onClick={handleCopyLink} className="copy-btn" title="Copy link to clipboard">
-                    🔗
+                <span className="paper-link-list">
+                  {paperLinks.map(({ label, href }, index) => (
+                    <a
+                      key={`${label}-${href}`}
+                      href={href}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      itemProp={index === 0 ? 'url' : undefined}
+                      className="paper-link"
+                    >
+                      {label}
+                    </a>
+                  ))}
+                  <button
+                    onClick={openScholarSearch}
+                    className="paper-link paper-link-button"
+                    title="Search on Google Scholar"
+                    type="button"
+                  >
+                    scholar
                   </button>
-                  {linkCopied && <div className="tooltip">Copied!</div>}
-                </div>
+                </span>
               </div>
             </div>
           </div>
