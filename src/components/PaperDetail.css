@@ -340,6 +340,129 @@
   color: var(--color-text-secondary);
 }
 
+.summary-highlight {
+  border: none;
+  border-radius: 0.25rem 0.25rem 0 0;
+  padding: 0 0.12rem;
+  color: inherit;
+  cursor: pointer;
+  transition: box-shadow 0.2s ease, transform 0.2s ease;
+}
+
+.summary-highlight:hover,
+.summary-highlight:focus-visible {
+  box-shadow: 0 0 0 2px rgba(31, 41, 55, 0.18);
+  outline: none;
+}
+
+.summary-highlight-sun {
+  background: #fff3a3;
+  border-bottom: 2px solid #dfd383;
+}
+
+.summary-highlight-amber {
+  background: #ffd8a8;
+  border-bottom: 2px solid #dfb888;
+}
+
+.summary-highlight-rose {
+  background: #ffc9de;
+  border-bottom: 2px solid #dfa9be;
+}
+
+.summary-highlight-mint {
+  background: #c3fae8;
+  border-bottom: 2px solid #a3dac8;
+}
+
+.summary-highlight-sky {
+  background: #b3e5fc;
+  border-bottom: 2px solid #93c5dc;
+}
+
+.summary-highlight-violet {
+  background: #d0bfff;
+  border-bottom: 2px solid #b09fdf;
+}
+
+.summary-highlight-stone {
+  background: #dee2e6;
+  border-bottom: 2px solid #bec2c6;
+}
+
+.highlight-popover {
+  position: absolute;
+  z-index: 200;
+  min-width: 220px;
+  transform: translateX(-50%);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 0.9rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.18);
+  padding: 0.9rem;
+}
+
+.highlight-popover-title {
+  font-size: 0.85rem;
+  color: var(--color-text-secondary);
+  margin-bottom: 0.65rem;
+  word-break: break-word;
+}
+
+.highlight-color-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.highlight-color-button {
+  width: 1.7rem;
+  height: 1.7rem;
+  padding: 0;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: var(--highlight-swatch);
+  cursor: pointer;
+  transition: transform 0.2s ease, border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.highlight-color-button:hover:not(:disabled),
+.highlight-color-button:focus-visible {
+  transform: translateY(-1px);
+  border-color: rgba(15, 23, 42, 0.35);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.08);
+  outline: none;
+}
+
+.highlight-color-button.is-active {
+  border-color: rgba(15, 23, 42, 0.6);
+  box-shadow: 0 0 0 3px rgba(15, 23, 42, 0.12);
+}
+
+.highlight-color-button:disabled,
+.highlight-delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.highlight-delete-button {
+  margin-top: 0.8rem;
+  width: 100%;
+  border: 1px solid rgba(220, 38, 38, 0.18);
+  border-radius: 0.7rem;
+  background: rgba(254, 226, 226, 0.8);
+  color: #b91c1c;
+  font-weight: 600;
+  padding: 0.55rem 0.75rem;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.2s ease;
+}
+
+.highlight-delete-button:hover:not(:disabled) {
+  background: rgba(254, 202, 202, 0.9);
+  transform: translateY(-1px);
+}
+
 .math-block {
   margin: 1.5rem 0;
   padding: 1rem;

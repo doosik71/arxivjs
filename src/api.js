@@ -40,6 +40,25 @@ export const getPaperSummary = async (topicName, paperId) => {
   }
 };
 
+export const getPaperHighlights = async (topicName, paperId) => {
+  try {
+    const response = await api.get(`/paper-highlights/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`);
+    return response.data.highlights || [];
+  } catch (error) {
+    if (error.response?.status === 404) {
+      return [];
+    }
+    throw error;
+  }
+};
+
+export const savePaperHighlights = async (topicName, paperId, highlights) => {
+  const response = await api.put(`/paper-highlights/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`, {
+    highlights
+  });
+  return response.data.highlights || [];
+};
+
 export const chatWithGemini = async (topicName, paperId, history) => {
   const baseURL = api.defaults.baseURL || '';
   const url = `${baseURL}/chat/${encodeURIComponent(topicName)}/${encodeURIComponent(paperId)}`;

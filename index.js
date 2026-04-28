@@ -6,6 +6,7 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { marked } = require('marked');
 const pdfParser = require('pdf-parse');
 require('dotenv').config();
 
@@ -82,6 +83,106 @@ const upload = multer({
         fileSize: 50 * 1024 * 1024 // 50MB limit
     }
 });
+
+function normalizeHighlightText(text) {
+    if (typeof text !== 'string') {
+        return '';
+    }
+
+    return text.replace(/\s+/g, ' ').trim();
+}
+
+function stripMathFromMarkdown(text) {
+    return text
+        .replace(/\$\$[\s\S]+?\$\$/g, ' ')
+        .replace(/\$([^\n\r$]+?)\$/g, ' ');
+}
+
+function decodeHtmlEntities(text) {
+    return text
+        .replace(/&#(\d+);/g, (_, code) => String.fromCodePoint(Number(code)))
+        .replace(/&#x([0-9a-fA-F]+);/g, (_, code) => String.fromCodePoint(parseInt(code, 16)))
+        .replace(/&nbsp;/g, ' ')
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+}
+
+function markdownToDisplayText(markdownText) {
+    const safeMarkdown = stripMathFromMarkdown(markdownText || '');
+    const html = marked.parse(safeMarkdown, {
+        mangle: false,
+        headerIds: false
+    });
+
+    return normalizeHighlightText(
+        decodeHtmlEntities(html.replace(/<[^>]+>/g, ' '))
+    );
+}
+
+function sanitizeHighlights(highlights, summaryText) {
+    const displayText = markdownToDisplayText(summaryText || '');
+    const uniqueHighlights = [];
+    const seenTexts = new Set();
+
+    for (const highlight of Array.isArray(highlights) ? highlights : []) {
+        const normalizedText = normalizeHighlightText(highlight?.text);
+        const color = typeof highlight?.color === 'string' ? highlight.color.trim() : '';
+
+        if (!normalizedText || !color || seenTexts.has(normalizedText)) {
+            continue;
+        }
+
+        if (!displayText.includes(normalizedText)) {
+            continue;
+        }
+
+        uniqueHighlights.push({
+            text: normalizedText,
+            color
+        });
+        seenTexts.add(normalizedText);
+    }
+
+    return uniqueHighlights;
+}
+
+async function loadHighlightsFile(topicName, paperId) {
+    const highlightPath = path.join(dataPath, topicName, paperId + '.hlt');
+
+    try {
+        const raw = await fs.readFile(highlightPath, 'utf-8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed?.highlights) ? parsed.highlights : [];
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            return [];
+        }
+        throw error;
+    }
+}
+
+async function saveHighlightsFile(topicName, paperId, highlights) {
+    const highlightPath = path.join(dataPath, topicName, paperId + '.hlt');
+
+    if (!highlights.length) {
+        try {
+            await fs.unlink(highlightPath);
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+        return;
+    }
+
+    await fs.writeFile(highlightPath, JSON.stringify({
+        version: 1,
+        highlights
+    }, null, 2));
+}
 
 // Establish API access points.
 async function getTopics(req, res) {
@@ -439,6 +540,8 @@ async function movePaper(req, res) {
         const newPath = path.join(dataPath, newTopicName, req.params.paperId + '.json');
         const oldMdPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
         const newMdPath = path.join(dataPath, newTopicName, req.params.paperId + '.md');
+        const oldHltPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt');
+        const newHltPath = path.join(dataPath, newTopicName, req.params.paperId + '.hlt');
 
         // Check if paper already exists in target topic
         try {
@@ -456,6 +559,7 @@ async function movePaper(req, res) {
             if (movingDate > existingDate) {
                 // Moving paper is newer, replace the existing one
                 await fs.rename(oldPath, newPath);
+                let movedSummaryFile = false;
 
                 // Handle .md file - check if moving paper has a newer summary
                 try {
@@ -464,6 +568,7 @@ async function movePaper(req, res) {
 
                     if (movingMdStat.mtime > existingMdStat.mtime) {
                         await fs.rename(oldMdPath, newMdPath);
+                        movedSummaryFile = true;
                     } else {
                         // Remove old md file since we're keeping the existing one
                         await fs.unlink(oldMdPath);
@@ -472,10 +577,30 @@ async function movePaper(req, res) {
                     // Handle case where one of the md files doesn't exist
                     try {
                         await fs.rename(oldMdPath, newMdPath);
+                        movedSummaryFile = true;
                     } catch (renameError) {
                         if (renameError.code !== 'ENOENT') {
                             throw renameError;
                         }
+                    }
+                }
+
+                try {
+                    if (movedSummaryFile) {
+                        try {
+                            await fs.unlink(newHltPath);
+                        } catch (unlinkError) {
+                            if (unlinkError.code !== 'ENOENT') {
+                                throw unlinkError;
+                            }
+                        }
+                        await fs.rename(oldHltPath, newHltPath);
+                    } else {
+                        await fs.unlink(oldHltPath);
+                    }
+                } catch (hltError) {
+                    if (hltError.code !== 'ENOENT') {
+                        throw hltError;
                     }
                 }
 
@@ -485,6 +610,13 @@ async function movePaper(req, res) {
                 await fs.unlink(oldPath);
                 try {
                     await fs.unlink(oldMdPath);
+                } catch (error) {
+                    if (error.code !== 'ENOENT') {
+                        throw error;
+                    }
+                }
+                try {
+                    await fs.unlink(oldHltPath);
                 } catch (error) {
                     if (error.code !== 'ENOENT') {
                         throw error;
@@ -502,6 +634,14 @@ async function movePaper(req, res) {
                 } catch (mdError) {
                     if (mdError.code !== 'ENOENT') {
                         throw mdError;
+                    }
+                }
+
+                try {
+                    await fs.rename(oldHltPath, newHltPath);
+                } catch (hltError) {
+                    if (hltError.code !== 'ENOENT') {
+                        throw hltError;
                     }
                 }
 
@@ -525,6 +665,13 @@ async function deletePaper(req, res) {
                 throw error;
             }
         }
+        try {
+            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt'));
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
         res.json({ message: 'Paper deleted successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -534,6 +681,13 @@ async function deletePaper(req, res) {
 async function deletePaperSummary(req, res) {
     try {
         await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.md'));
+        try {
+            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt'));
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
         res.json({ message: 'Paper summary deleted successfully.' });
     } catch (error) {
         if (error.code === 'ENOENT') {
@@ -618,6 +772,42 @@ async function getPaperSummary(req, res) {
         const mdPath = path.join(dataPath, topicName, paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
         res.json({ summary });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ message: 'Summary not found.' });
+        } else {
+            res.status(500).json({ message: error.message });
+        }
+    }
+}
+
+async function getPaperHighlights(req, res) {
+    try {
+        const { topicName, paperId } = req.params;
+        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const summary = await fs.readFile(mdPath, 'utf-8');
+        const highlights = sanitizeHighlights(await loadHighlightsFile(topicName, paperId), summary);
+
+        await saveHighlightsFile(topicName, paperId, highlights);
+        res.json({ highlights });
+    } catch (error) {
+        if (error.code === 'ENOENT') {
+            res.status(404).json({ message: 'Summary not found.' });
+        } else {
+            res.status(500).json({ message: error.message });
+        }
+    }
+}
+
+async function updatePaperHighlights(req, res) {
+    try {
+        const { topicName, paperId } = req.params;
+        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const summary = await fs.readFile(mdPath, 'utf-8');
+        const highlights = sanitizeHighlights(req.body?.highlights, summary);
+
+        await saveHighlightsFile(topicName, paperId, highlights);
+        res.json({ highlights });
     } catch (error) {
         if (error.code === 'ENOENT') {
             res.status(404).json({ message: 'Summary not found.' });
@@ -866,6 +1056,8 @@ app.post('/papers/:topicName', savePaper);
 app.put('/papers/:topicName/:paperId', movePaper);
 app.delete('/papers/:topicName/:paperId', deletePaper);
 app.delete('/paper-summary/:topicName/:paperId', deletePaperSummary);
+app.get('/paper-highlights/:topicName/:paperId', getPaperHighlights);
+app.put('/paper-highlights/:topicName/:paperId', updatePaperHighlights);
 
 async function fetchAndUpdateCitation(req, res) {
     try {

@@ -1,9 +1,211 @@
-import { useState, useEffect, useRef } from 'react';
-import { getPaperSummary, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
+import React, { useState, useEffect, useRef } from 'react';
+import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithGemini, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
 import './PaperDetail.css';
+
+const HIGHLIGHT_COLORS = [
+  { name: 'sun', value: 'sun', hex: '#fff3a3' },
+  { name: 'amber', value: 'amber', hex: '#ffd8a8' },
+  { name: 'rose', value: 'rose', hex: '#ffc9de' },
+  { name: 'mint', value: 'mint', hex: '#c3fae8' },
+  { name: 'sky', value: 'sky', hex: '#b3e5fc' },
+  { name: 'violet', value: 'violet', hex: '#d0bfff' },
+  { name: 'stone', value: 'stone', hex: '#dee2e6' }
+];
+
+const BLOCK_HIGHLIGHT_TAGS = new Set(['p', 'li', 'blockquote', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+
+const normalizeHighlightText = (text) => (
+  typeof text === 'string' ? text.replace(/\s+/g, ' ').trim() : ''
+);
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const findHighlightByText = (highlights, text) => {
+  const normalizedText = normalizeHighlightText(text);
+  return highlights.find((highlight) => normalizeHighlightText(highlight.text) === normalizedText) || null;
+};
+
+const isExcludedHighlightNode = (node) => {
+  if (!React.isValidElement(node)) {
+    return false;
+  }
+
+  const tagName = typeof node.type === 'string' ? node.type.toLowerCase() : '';
+  const className = typeof node.props?.className === 'string' ? node.props.className : '';
+
+  return tagName === 'pre'
+    || tagName === 'code'
+    || tagName === 'mjx-container'
+    || className.includes('latex-math-')
+    || className.includes('MathJax');
+};
+
+const collectHighlightableText = (node) => {
+  if (typeof node === 'string') {
+    return node;
+  }
+
+  if (typeof node === 'number' || node == null || !React.isValidElement(node) || isExcludedHighlightNode(node)) {
+    return '';
+  }
+
+  return React.Children.toArray(node.props.children)
+    .map((child) => collectHighlightableText(child))
+    .join('');
+};
+
+const buildHighlightMap = (text, highlights) => {
+  const map = new Array(text.length).fill(null);
+
+  highlights.forEach((highlight) => {
+    const normalizedText = normalizeHighlightText(highlight?.text);
+    if (!normalizedText) {
+      return;
+    }
+
+    const pattern = escapeRegExp(normalizedText).replace(/\s+/g, '\\s+');
+    const regex = new RegExp(pattern, 'g');
+    let match;
+
+    while ((match = regex.exec(text)) !== null) {
+      const endIndex = match.index + match[0].length;
+      for (let index = match.index; index < endIndex; index += 1) {
+        map[index] = highlight;
+      }
+    }
+  });
+
+  return map;
+};
+
+const splitTextWithHighlightMap = (text, highlightMap, startOffset, keyPrefix) => {
+  if (!text) {
+    return text;
+  }
+
+  const segments = [];
+  let currentText = '';
+  let currentHighlight = highlightMap[startOffset] || null;
+  let segmentIndex = 0;
+
+  for (let index = 0; index < text.length; index += 1) {
+    const nextHighlight = highlightMap[startOffset + index] || null;
+    if (nextHighlight !== currentHighlight) {
+      if (currentText) {
+        segments.push(
+          currentHighlight ? (
+            <mark
+              key={`${keyPrefix}-highlight-${segmentIndex}`}
+              className={`summary-highlight summary-highlight-${currentHighlight.color}`}
+              data-highlight-text={currentHighlight.text}
+              data-highlight-color={currentHighlight.color}
+              tabIndex={0}
+              role="button"
+            >
+              {currentText}
+            </mark>
+          ) : currentText
+        );
+        segmentIndex += 1;
+      }
+      currentText = '';
+      currentHighlight = nextHighlight;
+    }
+
+    currentText += text[index];
+  }
+
+  if (currentText) {
+    segments.push(
+      currentHighlight ? (
+        <mark
+          key={`${keyPrefix}-highlight-${segmentIndex}`}
+          className={`summary-highlight summary-highlight-${currentHighlight.color}`}
+          data-highlight-text={currentHighlight.text}
+          data-highlight-color={currentHighlight.color}
+          tabIndex={0}
+          role="button"
+        >
+          {currentText}
+        </mark>
+      ) : currentText
+    );
+  }
+
+  return segments.length ? segments : text;
+};
+
+const applyHighlightMapToNode = (node, highlightMap, state, keyPrefix = 'node') => {
+  if (typeof node === 'string') {
+    const startOffset = state.offset;
+    state.offset += node.length;
+    return splitTextWithHighlightMap(node, highlightMap, startOffset, keyPrefix);
+  }
+
+  if (typeof node === 'number' || node == null) {
+    return node;
+  }
+
+  if (!React.isValidElement(node)) {
+    return node;
+  }
+
+  if (isExcludedHighlightNode(node)) {
+    return node;
+  }
+
+  const children = React.Children.toArray(node.props.children).flatMap((child, index) => {
+    const transformed = applyHighlightMapToNode(child, highlightMap, state, `${keyPrefix}-${index}`);
+    return Array.isArray(transformed) ? transformed : [transformed];
+  });
+
+  return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
+};
+
+const applyHighlightsToBlockNode = (node, highlights, keyPrefix = 'block') => {
+  const flatText = collectHighlightableText(node);
+  if (!flatText) {
+    return node;
+  }
+
+  const highlightMap = buildHighlightMap(flatText, highlights);
+  if (!highlightMap.some(Boolean)) {
+    return node;
+  }
+
+  const state = { offset: 0 };
+  const children = React.Children.toArray(node.props.children).flatMap((child, index) => {
+    const transformed = applyHighlightMapToNode(child, highlightMap, state, `${keyPrefix}-${index}`);
+    return Array.isArray(transformed) ? transformed : [transformed];
+  });
+
+  return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
+};
+
+const applyHighlightsRecursively = (node, highlights, keyPrefix = 'node') => {
+  if (typeof node === 'string' || typeof node === 'number' || node == null) {
+    return node;
+  }
+
+  if (!React.isValidElement(node) || isExcludedHighlightNode(node)) {
+    return node;
+  }
+
+  const tagName = typeof node.type === 'string' ? node.type.toLowerCase() : '';
+  if (BLOCK_HIGHLIGHT_TAGS.has(tagName)) {
+    return applyHighlightsToBlockNode(node, highlights, keyPrefix);
+  }
+
+  const children = React.Children.toArray(node.props.children).flatMap((child, index) => {
+    const transformed = applyHighlightsRecursively(child, highlights, `${keyPrefix}-${index}`);
+    return Array.isArray(transformed) ? transformed : [transformed];
+  });
+
+  return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
+};
 
 const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, onTocUpdate }) => {
   // Component for summary copy buttons
@@ -79,7 +281,16 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [isTranslated, setIsTranslated] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [highlights, setHighlights] = useState([]);
+  const [isSavingHighlight, setIsSavingHighlight] = useState(false);
+  const [highlightPopover, setHighlightPopover] = useState({
+    open: false,
+    text: '',
+    x: 0,
+    y: 0
+  });
   const summaryRef = useRef(null);
+  const popoverRef = useRef(null);
 
   const handleCopyLink = async () => {
     try {
@@ -106,6 +317,46 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     }
   };
 
+  const closeHighlightPopover = () => {
+    setHighlightPopover((prev) => ({ ...prev, open: false }));
+  };
+
+  const clearSelection = () => {
+    const selection = window.getSelection?.();
+    if (selection && selection.rangeCount > 0) {
+      selection.removeAllRanges();
+    }
+  };
+
+  const openHighlightPopover = (text, rect) => {
+    const normalizedText = normalizeHighlightText(text);
+    if (!normalizedText || !rect) {
+      return;
+    }
+
+    setHighlightPopover({
+      open: true,
+      text: normalizedText,
+      x: rect.left + window.scrollX + (rect.width / 2),
+      y: rect.bottom + window.scrollY + 8
+    });
+  };
+
+  const persistHighlights = async (nextHighlights) => {
+    setIsSavingHighlight(true);
+    try {
+      const savedHighlights = await savePaperHighlights(topicName, paperId, nextHighlights);
+      setHighlights(savedHighlights);
+      return savedHighlights;
+    } catch (error) {
+      console.error('Failed to save highlights:', error);
+      alert('Failed to save highlight. Please try again.');
+      throw error;
+    } finally {
+      setIsSavingHighlight(false);
+    }
+  };
+
   useEffect(() => {
     window.scrollTo(0, 0);
   }, [paperId]);
@@ -116,6 +367,8 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsTranslated(false);
     setTranslatedAbstract('');
     setIsTranslating(false);
+    setHighlights([]);
+    closeHighlightPopover();
   }, [initialPaper]);
 
   useEffect(() => {
@@ -198,7 +451,40 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
         console.error('MathJax rendering error:', err);
       });
     }
-  }, [summary, isGeneratingSummary]);
+  }, [summary, highlights, isGeneratingSummary]);
+
+  useEffect(() => {
+    if (!highlightPopover.open) {
+      return undefined;
+    }
+
+    const handlePointerDown = (event) => {
+      if (popoverRef.current?.contains(event.target)) {
+        return;
+      }
+
+      if (event.target.closest?.('.summary-highlight')) {
+        return;
+      }
+
+      closeHighlightPopover();
+    };
+
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') {
+        closeHighlightPopover();
+        clearSelection();
+      }
+    };
+
+    document.addEventListener('mousedown', handlePointerDown);
+    document.addEventListener('keydown', handleKeyDown);
+
+    return () => {
+      document.removeEventListener('mousedown', handlePointerDown);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [highlightPopover.open]);
 
   const loadSummary = async () => {
     try {
@@ -206,9 +492,16 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       setSummaryError(null);
       const summaryData = await getPaperSummary(topicName, paperId);
       setSummary(summaryData);
+      if (summaryData) {
+        const highlightData = await getPaperHighlights(topicName, paperId);
+        setHighlights(highlightData);
+      } else {
+        setHighlights([]);
+      }
     } catch (err) {
       setSummaryError('Failed to load summary');
       console.error('Error loading summary:', err);
+      setHighlights([]);
     } finally {
       setLoadingSummary(false);
     }
@@ -218,6 +511,8 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     try {
       setIsGeneratingSummary(true);
       setSummaryError(null);
+      setHighlights([]);
+      closeHighlightPopover();
 
       const response = await generatePaperSummary(topicName, paper);
 
@@ -266,6 +561,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       setSummaryError('Failed to generate summary: ' + (err.message || 'Unknown error'));
       console.error('Error generating summary:', err);
       setSummary(null); // Clear partial summary on error
+      setHighlights([]);
     } finally {
       setIsGeneratingSummary(false);
     }
@@ -367,7 +663,9 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       setIsDeletingSummary(true);
       await deletePaperSummary(topicName, paperId);
       setSummary(null); // Clear the summary from state
+      setHighlights([]);
       setSummaryError(null); // Clear any errors
+      closeHighlightPopover();
     } catch (error) {
       console.error('Error deleting summary:', error);
       alert('Failed to delete summary. Please try again.');
@@ -430,10 +728,120 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     }
   };
 
+  const handleHighlightColorSelect = async (color) => {
+    const text = normalizeHighlightText(highlightPopover.text);
+    if (!text) {
+      return;
+    }
+
+    const nextHighlights = [
+      ...highlights.filter((highlight) => normalizeHighlightText(highlight.text) !== text),
+      { text, color }
+    ];
+
+    await persistHighlights(nextHighlights);
+    clearSelection();
+    closeHighlightPopover();
+  };
+
+  const handleHighlightDelete = async () => {
+    const text = normalizeHighlightText(highlightPopover.text);
+    if (!text) {
+      return;
+    }
+
+    const nextHighlights = highlights.filter((highlight) => normalizeHighlightText(highlight.text) !== text);
+    await persistHighlights(nextHighlights);
+    clearSelection();
+    closeHighlightPopover();
+  };
+
+  const handleSummaryMouseUp = () => {
+    if (isGeneratingSummary) {
+      return;
+    }
+
+    window.setTimeout(() => {
+      const selection = window.getSelection?.();
+      if (!selection || selection.rangeCount === 0 || selection.isCollapsed) {
+        return;
+      }
+
+      const range = selection.getRangeAt(0);
+      const container = summaryRef.current;
+      const normalizedText = normalizeHighlightText(selection.toString());
+      const startElement = range.startContainer.nodeType === Node.TEXT_NODE ? range.startContainer.parentElement : range.startContainer;
+      const endElement = range.endContainer.nodeType === Node.TEXT_NODE ? range.endContainer.parentElement : range.endContainer;
+
+      if (!container || !normalizedText) {
+        return;
+      }
+
+      if (!container.contains(range.commonAncestorContainer)) {
+        return;
+      }
+
+      const excludedSelector = 'pre, code, mjx-container, .MathJax, .latex-math-1, .latex-math-2';
+      const isExcluded = (element) => element?.closest?.(excludedSelector);
+      const containsExcludedContent = () => {
+        if (isExcluded(startElement) || isExcluded(endElement)) {
+          return true;
+        }
+
+        const commonNode = range.commonAncestorContainer.nodeType === Node.ELEMENT_NODE
+          ? range.commonAncestorContainer
+          : range.commonAncestorContainer.parentElement;
+
+        if (commonNode?.matches?.(excludedSelector)) {
+          return true;
+        }
+
+        const scopedRoot = commonNode?.querySelectorAll ? commonNode : container;
+        const excludedElements = scopedRoot.querySelectorAll?.(excludedSelector) || [];
+
+        for (const element of excludedElements) {
+          if (range.intersectsNode(element)) {
+            return true;
+          }
+        }
+
+        return false;
+      };
+
+      if (containsExcludedContent()) {
+        clearSelection();
+        return;
+      }
+
+      openHighlightPopover(normalizedText, range.getBoundingClientRect());
+    }, 0);
+  };
+
+  const handleSummaryClick = (event) => {
+    const highlightElement = event.target.closest?.('.summary-highlight');
+    if (!highlightElement) {
+      return;
+    }
+
+    event.preventDefault();
+    clearSelection();
+    openHighlightPopover(
+      highlightElement.dataset.highlightText,
+      highlightElement.getBoundingClientRect()
+    );
+  };
+
   const formatSummary = (summaryText) => {
     if (!summaryText) return null;
-    return parseMarkdownWithMath(summaryText);
+    const parsedSummary = parseMarkdownWithMath(summaryText);
+    if (!highlights.length) {
+      return parsedSummary;
+    }
+
+    return parsedSummary.map((node, index) => applyHighlightsRecursively(node, highlights, `summary-${index}`));
   };
+
+  const activeHighlight = findHighlightByText(highlights, highlightPopover.text);
 
   const arxivIdMatch = paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/);
   const arxivId = arxivIdMatch?.[1];
@@ -578,7 +986,13 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
               </div>
               {summary && (
                 <div className="summary-preview">
-                  <main className="formatted-summary" itemProp="description" ref={summaryRef}>
+                  <main
+                    className="formatted-summary"
+                    itemProp="description"
+                    ref={summaryRef}
+                    onMouseUp={handleSummaryMouseUp}
+                    onClick={handleSummaryClick}
+                  >
                     <ErrorBoundary>
                       {formatSummary(summary)}
                     </ErrorBoundary>
@@ -602,7 +1016,13 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                   </button>
                 </div>
               </div>
-              <main className="formatted-summary" itemProp="description" ref={summaryRef}>
+              <main
+                className="formatted-summary"
+                itemProp="description"
+                ref={summaryRef}
+                onMouseUp={handleSummaryMouseUp}
+                onClick={handleSummaryClick}
+              >
                 <ErrorBoundary>
                   {formatSummary(summary)}
                 </ErrorBoundary>
@@ -629,6 +1049,42 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
           isLoading={isChatLoading}
           onClearHistory={handleClearChatHistory}
         />
+      )}
+      {highlightPopover.open && (
+        <div
+          ref={popoverRef}
+          className="highlight-popover"
+          style={{
+            left: `${highlightPopover.x}px`,
+            top: `${highlightPopover.y}px`
+          }}
+        >
+          <div className="highlight-popover-title">Highlight</div>
+          <div className="highlight-color-grid">
+            {HIGHLIGHT_COLORS.map((color) => (
+              <button
+                key={color.value}
+                type="button"
+                className={`highlight-color-button${activeHighlight?.color === color.value ? ' is-active' : ''}`}
+                style={{ '--highlight-swatch': color.hex }}
+                onClick={() => handleHighlightColorSelect(color.value)}
+                disabled={isSavingHighlight}
+                aria-label={`Highlight with ${color.name}`}
+                title={color.name}
+              />
+            ))}
+          </div>
+          {activeHighlight && (
+            <button
+              type="button"
+              className="highlight-delete-button"
+              onClick={handleHighlightDelete}
+              disabled={isSavingHighlight}
+            >
+              Delete highlight
+            </button>
+          )}
+        </div>
       )}
     </article>
   );
