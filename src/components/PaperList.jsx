@@ -545,10 +545,19 @@ const PaperList = ({
                             <span className="paper-authors">
                               {highlightText(paper.authors, paperSearchQuery, paperSearchField, 'authors')}
                             </span>
+                            <span className="paper-meta-inline">
                             <span className="paper-year">{paper.year}</span>
                             {paper.citation !== undefined && (
                               <span className="citation-list-display">{paper.citation >= 100 ? '🔖' : '🏷️'}{paper.citation.toLocaleString()}</span>
                             )}
+                            {paper.hasHighlights && (
+                              <span
+                                className="paper-highlight-indicator"
+                                aria-label="Has highlights"
+                                title="Has highlights"
+                              />
+                            )}
+                            </span>
                           </div>
                         </div>
                         <button

@@ -230,6 +230,12 @@ pre,
   margin-bottom: 0.3rem;
 }
 
+.paper-meta-inline {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
 .paper-year {
   color: var(--color-text-secondary);
   background: var(--color-hover);
@@ -237,6 +243,17 @@ pre,
   padding: 0.1rem 0.3rem;
   margin: 0 0.5rem;
   border-radius: 4px;
+}
+
+.paper-highlight-indicator {
+  width: 0.7rem;
+  height: 0.7rem;
+  margin-left: 0.5rem;
+  border-radius: 50%;
+  background: #ffd43b;
+  border: 1px solid #e0a800;
+  box-shadow: 0 0 0 1px rgba(224, 168, 0, 0.15);
+  flex-shrink: 0;
 }
 
 .loading {

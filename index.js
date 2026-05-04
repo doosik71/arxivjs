@@ -523,6 +523,14 @@ async function getPapers(req, res) {
                     paper.hasSummary = false;
                 }
 
+                const hltPath = path.join(topicPath, baseName + '.hlt');
+                try {
+                    await fs.access(hltPath);
+                    paper.hasHighlights = true;
+                } catch (e) {
+                    paper.hasHighlights = false;
+                }
+
                 papers.push(paper);
             }
         }
