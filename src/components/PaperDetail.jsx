@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithPaper, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import { getSavedConfig } from '../utils/config';
+import { getPaperId } from '../utils/paperId';
 import ChatBox from './ChatBox';
 import ErrorBoundary from './ErrorBoundary';
 import './PaperDetail.css';
@@ -419,6 +420,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   });
   const summaryRef = useRef(null);
   const popoverRef = useRef(null);
+  const effectivePaperId = paperId || getPaperId(initialPaper);
 
   const handleCopyLink = async () => {
     try {
@@ -473,7 +475,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const persistHighlights = async (nextHighlights) => {
     setIsSavingHighlight(true);
     try {
-      const savedHighlights = await savePaperHighlights(topicName, paperId, nextHighlights);
+      const savedHighlights = await savePaperHighlights(topicName, effectivePaperId, nextHighlights);
       setHighlights(savedHighlights);
       return savedHighlights;
     } catch (error) {
@@ -487,7 +489,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [paperId]);
+  }, [effectivePaperId]);
 
   useEffect(() => {
     setPaper(initialPaper);
@@ -500,10 +502,10 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   }, [initialPaper]);
 
   useEffect(() => {
-    if (paperId && topicName) {
+    if (effectivePaperId && topicName) {
       loadSummary();
     }
-  }, [paperId, topicName]);
+  }, [effectivePaperId, topicName]);
 
   // Update page metadata for immersive reader
   useEffect(() => {
@@ -618,10 +620,10 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     try {
       setLoadingSummary(true);
       setSummaryError(null);
-      const summaryData = await getPaperSummary(topicName, paperId);
+      const summaryData = await getPaperSummary(topicName, effectivePaperId);
       setSummary(summaryData);
       if (summaryData) {
-        const highlightData = await getPaperHighlights(topicName, paperId);
+        const highlightData = await getPaperHighlights(topicName, effectivePaperId);
         setHighlights(highlightData);
       } else {
         setHighlights([]);
@@ -705,7 +707,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsChatLoading(true);
 
     try {
-      const response = await chatWithPaper(topicName, paperId, newHistory, selectedEngine);
+      const response = await chatWithPaper(topicName, effectivePaperId, newHistory, selectedEngine);
 
       if (!response.body) {
         throw new Error("Streaming not supported");
@@ -772,7 +774,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
 
     try {
       setIsDeleting(true);
-      await deletePaper(topicName, paperId);
+      await deletePaper(topicName, effectivePaperId);
       onBackToPapers(); // Navigate back to paper list
     } catch (error) {
       console.error('Error deleting paper:', error);
@@ -789,7 +791,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
 
     try {
       setIsDeletingSummary(true);
-      await deletePaperSummary(topicName, paperId);
+      await deletePaperSummary(topicName, effectivePaperId);
       setSummary(null); // Clear the summary from state
       setHighlights([]);
       setSummaryError(null); // Clear any errors
@@ -809,7 +811,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       return;
     }
     try {
-      const updatedData = await updateCitationCount(topicName, paperId, count);
+      const updatedData = await updateCitationCount(topicName, effectivePaperId, count);
       setPaper(updatedData.paper);
       setIsEditingCitation(false);
       setCitationInput('');
@@ -840,7 +842,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     let success = true;
 
     try {
-      const updatedData = await fetchAndUpdateCitation(topicName, paperId);
+      const updatedData = await fetchAndUpdateCitation(topicName, effectivePaperId);
       setPaper(updatedData.paper);
       if (updatedData.message && updatedData.message.includes('Could not find')) {
         success = false;
@@ -937,7 +939,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   };
 
   const activeHighlight = findHighlightByText(highlights, highlightPopover.text);
-  const summaryRenderKey = buildHighlightRenderKey(paperId, highlights);
+  const summaryRenderKey = buildHighlightRenderKey(effectivePaperId, highlights);
 
   const arxivIdMatch = paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/);
   const arxivId = arxivIdMatch?.[1];

@@ -12,7 +12,8 @@ export default defineConfig(({ mode }) => {
     publicDir: 'assets', // Avoid conflict with build output
     server: {
       host: env.HOST || 'localhost',
-      port: parseInt(env.PORT, 10) || 8765,
+      // Keep the Vite dev server on its own port so it never competes with the backend.
+      port: parseInt(env.VITE_PORT, 10) || 5173,
       proxy: {
         '/api': {
           target: env.TARGET || 'http://localhost:8765',

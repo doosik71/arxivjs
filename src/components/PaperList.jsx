@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper, getTopics, movePaper } from '../api';
 import TableOfContents from './TableOfContents';
+import { getPaperId } from '../utils/paperId';
 import './PaperList.css';
 
 // Utility function to highlight search terms in text
@@ -272,7 +273,7 @@ const PaperList = ({
   };
 
   const handleDeletePaper = async (paper) => {
-    const paperId = paper.id || btoa(paper.url);
+    const paperId = getPaperId(paper);
 
     if (!window.confirm(`Are you sure you want to delete this paper?\n\n"${paper.title}"`)) {
       return;
@@ -337,7 +338,7 @@ const PaperList = ({
   const handleMoveToTopic = async (targetTopicName) => {
     if (!selectedPaper) return;
 
-    const paperId = selectedPaper.id || btoa(selectedPaper.url);
+    const paperId = getPaperId(selectedPaper);
 
     try {
       // Store current scroll position
@@ -526,7 +527,7 @@ const PaperList = ({
                 </div>
                 <div className="paper-list">
                   {papers.map((paper) => {
-                    const paperId = paper.id || btoa(paper.url);
+                    const paperId = getPaperId(paper);
                     return (
                       <div
                         key={paperId}
