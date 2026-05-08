@@ -155,7 +155,7 @@ async function main() {
       continue;
     }
 
-    console.log(`\n[topic] ${topicName} (${jsonFiles.length} papers)`);
+    // console.log(`\n[topic] ${topicName} (${jsonFiles.length} papers)`);
 
     for (const jsonFileName of jsonFiles) {
       stats.processed += 1;
@@ -166,7 +166,7 @@ async function main() {
 
         if (result.status === 'skipped') {
           stats.skipped += 1;
-          console.log(`[skip] ${topicName}/${paperId} summary already exists`);
+          // console.log(`[skip] ${topicName}/${paperId} summary already exists`);
           continue;
         }
 
