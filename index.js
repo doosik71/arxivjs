@@ -46,6 +46,29 @@ function getPaperStorageId(paper) {
     return slugifyPaperTitle(paper?.title);
 }
 
+function normalizeTopicDisplayName(topicName) {
+    return String(topicName || '')
+        .replace(/_/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function toTopicFolderName(topicName) {
+    return normalizeTopicDisplayName(topicName).replace(/\s+/g, '_');
+}
+
+function toTopicDisplayName(folderName) {
+    return normalizeTopicDisplayName(folderName);
+}
+
+function isValidTopicName(topicName) {
+    return /^[a-zA-Z0-9\uAC00-\uD7A3 ()-]+$/.test(topicName);
+}
+
+function getTopicPath(topicName) {
+    return path.join(dataPath, toTopicFolderName(topicName));
+}
+
 function getAvailableLlmEngines() {
     return Object.entries(llmProviders)
         .filter(([, provider]) => Boolean(provider))
@@ -214,7 +237,7 @@ function sanitizeHighlights(highlights, summaryText, summaryFileName = 'unknown.
 }
 
 async function loadHighlightsFile(topicName, paperId) {
-    const highlightPath = path.join(dataPath, topicName, paperId + '.hlt');
+    const highlightPath = path.join(getTopicPath(topicName), paperId + '.hlt');
 
     try {
         const raw = await fs.readFile(highlightPath, 'utf-8');
@@ -229,7 +252,7 @@ async function loadHighlightsFile(topicName, paperId) {
 }
 
 async function saveHighlightsFile(topicName, paperId, highlights) {
-    const highlightPath = path.join(dataPath, topicName, paperId + '.hlt');
+    const highlightPath = path.join(getTopicPath(topicName), paperId + '.hlt');
 
     if (!highlights.length) {
         try {
@@ -464,7 +487,7 @@ async function getTopics(req, res) {
             try {
                 const stat = await fs.stat(fullPath);
                 if (stat.isDirectory()) {
-                    topics.push(file);
+                    topics.push(toTopicDisplayName(file));
                 }
             } catch (e) {
                 console.warn(`Ignored: ${file}`, e.message);
@@ -480,12 +503,24 @@ async function getTopics(req, res) {
 
 async function createTopic(req, res) {
     try {
-        const { topicName } = req.body;
-        if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s()\-]+$/.test(topicName)) {
+        const normalizedTopicName = normalizeTopicDisplayName(req.body?.topicName);
+        if (!normalizedTopicName || !isValidTopicName(normalizedTopicName)) {
             return res.status(400).json({ message: 'Invalid topic name.' });
         }
-        await fs.mkdir(path.join(dataPath, topicName));
-        res.status(201).json({ message: 'Topic created successfully.' });
+
+        const topicPath = getTopicPath(normalizedTopicName);
+
+        try {
+            await fs.access(topicPath);
+            return res.status(409).json({ message: 'Topic already exists.' });
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+
+        await fs.mkdir(topicPath);
+        res.status(201).json({ message: 'Topic created successfully.', topicName: normalizedTopicName });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -493,12 +528,30 @@ async function createTopic(req, res) {
 
 async function renameTopic(req, res) {
     try {
-        const { newName } = req.body;
-        if (!/^[a-zA-Z0-9\uAC00-\uD7A3\s]+$/.test(newName)) {
+        const oldTopicName = normalizeTopicDisplayName(req.params.oldName);
+        const newTopicName = normalizeTopicDisplayName(req.body?.newName);
+        if (!newTopicName || !isValidTopicName(newTopicName)) {
             return res.status(400).json({ message: 'Invalid topic name.' });
         }
-        await fs.rename(path.join(dataPath, req.params.oldName), path.join(dataPath, newName));
-        res.json({ message: 'Topic renamed successfully.' });
+
+        const oldTopicPath = getTopicPath(oldTopicName);
+        const newTopicPath = getTopicPath(newTopicName);
+
+        if (oldTopicPath === newTopicPath) {
+            return res.json({ message: 'Topic renamed successfully.', topicName: newTopicName });
+        }
+
+        try {
+            await fs.access(newTopicPath);
+            return res.status(409).json({ message: 'Topic already exists.' });
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+
+        await fs.rename(oldTopicPath, newTopicPath);
+        res.json({ message: 'Topic renamed successfully.', topicName: newTopicName });
     } catch (error) {
         res.status(500).json({ message: error.message });
     }
@@ -506,7 +559,7 @@ async function renameTopic(req, res) {
 
 async function deleteTopic(req, res) {
     try {
-        const topicPath = path.join(dataPath, req.params.topicName);
+        const topicPath = getTopicPath(req.params.topicName);
         const files = await fs.readdir(topicPath);
         if (files.length > 0) {
             return res.status(400).json({ message: 'Topic folder is not empty.' });
@@ -520,7 +573,7 @@ async function deleteTopic(req, res) {
 
 async function getPapers(req, res) {
     try {
-        const topicPath = path.join(dataPath, req.params.topicName);
+        const topicPath = getTopicPath(req.params.topicName);
         const files = await fs.readdir(topicPath);
         const papers = [];
         for (const file of files) {
@@ -770,7 +823,7 @@ async function savePaper(req, res) {
         }
 
         const fileName = getPaperStorageId(paper) + '.json';
-        const paperPath = path.join(dataPath, topicName, fileName);
+        const paperPath = path.join(getTopicPath(topicName), fileName);
 
         // Save paper without citation count first.
         await fs.writeFile(paperPath, JSON.stringify(paper, null, 2));
@@ -810,12 +863,14 @@ async function savePaper(req, res) {
 async function movePaper(req, res) {
     try {
         const { newTopicName } = req.body;
-        const oldPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.json');
-        const newPath = path.join(dataPath, newTopicName, req.params.paperId + '.json');
-        const oldMdPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
-        const newMdPath = path.join(dataPath, newTopicName, req.params.paperId + '.md');
-        const oldHltPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt');
-        const newHltPath = path.join(dataPath, newTopicName, req.params.paperId + '.hlt');
+        const oldTopicPath = getTopicPath(req.params.topicName);
+        const newTopicPath = getTopicPath(newTopicName);
+        const oldPath = path.join(oldTopicPath, req.params.paperId + '.json');
+        const newPath = path.join(newTopicPath, req.params.paperId + '.json');
+        const oldMdPath = path.join(oldTopicPath, req.params.paperId + '.md');
+        const newMdPath = path.join(newTopicPath, req.params.paperId + '.md');
+        const oldHltPath = path.join(oldTopicPath, req.params.paperId + '.hlt');
+        const newHltPath = path.join(newTopicPath, req.params.paperId + '.hlt');
 
         // Check if paper already exists in target topic
         try {
@@ -931,16 +986,17 @@ async function movePaper(req, res) {
 
 async function deletePaper(req, res) {
     try {
-        await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.json'));
+        const topicPath = getTopicPath(req.params.topicName);
+        await fs.unlink(path.join(topicPath, req.params.paperId + '.json'));
         try {
-            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.md'));
+            await fs.unlink(path.join(topicPath, req.params.paperId + '.md'));
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;
             }
         }
         try {
-            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt'));
+            await fs.unlink(path.join(topicPath, req.params.paperId + '.hlt'));
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;
@@ -954,8 +1010,9 @@ async function deletePaper(req, res) {
 
 async function deletePaperSummary(req, res) {
     try {
-        const summaryPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
-        const backupPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.bak');
+        const topicPath = getTopicPath(req.params.topicName);
+        const summaryPath = path.join(topicPath, req.params.paperId + '.md');
+        const backupPath = path.join(topicPath, req.params.paperId + '.bak');
 
         try {
             await fs.unlink(backupPath);
@@ -967,7 +1024,7 @@ async function deletePaperSummary(req, res) {
 
         await fs.rename(summaryPath, backupPath);
         try {
-            await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt'));
+            await fs.unlink(path.join(topicPath, req.params.paperId + '.hlt'));
         } catch (error) {
             if (error.code !== 'ENOENT') {
                 throw error;
@@ -1054,7 +1111,7 @@ async function searchArxiv(req, res) {
 async function getPaperSummary(req, res) {
     try {
         const { topicName, paperId } = req.params;
-        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const mdPath = path.join(getTopicPath(topicName), paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
         res.json({ summary });
     } catch (error) {
@@ -1069,7 +1126,7 @@ async function getPaperSummary(req, res) {
 async function getPaperHighlights(req, res) {
     try {
         const { topicName, paperId } = req.params;
-        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const mdPath = path.join(getTopicPath(topicName), paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
         const highlights = sanitizeHighlights(await loadHighlightsFile(topicName, paperId), summary, `${paperId}.md`);
 
@@ -1087,7 +1144,7 @@ async function getPaperHighlights(req, res) {
 async function updatePaperHighlights(req, res) {
     try {
         const { topicName, paperId } = req.params;
-        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const mdPath = path.join(getTopicPath(topicName), paperId + '.md');
         const summary = await fs.readFile(mdPath, 'utf-8');
         const highlights = sanitizeHighlights(req.body?.highlights, summary, `${paperId}.md`);
 
@@ -1114,7 +1171,7 @@ async function getPdfTextFromUrl(arxivAbsUrl, topicName, paperIdentifier) {
     }
 
     const fileName = paperIdentifier;
-    const topicPath = path.join(dataPath, topicName);
+    const topicPath = getTopicPath(topicName);
     const txtCachePath = path.join(topicPath, fileName + '.txt');
 
     // Check for cache first
@@ -1149,8 +1206,9 @@ async function chatWithPaper(req, res) {
         const { topicName, paperId } = req.params;
         const { history, engine } = req.body;
 
-        const jsonPath = path.join(dataPath, topicName, paperId + '.json');
-        const mdPath = path.join(dataPath, topicName, paperId + '.md');
+        const topicPath = getTopicPath(topicName);
+        const jsonPath = path.join(topicPath, paperId + '.json');
+        const mdPath = path.join(topicPath, paperId + '.md');
 
         let paperContext = '';
         let paper;
@@ -1198,7 +1256,7 @@ async function summarizeAndSave(req, res) {
         const { paper, topicName, engine } = req.body;
         const { url } = paper;
         const fileName = getPaperStorageId(paper);
-        const topicPath = path.join(dataPath, topicName);
+        const topicPath = getTopicPath(topicName);
 
         await fs.mkdir(topicPath, { recursive: true });
 
@@ -1245,7 +1303,7 @@ async function addPaperByUrl(req, res) {
         };
 
         const fileName = Buffer.from(paper.url).toString('base64') + '.json';
-        const topicPath = path.join(dataPath, topicName);
+        const topicPath = getTopicPath(topicName);
         const filePath = path.join(topicPath, fileName);
 
         try {
@@ -1300,7 +1358,7 @@ app.put('/paper-highlights/:topicName/:paperId', updatePaperHighlights);
 async function fetchAndUpdateCitation(req, res) {
     try {
         const { topicName, paperId } = req.params;
-        const paperPath = path.join(dataPath, topicName, paperId + '.json');
+        const paperPath = path.join(getTopicPath(topicName), paperId + '.json');
 
         let paper;
         try {
@@ -1340,7 +1398,7 @@ async function updateCitation(req, res) {
             return res.status(400).json({ message: 'Citation count must be a number.' });
         }
 
-        const paperPath = path.join(dataPath, topicName, paperId + '.json');
+        const paperPath = path.join(getTopicPath(topicName), paperId + '.json');
 
         const data = await fs.readFile(paperPath, 'utf-8');
         const paper = JSON.parse(data);
@@ -1454,7 +1512,7 @@ async function savePdfPaper(req, res) {
             return res.status(400).json({ message: 'Paper must include title, authors, year, and url' });
         }
 
-        const topicPath = path.join(dataPath, topicName);
+        const topicPath = getTopicPath(topicName);
 
         // Check if topic exists
         try {
