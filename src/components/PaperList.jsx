@@ -301,18 +301,7 @@ const PaperList = ({
     try {
       let topicsToProcess = cachedTopics;
       if (forceRefresh || topicsToProcess.length === 0) {
-        const topicNames = await getTopics();
-        const topicDetails = await Promise.all(
-          topicNames.map(async (name) => {
-            try {
-              const papersInTopic = await getPapers(name);
-              return { name, count: papersInTopic.length };
-            } catch (error) {
-              console.error(`Error getting papers for topic ${name}:`, error);
-              return { name, count: 0 };
-            }
-          })
-        );
+        const topicDetails = await getTopics();
         setCachedTopics(topicDetails);
         topicsToProcess = topicDetails;
       }

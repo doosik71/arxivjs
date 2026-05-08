@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { getTopics, createTopic, deleteTopic, getPapers } from '../api';
+import { getTopics, createTopic, deleteTopic } from '../api';
 import './TopicList.css';
 
 
@@ -57,28 +57,8 @@ const TopicList = ({ onTopicSelect }) => {
   const loadTopics = async () => {
     try {
       setLoading(true);
-      const topicNames = await getTopics();
-
-      // Get paper count for each topic
-      const topicsWithCounts = await Promise.all(
-        topicNames.map(async (topicName) => {
-          try {
-            const papers = await getPapers(topicName);
-            return {
-              name: topicName,
-              count: papers.length
-            };
-          } catch (error) {
-            console.error(`Error getting papers for topic ${topicName}:`, error);
-            return {
-              name: topicName,
-              count: 0
-            };
-          }
-        })
-      );
-
-      setTopics(topicsWithCounts);
+      const topicSummaries = await getTopics();
+      setTopics(topicSummaries);
     } catch (err) {
       setError('Failed to load topics');
       console.error('Error loading topics:', err);

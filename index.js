@@ -487,14 +487,20 @@ async function getTopics(req, res) {
             try {
                 const stat = await fs.stat(fullPath);
                 if (stat.isDirectory()) {
-                    topics.push(toTopicDisplayName(file));
+                    const topicFiles = await fs.readdir(fullPath);
+                    const count = topicFiles.filter((topicFile) => path.extname(topicFile).toLowerCase() === '.json').length;
+                    topics.push({
+                        name: toTopicDisplayName(file),
+                        count
+                    });
                 }
             } catch (e) {
                 console.warn(`Ignored: ${file}`, e.message);
             }
         }
 
-        res.json(topics.sort());
+        topics.sort((a, b) => a.name.localeCompare(b.name));
+        res.json(topics);
     } catch (error) {
         console.error('Error in /topics:', error);
         res.status(200).json([]);
@@ -578,29 +584,33 @@ async function getPapers(req, res) {
         const papers = [];
         for (const file of files) {
             if (path.extname(file) === '.json') {
-                const content = await fs.readFile(path.join(topicPath, file), 'utf-8');
-                const paper = JSON.parse(content);
-                paper.id = path.basename(file, '.json');
-
-                // Check for summary
-                const baseName = path.basename(file, '.json');
-                const mdPath = path.join(topicPath, baseName + '.md');
                 try {
-                    await fs.access(mdPath);
-                    paper.hasSummary = true;
-                } catch (e) {
-                    paper.hasSummary = false;
-                }
+                    const content = await fs.readFile(path.join(topicPath, file), 'utf-8');
+                    const paper = JSON.parse(content);
+                    paper.id = path.basename(file, '.json');
 
-                const hltPath = path.join(topicPath, baseName + '.hlt');
-                try {
-                    await fs.access(hltPath);
-                    paper.hasHighlights = true;
-                } catch (e) {
-                    paper.hasHighlights = false;
-                }
+                    // Check for summary
+                    const baseName = path.basename(file, '.json');
+                    const mdPath = path.join(topicPath, baseName + '.md');
+                    try {
+                        await fs.access(mdPath);
+                        paper.hasSummary = true;
+                    } catch (e) {
+                        paper.hasSummary = false;
+                    }
 
-                papers.push(paper);
+                    const hltPath = path.join(topicPath, baseName + '.hlt');
+                    try {
+                        await fs.access(hltPath);
+                        paper.hasHighlights = true;
+                    } catch (e) {
+                        paper.hasHighlights = false;
+                    }
+
+                    papers.push(paper);
+                } catch (fileError) {
+                    console.error(`Failed to load paper file "${file}" for topic "${req.params.topicName}":`, fileError.message);
+                }
             }
         }
         papers.sort((a, b) => {
