@@ -128,7 +128,7 @@ pre,
 }
 
 .paper-item:hover {
-  background-color: var(--color-hover);
+  background-color: #e0f7fa;
 }
 
 .paper-item.highlighted {
