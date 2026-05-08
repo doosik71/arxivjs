@@ -320,8 +320,24 @@
   text-align: justify;
 }
 
-.formatted-summary img {
+.formatted-summary figure {
+  margin: 1.5rem auto;
+  width: fit-content;
   max-width: 100%;
+}
+
+.formatted-summary img {
+  display: block;
+  max-width: 100%;
+  margin: 0 auto;
+}
+
+.formatted-summary figcaption {
+  margin-top: 0.75rem;
+  color: var(--color-text-secondary);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  text-align: center;
 }
 
 .formatted-summary ol,

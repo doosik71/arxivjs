@@ -171,10 +171,53 @@ export const parseMarkdownWithMath = (text) => {
   return elements;
 };
 
+const isIgnorableTextNode = (node) => (
+  node?.nodeType === Node.TEXT_NODE && !node.textContent?.trim()
+);
+
+const upgradeImageParagraphs = (root) => {
+  if (!root) {
+    return;
+  }
+
+  const paragraphs = Array.from(root.querySelectorAll('p'));
+
+  paragraphs.forEach((paragraph) => {
+    const meaningfulChildren = Array.from(paragraph.childNodes).filter((node) => !isIgnorableTextNode(node));
+
+    if (meaningfulChildren.length !== 1) {
+      return;
+    }
+
+    const [onlyChild] = meaningfulChildren;
+    if (onlyChild.nodeType !== Node.ELEMENT_NODE || onlyChild.tagName.toLowerCase() !== 'img') {
+      return;
+    }
+
+    const caption = onlyChild.getAttribute('alt')?.trim();
+    if (!caption) {
+      return;
+    }
+
+    const figure = root.ownerDocument.createElement('figure');
+    const image = onlyChild.cloneNode(true);
+    const figcaption = root.ownerDocument.createElement('figcaption');
+    figcaption.textContent = caption;
+
+    figure.appendChild(image);
+    figure.appendChild(figcaption);
+    paragraph.replaceWith(figure);
+  });
+};
+
 const parseHTMLToReact = (htmlContent) => {
   // Simple HTML to React parser for marked output
   const parser = new DOMParser();
   const doc = parser.parseFromString(`<div>${htmlContent}</div>`, 'text/html');
+  const bodyDiv = doc.querySelector('div');
+  const voidElements = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
+
+  upgradeImageParagraphs(bodyDiv);
 
   const convertElement = (element, key = 0) => {
     if (element.nodeType === Node.TEXT_NODE) {
@@ -233,10 +276,13 @@ const parseHTMLToReact = (htmlContent) => {
       }
     }
 
+    if (voidElements.has(tagName)) {
+      return React.createElement(tagName, props);
+    }
+
     return React.createElement(tagName, props, ...children);
   };
 
-  const bodyDiv = doc.querySelector('div');
   const elements = Array.from(bodyDiv.childNodes).map((child, index) =>
     convertElement(child, index)
   ).filter(element => element !== null);

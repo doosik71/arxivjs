@@ -18,6 +18,7 @@ const HIGHLIGHT_COLORS = [
 ];
 
 const BLOCK_HIGHLIGHT_TAGS = new Set(['p', 'li', 'blockquote', 'td', 'th', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6']);
+const VOID_HTML_TAGS = new Set(['area', 'base', 'br', 'col', 'embed', 'hr', 'img', 'input', 'link', 'meta', 'source', 'track', 'wbr']);
 const EXCLUDED_HIGHLIGHT_SELECTOR = 'pre, code, mjx-container, .MathJax, .latex-math-1, .latex-math-2';
 
 const normalizeHighlightText = (text) => (
@@ -50,6 +51,7 @@ const isExcludedHighlightNode = (node) => {
 
   return tagName === 'pre'
     || tagName === 'code'
+    || VOID_HTML_TAGS.has(tagName)
     || tagName === 'mjx-container'
     || className.includes('latex-math-')
     || className.includes('MathJax');
