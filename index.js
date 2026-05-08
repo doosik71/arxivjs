@@ -30,6 +30,22 @@ const llmProviders = {
     } : null
 };
 
+function slugifyPaperTitle(title) {
+    return String(title || '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_+|_+$/g, '');
+}
+
+function getPaperStorageId(paper) {
+    if (paper?.id) {
+        return paper.id;
+    }
+
+    return slugifyPaperTitle(paper?.title);
+}
+
 function getAvailableLlmEngines() {
     return Object.entries(llmProviders)
         .filter(([, provider]) => Boolean(provider))
@@ -753,7 +769,7 @@ async function savePaper(req, res) {
             paper.authors = paper.authors.replace(/\s+/g, ' ').trim();
         }
 
-        const fileName = Buffer.from(paper.url).toString('base64').replace(/\//g, '_') + '.json';
+        const fileName = getPaperStorageId(paper) + '.json';
         const paperPath = path.join(dataPath, topicName, fileName);
 
         // Save paper without citation count first.
@@ -938,7 +954,18 @@ async function deletePaper(req, res) {
 
 async function deletePaperSummary(req, res) {
     try {
-        await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.md'));
+        const summaryPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.md');
+        const backupPath = path.join(dataPath, req.params.topicName, req.params.paperId + '.bak');
+
+        try {
+            await fs.unlink(backupPath);
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+
+        await fs.rename(summaryPath, backupPath);
         try {
             await fs.unlink(path.join(dataPath, req.params.topicName, req.params.paperId + '.hlt'));
         } catch (error) {
@@ -1081,8 +1108,12 @@ async function updatePaperHighlights(req, res) {
  * @param {string} topicName - The name of the topic folder to cache the text file in.
  * @returns {Promise<string>} A promise that resolves with the extracted text.
  */
-async function getPdfTextFromUrl(arxivAbsUrl, topicName) {
-    const fileName = Buffer.from(arxivAbsUrl).toString('base64');
+async function getPdfTextFromUrl(arxivAbsUrl, topicName, paperIdentifier) {
+    if (!paperIdentifier) {
+        throw new Error('paperIdentifier is required to build the PDF text cache filename.');
+    }
+
+    const fileName = paperIdentifier;
     const topicPath = path.join(dataPath, topicName);
     const txtCachePath = path.join(topicPath, fileName + '.txt');
 
@@ -1133,7 +1164,7 @@ async function chatWithPaper(req, res) {
 
         try {
             // Try to get full text from PDF (with caching)
-            paperContext = await getPdfTextFromUrl(paper.url, topicName);
+            paperContext = await getPdfTextFromUrl(paper.url, topicName, paperId);
         } catch (pdfError) {
             console.warn('Failed to get full paper text, falling back to summary.', pdfError.message);
             // Fallback to abstract and summary
@@ -1166,13 +1197,13 @@ async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName, engine } = req.body;
         const { url } = paper;
-        const fileName = Buffer.from(url).toString('base64');
+        const fileName = getPaperStorageId(paper);
         const topicPath = path.join(dataPath, topicName);
 
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        const pdfText = await getPdfTextFromUrl(url, topicName);
+        const pdfText = await getPdfTextFromUrl(url, topicName, fileName);
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', pdfText);
         const generator = await streamSummary(engine, prompt);

@@ -9,6 +9,14 @@ const USER_PROMPT_PATH = path.join(DATA_PATH, 'userprompt.txt');
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL?.trim();
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL?.trim()?.replace(/\/+$/, '');
 
+function slugifyPaperTitle(title) {
+  return String(title || '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '_')
+    .replace(/_+/g, '_')
+    .replace(/^_+|_+$/g, '');
+}
+
 function ensureOllamaConfigured() {
   if (!OLLAMA_API_URL || !OLLAMA_MODEL) {
     throw new Error('OLLAMA_API_URL and OLLAMA_MODEL must be set in .env to run update_summary.js');
@@ -46,8 +54,12 @@ async function readPaperMetadata(paperPath) {
   return paper;
 }
 
-async function getPdfTextFromUrl(arxivAbsUrl, topicPath) {
-  const fileName = Buffer.from(arxivAbsUrl).toString('base64');
+async function getPdfTextFromUrl(arxivAbsUrl, topicPath, paper) {
+  const fileName = slugifyPaperTitle(paper?.title);
+  if (!fileName) {
+    throw new Error('Paper title is required to build the PDF text cache filename.');
+  }
+
   const txtCachePath = path.join(topicPath, `${fileName}.txt`);
 
   try {
@@ -105,7 +117,7 @@ async function summarizePaper(topicName, topicPath, jsonFileName, userPrompt) {
   }
 
   const paper = await readPaperMetadata(paperPath);
-  const pdfResult = await getPdfTextFromUrl(paper.url, topicPath);
+  const pdfResult = await getPdfTextFromUrl(paper.url, topicPath, paper);
   const prompt = userPrompt.replace('{context}', pdfResult.text);
   const summary = await generateSummaryWithOllama(prompt);
 

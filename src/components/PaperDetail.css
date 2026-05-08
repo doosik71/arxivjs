@@ -320,6 +320,10 @@
   text-align: justify;
 }
 
+.formatted-summary img {
+  max-width: 100%;
+}
+
 .formatted-summary ol,
 .formatted-summary ul {
   margin: 1rem 0;
