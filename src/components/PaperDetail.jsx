@@ -325,6 +325,8 @@ const applyHighlightsRecursively = (node, highlights, keyPrefix = 'node') => {
   return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
 };
 
+const isElectronApp = typeof window !== 'undefined' && Boolean(window.electron);
+
 const getEngineLabel = (engine) => {
   if (engine === 'ollama') {
     return 'Ollama';
@@ -412,6 +414,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [isTranslated, setIsTranslated] = useState(false);
   const [isTranslating, setIsTranslating] = useState(false);
   const [linkCopied, setLinkCopied] = useState(false);
+  const [externalLinkCopied, setExternalLinkCopied] = useState(false);
   const [highlights, setHighlights] = useState([]);
   const [isSavingHighlight, setIsSavingHighlight] = useState(false);
   const [highlightPopover, setHighlightPopover] = useState({
@@ -429,6 +432,16 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
       await navigator.clipboard.writeText(paper.url);
       setLinkCopied(true);
       setTimeout(() => setLinkCopied(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy link: ', err);
+    }
+  };
+
+  const handleCopyExternalLink = async (url) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      setExternalLinkCopied(true);
+      setTimeout(() => setExternalLinkCopied(false), 3000);
     } catch (err) {
       console.error('Failed to copy link: ', err);
     }
@@ -968,7 +981,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     { label: 'ar5iv', href: `https://ar5iv.labs.arxiv.org/html/${arxivId}` },
     { label: 'alphaxiv', href: `https://www.alphaxiv.org/abs/${arxivId}` },
   ] : paper?.url ? [
-    { label: getLinkLabelFromUrl(paper.url), href: paper.url },
+    { label: getLinkLabelFromUrl(paper.url), href: paper.url, external: true },
   ] : [];
 
   return (
@@ -1045,17 +1058,32 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
               </div>
               <div className="paper-url-container">
                 <span className="paper-link-list">
-                  {paperLinks.map(({ label, href }, index) => (
-                    <a
-                      key={`${label}-${href}`}
-                      href={href}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      itemProp={index === 0 ? 'url' : undefined}
-                      className="paper-link"
-                    >
-                      {label}
-                    </a>
+                  {paperLinks.map(({ label, href, external }, index) => (
+                    external || isElectronApp ? (
+                      <span key={`${label}-${href}`} className="paper-link-wrapper">
+                        {index === 0 && <meta itemProp="url" content={href} />}
+                        <button
+                          type="button"
+                          onClick={() => handleCopyExternalLink(href)}
+                          className="paper-link paper-link-button"
+                          title="Copy link to clipboard"
+                        >
+                          {label}
+                        </button>
+                        {externalLinkCopied && <div className="tooltip">Copied to clipboard!</div>}
+                      </span>
+                    ) : (
+                      <a
+                        key={`${label}-${href}`}
+                        href={href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        itemProp={index === 0 ? 'url' : undefined}
+                        className="paper-link"
+                      >
+                        {label}
+                      </a>
+                    )
                   ))}
                   <button
                     onClick={openScholarSearch}
