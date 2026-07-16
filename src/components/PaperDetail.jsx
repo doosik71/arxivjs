@@ -856,6 +856,9 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     }
 
     if (!success) {
+      // Automatic lookup exhausted every tier - make manual entry the
+      // obvious next step instead of only opening a search tab.
+      handleStartEditingCitation();
       openScholarSearch();
     }
   };
@@ -943,16 +946,30 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const activeHighlight = findHighlightByText(highlights, highlightPopover.text);
   const summaryRenderKey = buildHighlightRenderKey(effectivePaperId, highlights);
 
-  const arxivIdMatch = paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/);
+  const paperSource = paper?.source || 'arxiv';
+  const SOURCE_LABELS = { arxiv: 'arXiv', pdf: 'PDF', manual: 'Manual' };
+  const sourceLabel = SOURCE_LABELS[paperSource] || SOURCE_LABELS.arxiv;
+
+  const getLinkLabelFromUrl = (url) => {
+    try {
+      return new URL(url).hostname.replace(/^www\./, '');
+    } catch (error) {
+      return 'source';
+    }
+  };
+
+  const arxivIdMatch = paperSource === 'arxiv' ? paper?.url?.match(/(?:abs|pdf)\/([^/?#]+)(?:\.pdf)?/) : null;
   const arxivId = arxivIdMatch?.[1];
+  // 'manual' papers may have no url at all - paperLinks is simply empty then,
+  // which the render below already handles (mapping over [] renders nothing).
   const paperLinks = arxivId ? [
     { label: 'arxiv', href: `https://arxiv.org/abs/${arxivId}` },
     { label: 'pdf', href: `https://arxiv.org/pdf/${arxivId}` },
     { label: 'ar5iv', href: `https://ar5iv.labs.arxiv.org/html/${arxivId}` },
     { label: 'alphaxiv', href: `https://www.alphaxiv.org/abs/${arxivId}` },
-  ] : [
-    { label: 'arxiv', href: paper.url },
-  ];
+  ] : paper?.url ? [
+    { label: getLinkLabelFromUrl(paper.url), href: paper.url },
+  ] : [];
 
   return (
     <article>
@@ -989,6 +1006,7 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
             <div>
               <span itemProp="author">{paper.authors}</span>
               <span className="paper-year"><time itemProp="datePublished">{paper.year}</time></span>
+              <span className={`source-badge source-badge-${paperSource}`}>{sourceLabel}</span>
               <div className="citation-info">
                 {isEditingCitation ? (
                   <>

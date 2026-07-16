@@ -126,7 +126,7 @@ const App = () => {
       <header className="header">
         <div className="container">
           <div className="header-content">
-            <h1>ArxiView - Arxiv Paper Reader</h1>
+            <h1>ArxiView - Research Paper Reader</h1>
             <div className="header-controls">
               <button
                 className="settings-button"

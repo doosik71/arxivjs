@@ -1,8 +1,372 @@
 import { useState, useEffect, useRef } from 'react';
-import { getPapers, searchArxivPapers, savePaperToTopic, deletePaper, getTopics, movePaper } from '../api';
+import {
+  getPapers,
+  searchArxivPapers,
+  savePaperToTopic,
+  deletePaper,
+  getTopics,
+  movePaper,
+  extractPdfTextFromFile,
+  summarizePdfText,
+  savePdfPaper
+} from '../api';
 import TableOfContents from './TableOfContents';
-import { getPaperId } from '../utils/paperId';
+import { getPaperId, titlesLikelyMatch } from '../utils/paperId';
+import { getSavedConfig } from '../utils/config';
 import './PaperList.css';
+
+const SOURCE_LABELS = { arxiv: 'arXiv', pdf: 'PDF', manual: 'Manual' };
+
+const findExistingTitleMatch = (papers, title) => papers.find((paper) => titlesLikelyMatch(paper.title, title));
+
+const confirmIfDuplicateTitle = (papers, title) => {
+  const duplicate = findExistingTitleMatch(papers, title);
+  if (!duplicate) {
+    return true;
+  }
+
+  return window.confirm(
+    `A paper with a similar title already exists in this topic:\n\n"${duplicate.title}"\n\nAdd this one anyway?`
+  );
+};
+
+const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
+  const [title, setTitle] = useState('');
+  const [authors, setAuthors] = useState('');
+  const [year, setYear] = useState('');
+  const [url, setUrl] = useState('');
+  const [abstract, setAbstract] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    if (!title.trim() || !authors.trim() || !year || !url.trim()) {
+      return;
+    }
+
+    if (!confirmIfDuplicateTitle(existingPapers, title)) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      const paper = {
+        title: title.trim(),
+        authors: authors.trim(),
+        year: parseInt(year, 10),
+        url: url.trim(),
+        abstract: abstract.trim(),
+        source: 'pdf'
+      };
+
+      await savePaperToTopic(topicName, paper);
+
+      setTitle('');
+      setAuthors('');
+      setYear('');
+      setUrl('');
+      setAbstract('');
+      onSaved();
+    } catch (err) {
+      setError('Failed to add paper: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="add-paper-form">
+      <input
+        type="url"
+        placeholder="PDF URL..."
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="add-paper-input"
+        disabled={isSaving}
+        required
+      />
+      <input
+        type="text"
+        placeholder="Title..."
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
+        className="add-paper-input"
+        disabled={isSaving}
+        required
+      />
+      <input
+        type="text"
+        placeholder="Authors..."
+        value={authors}
+        onChange={(e) => setAuthors(e.target.value)}
+        className="add-paper-input"
+        disabled={isSaving}
+        required
+      />
+      <input
+        type="number"
+        placeholder="Year..."
+        value={year}
+        onChange={(e) => setYear(e.target.value)}
+        className="add-paper-input add-paper-input-year"
+        disabled={isSaving}
+        required
+      />
+      <textarea
+        placeholder="Abstract (optional)..."
+        value={abstract}
+        onChange={(e) => setAbstract(e.target.value)}
+        className="add-paper-textarea"
+        rows={3}
+        disabled={isSaving}
+      />
+      {error && <div className="arxiv-search-error">{error}</div>}
+      <button type="submit" disabled={isSaving} className="arxiv-search-button">
+        {isSaving ? 'Adding...' : 'Add Paper'}
+      </button>
+    </form>
+  );
+};
+
+const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
+  const [inputMethod, setInputMethod] = useState('upload');
+  const [file, setFile] = useState(null);
+  const [pastedText, setPastedText] = useState('');
+  const [title, setTitle] = useState('');
+  const [authors, setAuthors] = useState('');
+  const [year, setYear] = useState('');
+  const [url, setUrl] = useState('');
+  const [summary, setSummary] = useState('');
+  const [extractedText, setExtractedText] = useState('');
+  const [isSummarizing, setIsSummarizing] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [error, setError] = useState(null);
+  const selectedEngine = getSavedConfig().summaryEngine || 'gemini';
+
+  const resetAll = () => {
+    setFile(null);
+    setPastedText('');
+    setTitle('');
+    setAuthors('');
+    setYear('');
+    setUrl('');
+    setSummary('');
+    setExtractedText('');
+    setError(null);
+  };
+
+  const handleGenerateSummary = async () => {
+    setError(null);
+    setSummary('');
+
+    let text = pastedText.trim();
+
+    try {
+      setIsSummarizing(true);
+
+      if (inputMethod === 'upload') {
+        if (!file) {
+          setError('Please choose a PDF file first.');
+          return;
+        }
+        text = await extractPdfTextFromFile(file);
+      }
+
+      if (!text) {
+        setError('No text to summarize.');
+        return;
+      }
+      setExtractedText(text);
+
+      const response = await summarizePdfText(text, topicName, selectedEngine);
+
+      if (!response.body || !response.body.getReader) {
+        const plainText = await response.text();
+        setSummary(plainText);
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let summaryText = '';
+
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split('\n\n');
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const jsonData = line.substring(6).trim();
+                if (jsonData && jsonData !== '[DONE]') {
+                  const data = JSON.parse(jsonData);
+                  summaryText += data;
+                  setSummary(summaryText);
+                }
+              } catch (parseError) {
+                console.warn('Failed to parse chunk:', line);
+              }
+            }
+          }
+        }
+      } finally {
+        reader.releaseLock();
+      }
+    } catch (err) {
+      setError('Failed to generate summary: ' + (err.message || 'Unknown error'));
+      setSummary('');
+    } finally {
+      setIsSummarizing(false);
+    }
+  };
+
+  const handleSave = async () => {
+    if (!title.trim() || !authors.trim() || !year || !summary) {
+      return;
+    }
+
+    if (!confirmIfDuplicateTitle(existingPapers, title)) {
+      return;
+    }
+
+    try {
+      setIsSaving(true);
+      setError(null);
+
+      const paper = {
+        title: title.trim(),
+        authors: authors.trim(),
+        year: parseInt(year, 10),
+        source: 'manual'
+      };
+      if (url.trim()) {
+        paper.url = url.trim();
+      }
+
+      await savePdfPaper(paper, summary, topicName, extractedText);
+      resetAll();
+      onSaved();
+    } catch (err) {
+      setError('Failed to save paper: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const canGenerate = inputMethod === 'upload' ? Boolean(file) : Boolean(pastedText.trim());
+
+  return (
+    <div className="add-paper-form">
+      <div className="add-paper-method-toggle">
+        <label>
+          <input
+            type="radio"
+            name="manual-input-method"
+            checked={inputMethod === 'upload'}
+            onChange={() => setInputMethod('upload')}
+            disabled={isSummarizing}
+          />
+          Upload PDF file
+        </label>
+        <label>
+          <input
+            type="radio"
+            name="manual-input-method"
+            checked={inputMethod === 'paste'}
+            onChange={() => setInputMethod('paste')}
+            disabled={isSummarizing}
+          />
+          Paste text
+        </label>
+      </div>
+
+      {inputMethod === 'upload' ? (
+        <input
+          type="file"
+          accept="application/pdf"
+          onChange={(e) => setFile(e.target.files?.[0] || null)}
+          disabled={isSummarizing}
+        />
+      ) : (
+        <textarea
+          placeholder="Paste PDF text here..."
+          value={pastedText}
+          onChange={(e) => setPastedText(e.target.value)}
+          className="add-paper-textarea"
+          rows={6}
+          disabled={isSummarizing}
+        />
+      )}
+
+      {error && <div className="arxiv-search-error">{error}</div>}
+
+      <button
+        type="button"
+        onClick={handleGenerateSummary}
+        disabled={isSummarizing || !canGenerate}
+        className="arxiv-search-button"
+      >
+        {isSummarizing ? 'Summarizing...' : 'Generate Summary'}
+      </button>
+
+      {summary && (
+        <>
+          <div className="add-paper-summary-preview">{summary}</div>
+          <input
+            type="text"
+            placeholder="Title..."
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            className="add-paper-input"
+            disabled={isSaving}
+            required
+          />
+          <input
+            type="text"
+            placeholder="Authors..."
+            value={authors}
+            onChange={(e) => setAuthors(e.target.value)}
+            className="add-paper-input"
+            disabled={isSaving}
+            required
+          />
+          <input
+            type="number"
+            placeholder="Year..."
+            value={year}
+            onChange={(e) => setYear(e.target.value)}
+            className="add-paper-input add-paper-input-year"
+            disabled={isSaving}
+            required
+          />
+          <input
+            type="url"
+            placeholder="Reference URL (optional)..."
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="add-paper-input"
+            disabled={isSaving}
+          />
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving || !title.trim() || !authors.trim() || !year}
+            className="arxiv-add-button"
+          >
+            {isSaving ? 'Saving...' : 'Save Paper'}
+          </button>
+        </>
+      )}
+    </div>
+  );
+};
 
 // Utility function to highlight search terms in text
 const highlightText = (text, paperSearchQuery, searchField, currentField) => {
@@ -70,6 +434,7 @@ const PaperList = ({
   const [arxivSearchLoading, setArxivSearchLoading] = useState(false);
   const [arxivSearchError, setArxivSearchError] = useState(null);
   const [showArxivSearch, setShowArxivSearch] = useState(false);
+  const [addMode, setAddMode] = useState('search'); // 'search' | 'url' | 'manual'
   const [addedPapers, setAddedPapers] = useState(new Set());
 
   // Move paper states
@@ -537,6 +902,9 @@ const PaperList = ({
                             </span>
                             <span className="paper-meta-inline">
                             <span className="paper-year">{paper.year}</span>
+                            <span className={`source-badge source-badge-${paper.source || 'arxiv'}`}>
+                              {SOURCE_LABELS[paper.source] || SOURCE_LABELS.arxiv}
+                            </span>
                             {paper.citation !== undefined && (
                               <span className="citation-list-display">{paper.citation >= 100 ? '🔖' : '🏷️'}{paper.citation.toLocaleString()}</span>
                             )}
@@ -587,13 +955,45 @@ const PaperList = ({
           onClick={toggleArxivSearch}
           className="arxiv-search-toggle"
         >
-          {showArxivSearch ? '< Hide' : 'Search >'}
+          {showArxivSearch ? '< Hide' : 'Add Paper >'}
         </button>
 
         {showArxivSearch && (
           <div className="arxiv-search-container">
-            <h3>Search ArXiv Papers</h3>
+            <div className="add-paper-tabs">
+              <button
+                type="button"
+                className={`add-paper-tab${addMode === 'search' ? ' active' : ''}`}
+                onClick={() => setAddMode('search')}
+              >
+                Search arXiv
+              </button>
+              <button
+                type="button"
+                className={`add-paper-tab${addMode === 'url' ? ' active' : ''}`}
+                onClick={() => setAddMode('url')}
+              >
+                Add by PDF URL
+              </button>
+              <button
+                type="button"
+                className={`add-paper-tab${addMode === 'manual' ? ' active' : ''}`}
+                onClick={() => setAddMode('manual')}
+              >
+                Add PDF or Text
+              </button>
+            </div>
 
+            {addMode === 'url' && (
+              <AddByUrlForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
+            )}
+
+            {addMode === 'manual' && (
+              <AddManualPaperForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
+            )}
+
+            {addMode === 'search' && (
+            <>
             <form onSubmit={handleArxivSearch} className="arxiv-search-form">
               <div className="arxiv-search-controls">
                 <input
@@ -701,6 +1101,8 @@ const PaperList = ({
                   ))}
                 </div>
               </div>
+            )}
+            </>
             )}
           </div>
         )}

@@ -179,4 +179,39 @@ export const translateText = async (text, engine) => {
   return response.data.translatedText;
 };
 
+export const extractPdfTextFromFile = async (file) => {
+  const formData = new FormData();
+  formData.append('pdf', file);
+  const response = await api.post('/extract-pdf-text', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  });
+  return response.data.text;
+};
+
+export const summarizePdfText = async (text, topicName, engine) => {
+  const baseURL = api.defaults.baseURL || '';
+  const url = `${baseURL}/summarize-pdf-text`;
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({ text, topicName, engine })
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json();
+    console.error('Error from server:', errorData);
+    throw new Error(`HTTP error! status: ${response.status} - ${errorData.message}`);
+  }
+
+  return response;
+};
+
+export const savePdfPaper = async (paper, summary, topicName, text) => {
+  const response = await api.post('/save-pdf-paper', { paper, summary, topicName, text });
+  return response.data;
+};
+
 export default api;

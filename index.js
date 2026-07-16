@@ -17,6 +17,14 @@ const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL?.trim();
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL?.trim()?.replace(/\/+$/, '');
 
+const OPENALEX_API_URL = 'https://api.openalex.org/works';
+const CROSSREF_API_URL = 'https://api.crossref.org/works';
+const OPENALEX_API_KEY = process.env.OPENALEX_API_KEY?.trim();
+const CROSSREF_MAILTO = process.env.CROSSREF_MAILTO?.trim()
+    || process.env.CROSSREF_EMAIL?.trim()
+    || process.env.EMAIL?.trim()
+    || '';
+
 const llmProviders = {
     gemini: process.env.GEMINI_API_KEY ? {
         name: 'gemini',
@@ -44,6 +52,26 @@ function getPaperStorageId(paper) {
     }
 
     return slugifyPaperTitle(paper?.title);
+}
+
+const PAPER_SOURCES = ['arxiv', 'pdf', 'manual'];
+
+// A paper JSON with no `source` field predates this field and was only ever
+// reachable through the arXiv search/add pathway, so it is treated as arxiv.
+function normalizePaperSource(paper) {
+    const source = typeof paper?.source === 'string' ? paper.source.trim().toLowerCase() : '';
+    return PAPER_SOURCES.includes(source) ? source : 'arxiv';
+}
+
+// Used only by the pdf/manual save pathway, where defaulting an unspecified
+// source to 'arxiv' would be wrong: infer from whether a url was supplied.
+function resolvePdfPaperSource(paper) {
+    const requested = typeof paper?.source === 'string' ? paper.source.trim().toLowerCase() : '';
+    if (requested === 'pdf' || requested === 'manual') {
+        return requested;
+    }
+
+    return paper?.url ? 'pdf' : 'manual';
 }
 
 function normalizeTopicDisplayName(topicName) {
@@ -588,6 +616,7 @@ async function getPapers(req, res) {
                     const content = await fs.readFile(path.join(topicPath, file), 'utf-8');
                     const paper = JSON.parse(content);
                     paper.id = path.basename(file, '.json');
+                    paper.source = normalizePaperSource(paper);
 
                     // Check for summary
                     const baseName = path.basename(file, '.json');
@@ -766,29 +795,185 @@ async function getCitationCountByAuthorTitleWithSC(authors, title) {
     }
 }
 
-/**
- * Get citation count for a paper using its URL.
- * It first tries to get DOI from arXiv and then use it to get citation count.
- * If that fails, it falls back to searching by author and title (as a backup).
- * @param {string} url - The URL of the paper.
- * @param {string} authors - The authors of the paper (for fallback).
- * @param {string} title - The title of the paper (for fallback).
- * @returns {Promise<number|undefined>} A promise that resolves with the citation count or undefined.
- */
-async function getCitationCountByURL(url, authors, title) {
-    const doi = await getArxivDOIByURL(url);
+// --- Generic (source-agnostic) citation lookup via OpenAlex/Crossref ---
+// Ported from update_citatation.js's matching logic, which was already
+// source-agnostic and worked better than the arXiv-DOI-first approach below.
 
-    if (doi) {
-        const citationCount = await getCitationCountByDOIWithSC(doi.trim());
-        if (citationCount !== undefined) {
-            // console.log("Success with getCitationCountByDOIWithSC");
-            return citationCount;
+function normalizeTitleForCitationMatch(value) {
+    return normalizeHighlightText(value)
+        .toLowerCase()
+        .replace(/[^\p{L}\p{N}]+/gu, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
+function getFirstAuthorName(authors) {
+    return normalizeHighlightText(String(authors || '').split(',')[0]);
+}
+
+function getAuthorLastName(name) {
+    const parts = normalizeHighlightText(name).split(' ').filter(Boolean);
+    return parts.length ? parts[parts.length - 1].toLowerCase() : '';
+}
+
+function isCitationYearCompatible(expectedYear, candidateYear) {
+    if (!Number.isInteger(expectedYear) || !Number.isInteger(candidateYear)) {
+        return true;
+    }
+    return Math.abs(expectedYear - candidateYear) <= 1;
+}
+
+function citationTitlesMatch(expectedTitle, candidateTitle) {
+    const left = normalizeTitleForCitationMatch(expectedTitle);
+    const right = normalizeTitleForCitationMatch(candidateTitle);
+
+    if (!left || !right) {
+        return false;
+    }
+
+    return left === right || left.includes(right) || right.includes(left);
+}
+
+function citationAuthorsMatch(expectedAuthors, candidateAuthors) {
+    const expectedLastName = getAuthorLastName(getFirstAuthorName(expectedAuthors));
+    if (!expectedLastName) {
+        return false;
+    }
+
+    const candidateLastNames = candidateAuthors.map((name) => getAuthorLastName(name)).filter(Boolean);
+    return candidateLastNames.includes(expectedLastName);
+}
+
+function buildOpenAlexCitationUrl(title) {
+    const params = new URLSearchParams({
+        search: normalizeHighlightText(title),
+        select: 'id,display_name,publication_year,cited_by_count,authorships',
+        per_page: '5'
+    });
+
+    if (OPENALEX_API_KEY) {
+        params.set('api_key', OPENALEX_API_KEY);
+    }
+
+    return `${OPENALEX_API_URL}?${params.toString()}`;
+}
+
+function buildCrossrefCitationUrl(authors, title) {
+    const params = new URLSearchParams({
+        'query.title': normalizeHighlightText(title),
+        'query.author': getFirstAuthorName(authors),
+        rows: '5',
+        select: 'DOI,title,author,published-print,published-online,published,is-referenced-by-count,score'
+    });
+
+    if (CROSSREF_MAILTO) {
+        params.set('mailto', CROSSREF_MAILTO);
+    }
+
+    return `${CROSSREF_API_URL}?${params.toString()}`;
+}
+
+function getCrossrefPublishedYear(item) {
+    const dateParts = item?.published?.['date-parts']
+        || item?.['published-print']?.['date-parts']
+        || item?.['published-online']?.['date-parts'];
+    const year = dateParts?.[0]?.[0];
+    return Number.isInteger(year) ? year : undefined;
+}
+
+function findOpenAlexCitationMatch(paper, results) {
+    const candidates = Array.isArray(results) ? results : [];
+
+    return candidates.find((item) => {
+        const candidateTitle = item?.display_name;
+        const candidateAuthors = Array.isArray(item?.authorships)
+            ? item.authorships.map((authorship) => authorship?.author?.display_name).filter(Boolean)
+            : [];
+
+        return citationTitlesMatch(paper.title, candidateTitle)
+            && citationAuthorsMatch(paper.authors, candidateAuthors)
+            && isCitationYearCompatible(paper.year, item?.publication_year);
+    });
+}
+
+function findCrossrefCitationMatch(paper, results) {
+    const candidates = Array.isArray(results) ? results : [];
+
+    return candidates.find((item) => {
+        const candidateTitle = Array.isArray(item?.title) ? item.title[0] : item?.title;
+        const candidateAuthors = Array.isArray(item?.author)
+            ? item.author.map((author) => [author?.given, author?.family].filter(Boolean).join(' ')).filter(Boolean)
+            : [];
+
+        return citationTitlesMatch(paper.title, candidateTitle)
+            && citationAuthorsMatch(paper.authors, candidateAuthors)
+            && isCitationYearCompatible(paper.year, getCrossrefPublishedYear(item));
+    });
+}
+
+async function getCitationCountFromOpenAlex(paper) {
+    const url = buildOpenAlexCitationUrl(paper.title);
+    const response = await axios.get(url, { timeout: 8000 });
+    const match = findOpenAlexCitationMatch(paper, response.data?.results);
+
+    return match && typeof match.cited_by_count === 'number' ? match.cited_by_count : undefined;
+}
+
+async function getCitationCountFromCrossref(paper) {
+    const url = buildCrossrefCitationUrl(paper.authors, paper.title);
+    const response = await axios.get(url, { timeout: 8000 });
+    const match = findCrossrefCitationMatch(paper, response.data?.message?.items);
+    const citationCount = match?.['is-referenced-by-count'];
+
+    return typeof citationCount === 'number' ? citationCount : undefined;
+}
+
+/**
+ * Multi-tier citation lookup, source-aware but not source-exclusive:
+ *   1. OpenAlex title+author match (any source)
+ *   2. Crossref title+author match (any source)
+ *   3. arXiv-issued DOI -> Semantic Scholar (arxiv source only)
+ *   4. Generic Semantic Scholar title+author search (any source)
+ * Returns undefined if every tier fails. The caller is expected to leave
+ * the paper's citation count unset in that case - the existing manual
+ * citation-entry UI (PaperDetail.jsx) is the guaranteed final fallback.
+ * @param {object} paper - Must include title/authors/year, and source (see normalizePaperSource).
+ * @returns {Promise<number|undefined>}
+ */
+async function getCitationCount(paper) {
+    if (!paper?.title || !paper?.authors) {
+        return undefined;
+    }
+
+    try {
+        const openAlexCount = await getCitationCountFromOpenAlex(paper);
+        if (openAlexCount !== undefined) {
+            return openAlexCount;
+        }
+    } catch (error) {
+        // Best-effort tier; fall through to the next one.
+    }
+
+    try {
+        const crossrefCount = await getCitationCountFromCrossref(paper);
+        if (crossrefCount !== undefined) {
+            return crossrefCount;
+        }
+    } catch (error) {
+        // Best-effort tier; fall through to the next one.
+    }
+
+    if (normalizePaperSource(paper) === 'arxiv' && paper.url) {
+        const doi = await getArxivDOIByURL(paper.url);
+        if (doi) {
+            const citationCount = await getCitationCountByDOIWithSC(doi.trim());
+            if (citationCount !== undefined) {
+                return citationCount;
+            }
         }
     }
 
-    // console.warn("Could not find DOI from arXiv by URL. Falling back to search.");
-    // Fallback to searching by author and title
-    return await getCitationCountByAuthorTitleWithSC(authors, title);
+    return await getCitationCountByAuthorTitleWithSC(paper.authors, paper.title);
 }
 
 /**
@@ -831,6 +1016,7 @@ async function savePaper(req, res) {
         if (paper.authors) {
             paper.authors = paper.authors.replace(/\s+/g, ' ').trim();
         }
+        paper.source = normalizePaperSource(paper);
 
         const fileName = getPaperStorageId(paper) + '.json';
         const paperPath = path.join(getTopicPath(topicName), fileName);
@@ -844,7 +1030,7 @@ async function savePaper(req, res) {
         // Background Fetch & Update
         if (paper.citation === undefined) {
             // Fire-and-forget promise for citation fetching.
-            getCitationCountByURL(paper.url, paper.authors, paper.title)
+            getCitationCount(paper)
                 .then(async (citationCount) => {
                     if (citationCount !== undefined) {
                         try {
@@ -1169,46 +1355,78 @@ async function updatePaperHighlights(req, res) {
     }
 }
 
-/**
- * Fetches a PDF from an arXiv abstract URL, extracts its text content, and caches it.
- * @param {string} arxivAbsUrl - The URL of the arXiv abstract page (e.g., https://arxiv.org/abs/...).
- * @param {string} topicName - The name of the topic folder to cache the text file in.
- * @returns {Promise<string>} A promise that resolves with the extracted text.
- */
-async function getPdfTextFromUrl(arxivAbsUrl, topicName, paperIdentifier) {
-    if (!paperIdentifier) {
-        throw new Error('paperIdentifier is required to build the PDF text cache filename.');
-    }
+function getTextCachePath(topicName, paperId) {
+    return path.join(getTopicPath(topicName), paperId + '.txt');
+}
 
-    const fileName = paperIdentifier;
-    const topicPath = getTopicPath(topicName);
-    const txtCachePath = path.join(topicPath, fileName + '.txt');
-
-    // Check for cache first
+async function readCachedFullText(topicName, paperId) {
     try {
-        const cachedText = await fs.readFile(txtCachePath, 'utf-8');
-        if (cachedText) {
-            return cachedText;
-        }
+        const cachedText = await fs.readFile(getTextCachePath(topicName, paperId), 'utf-8');
+        return cachedText || null;
     } catch (error) {
         if (error.code !== 'ENOENT') {
             console.warn('Error reading PDF text cache:', error.message);
         }
+        return null;
     }
+}
 
-    // If no cache, fetch, parse, and save
-    const pdfUrl = arxivAbsUrl.replace('/abs/', '/pdf/');
-    const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
-    const data = await pdfParser(response.data);
-    const pdfText = data.text;
-
+async function writeCachedFullText(topicName, paperId, text) {
     try {
-        await fs.writeFile(txtCachePath, pdfText, 'utf-8');
+        await fs.writeFile(getTextCachePath(topicName, paperId), text, 'utf-8');
     } catch (writeError) {
         console.error('Failed to write PDF text cache file:', writeError.message);
     }
+}
 
-    return pdfText;
+/**
+ * Downloads a PDF from a direct PDF url and extracts its text. No url
+ * rewriting is applied here - that's specific to the arxiv abs->pdf
+ * convention and lives in getFullText's 'arxiv' branch instead.
+ */
+async function fetchAndParsePdf(pdfUrl) {
+    const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
+    const data = await pdfParser(response.data);
+    return data.text;
+}
+
+/**
+ * Resolves the full text of a paper for chat/summarization, dispatching on
+ * paper.source so arXiv's abs->pdf url convention stays confined to its own
+ * branch instead of being assumed for every paper.
+ * @param {object} paper - The paper metadata (must include `source`; use normalizePaperSource first if unsure).
+ * @param {string} topicName - The topic folder the paper belongs to.
+ * @param {string} paperId - The paper's storage id, used as the .txt cache filename.
+ * @returns {Promise<string>} The paper's full text.
+ */
+async function getFullText(paper, topicName, paperId) {
+    if (!paperId) {
+        throw new Error('paperId is required to resolve a paper\'s full text.');
+    }
+
+    const cachedText = await readCachedFullText(topicName, paperId);
+    if (cachedText) {
+        return cachedText;
+    }
+
+    const source = normalizePaperSource(paper);
+
+    if (source === 'manual') {
+        // No url to fetch from - manual papers only have full text if it was
+        // cached at save time (see savePdfPaper). Nothing more to try here.
+        throw new Error('No extractable full text is available for this paper.');
+    }
+
+    if (!paper?.url) {
+        throw new Error('This paper has no url to fetch full text from.');
+    }
+
+    const pdfUrl = source === 'arxiv' ? paper.url.replace('/abs/', '/pdf/') : paper.url;
+    const fullText = await fetchAndParsePdf(pdfUrl);
+
+    await writeCachedFullText(topicName, paperId, fullText);
+
+    return fullText;
 }
 
 async function chatWithPaper(req, res) {
@@ -1232,7 +1450,7 @@ async function chatWithPaper(req, res) {
 
         try {
             // Try to get full text from PDF (with caching)
-            paperContext = await getPdfTextFromUrl(paper.url, topicName, paperId);
+            paperContext = await getFullText(paper, topicName, paperId);
         } catch (pdfError) {
             console.warn('Failed to get full paper text, falling back to summary.', pdfError.message);
             // Fallback to abstract and summary
@@ -1264,14 +1482,13 @@ async function chatWithPaper(req, res) {
 async function summarizeAndSave(req, res) {
     try {
         const { paper, topicName, engine } = req.body;
-        const { url } = paper;
         const fileName = getPaperStorageId(paper);
         const topicPath = getTopicPath(topicName);
 
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        const pdfText = await getPdfTextFromUrl(url, topicName, fileName);
+        const pdfText = await getFullText(paper, topicName, fileName);
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', pdfText);
         const generator = await streamSummary(engine, prompt);
@@ -1309,10 +1526,11 @@ async function addPaperByUrl(req, res) {
             authors: Array.isArray(entry.author) ? entry.author.map(a => a.name).join(', ') : entry.author.name,
             year: new Date(entry.published).getFullYear(),
             url: entry.id,
-            abstract: entry.summary.trim()
+            abstract: entry.summary.trim(),
+            source: 'arxiv'
         };
 
-        const fileName = Buffer.from(paper.url).toString('base64') + '.json';
+        const fileName = getPaperStorageId(paper) + '.json';
         const topicPath = getTopicPath(topicName);
         const filePath = path.join(topicPath, fileName);
 
@@ -1381,7 +1599,7 @@ async function fetchAndUpdateCitation(req, res) {
             throw error;
         }
 
-        const citationCount = await getCitationCountByURL(paper.url, paper.authors, paper.title);
+        const citationCount = await getCitationCount(paper);
 
         if (citationCount !== undefined) {
             paper.citation = citationCount;
@@ -1511,15 +1729,23 @@ async function fetchPdfFromUrl(req, res) {
 
 async function savePdfPaper(req, res) {
     try {
-        const { paper, summary, topicName } = req.body;
+        const { paper, summary, topicName, text } = req.body;
 
         if (!paper || !summary || !topicName) {
             return res.status(400).json({ message: 'Missing required data: paper, summary, or topicName' });
         }
 
-        // Validate paper data
-        if (!paper.title || !paper.authors || !paper.year || !paper.url) {
-            return res.status(400).json({ message: 'Paper must include title, authors, year, and url' });
+        // Validate paper data. `url` is only required for the 'pdf' source;
+        // 'manual' papers may have no url at all (upload/paste), or an
+        // optional reference url that isn't used for fetching.
+        if (!paper.title || !paper.authors || !paper.year) {
+            return res.status(400).json({ message: 'Paper must include title, authors, and year' });
+        }
+
+        paper.source = resolvePdfPaperSource(paper);
+
+        if (paper.source === 'pdf' && !paper.url) {
+            return res.status(400).json({ message: 'A pdf-source paper must include a url' });
         }
 
         const topicPath = getTopicPath(topicName);
@@ -1531,8 +1757,10 @@ async function savePdfPaper(req, res) {
             return res.status(404).json({ message: 'Topic not found' });
         }
 
-        // Generate filename using base64-encoded URL
-        const fileName = btoa(paper.url).replace(/[/+=]/g, '_');
+        // Title-slug filename, matching getPaperStorageId's convention used
+        // by the arxiv-originated save pathway (savePaper) - not the old
+        // base64(url) scheme this endpoint used to use.
+        const fileName = getPaperStorageId(paper);
         const jsonFilePath = path.join(topicPath, fileName + '.json');
         const mdFilePath = path.join(topicPath, fileName + '.md');
 
@@ -1542,11 +1770,43 @@ async function savePdfPaper(req, res) {
         // Save summary
         await fs.writeFile(mdFilePath, summary);
 
-        res.status(201).json({ message: 'PDF paper saved successfully' });
+        // Cache the full text that produced this summary (uploaded/pasted for
+        // 'manual', already-fetched for 'pdf'), so a later chat session has
+        // full-text context without re-fetching or re-asking the user for it.
+        // There is no raw PDF to discard here - only text ever reaches this
+        // point (see extractPdfText/summarizePdfText), so there's nothing to
+        // clean up beyond simply not writing a PDF file, which we never do.
+        if (text) {
+            await writeCachedFullText(topicName, fileName, text);
+        }
 
+        res.status(201).json({ message: 'PDF paper saved successfully.', paper });
+
+        // Background citation fetch, same fire-and-forget behavior as the
+        // arXiv save pathway (savePaper) - uniform across all three sources.
+        if (paper.citation === undefined) {
+            getCitationCount(paper)
+                .then(async (citationCount) => {
+                    if (citationCount !== undefined) {
+                        try {
+                            const data = await fs.readFile(jsonFilePath, 'utf-8');
+                            const savedPaper = JSON.parse(data);
+                            savedPaper.citation = citationCount;
+                            await fs.writeFile(jsonFilePath, JSON.stringify(savedPaper, null, 2));
+                        } catch (updateError) {
+                            console.error(`Failed to update citation for ${fileName}:`, updateError.message);
+                        }
+                    }
+                })
+                .catch((error) => {
+                    console.error(`Error fetching citation in background for ${fileName}:`, error.message);
+                });
+        }
     } catch (error) {
         console.error('Save PDF paper error:', error);
-        res.status(500).json({ message: 'Failed to save PDF paper' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Failed to save PDF paper' });
+        }
     }
 }
 
