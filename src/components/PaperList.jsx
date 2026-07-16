@@ -244,6 +244,7 @@ const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
         title: title.trim(),
         authors: authors.trim(),
         year: parseInt(year, 10),
+        abstract: '',
         source: 'manual'
       };
       if (url.trim()) {
@@ -500,22 +501,27 @@ const PaperList = ({
     const searchTerm = query.toLowerCase();
 
     return papers.filter(paper => {
+      const title = (paper.title || '').toLowerCase();
+      const authors = (paper.authors || '').toLowerCase();
+      const year = (paper.year || '').toString();
+      const abstract = (paper.abstract || '').toLowerCase();
+
       switch (field) {
         case 'title':
-          return paper.title.toLowerCase().includes(searchTerm);
+          return title.includes(searchTerm);
         case 'authors':
-          return paper.authors.toLowerCase().includes(searchTerm);
+          return authors.includes(searchTerm);
         case 'year':
-          return paper.year.toString().includes(searchTerm);
+          return year.includes(searchTerm);
         case 'abstract':
-          return paper.abstract.toLowerCase().includes(searchTerm);
+          return abstract.includes(searchTerm);
         case 'all':
         default:
           return (
-            paper.title.toLowerCase().includes(searchTerm) ||
-            paper.authors.toLowerCase().includes(searchTerm) ||
-            paper.year.toString().includes(searchTerm) ||
-            paper.abstract.toLowerCase().includes(searchTerm)
+            title.includes(searchTerm) ||
+            authors.includes(searchTerm) ||
+            year.includes(searchTerm) ||
+            abstract.includes(searchTerm)
           );
       }
     });

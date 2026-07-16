@@ -1694,7 +1694,11 @@ async function summarizePdfText(req, res) {
 
     } catch (error) {
         console.error('PDF text summarization error:', error);
-        res.status(500).json({ message: 'Failed to summarize PDF text' });
+        if (!res.headersSent) {
+            res.status(500).json({ message: 'Failed to summarize PDF text' });
+        } else {
+            res.end();
+        }
     }
 }
 
