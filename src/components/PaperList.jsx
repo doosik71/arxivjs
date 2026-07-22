@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react';
 import {
   getPapers,
   searchArxivPapers,
+  fetchArxivPaperById,
   savePaperToTopic,
   deletePaper,
   getTopics,
@@ -369,6 +370,51 @@ const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
   );
 };
 
+const ArxivResultItem = ({ paper, isAdded, onAdd, numberTag }) => (
+  <div className="arxiv-result-item">
+    {numberTag !== undefined && (
+      <div className="arxiv-paper-number-tag">{numberTag}</div>
+    )}
+    <div className="arxiv-paper-info">
+      <div
+        className="arxiv-paper-title"
+        style={{
+          color: isAdded ? 'var(--color-text-secondary)' : 'var(--color-primary)',
+          opacity: isAdded ? 0.6 : 1
+        }}
+      >
+        {paper.title}
+      </div>
+      <div>
+        <span className="arxiv-paper-authors">{paper.authors}</span>
+        <span className="arxiv-paper-year">{paper.year}</span>
+        <a
+          href={paper.url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="arxiv-paper-link"
+        >
+          View on ArXiv
+        </a>
+      </div>
+      {paper.abstract && (
+        <div className="arxiv-paper-abstract">
+          {paper.abstract.substring(0, 300)}
+          {paper.abstract.length > 300 && '...'}
+        </div>
+      )}
+    </div>
+    <button
+      onClick={() => onAdd(paper)}
+      className="arxiv-add-button"
+      disabled={isAdded}
+      title={isAdded ? "Already added" : "Add to this topic"}
+    >
+      {isAdded ? 'Added' : 'Add'}
+    </button>
+  </div>
+);
+
 // Utility function to highlight search terms in text
 const highlightText = (text, paperSearchQuery, searchField, currentField) => {
   if (!paperSearchQuery.trim()) return text;
@@ -435,8 +481,14 @@ const PaperList = ({
   const [arxivSearchLoading, setArxivSearchLoading] = useState(false);
   const [arxivSearchError, setArxivSearchError] = useState(null);
   const [showArxivSearch, setShowArxivSearch] = useState(false);
-  const [addMode, setAddMode] = useState('search'); // 'search' | 'url' | 'manual'
+  const [addMode, setAddMode] = useState('search'); // 'search' | 'id' | 'url' | 'manual'
   const [addedPapers, setAddedPapers] = useState(new Set());
+
+  // Search by arXiv ID states
+  const [arxivIdQuery, setArxivIdQuery] = useState('');
+  const [arxivIdResult, setArxivIdResult] = useState(null);
+  const [arxivIdLoading, setArxivIdLoading] = useState(false);
+  const [arxivIdError, setArxivIdError] = useState(null);
 
   // Move paper states
   const [showMoveModal, setShowMoveModal] = useState(false);
@@ -590,6 +642,9 @@ const PaperList = ({
 
       // Mark this paper as added to hide its Add button
       setAddedPapers(prev => new Set(prev).add(paper.url));
+
+      // Refresh the paper list above so the newly added paper shows up immediately
+      await loadPapers();
     } catch (err) {
       window.alert('Failed to add paper: ' + (err.response?.data?.message || err.message));
       console.error('Error adding paper:', err);
@@ -605,14 +660,47 @@ const PaperList = ({
     setAddedPapers(new Set());
   };
 
+  // Search by arXiv ID functions.
+  // Fetches paper metadata directly from the arXiv abs page instead of the
+  // export.arxiv.org search API, which is sometimes slow or fails to respond.
+  const handleArxivIdSearch = async (e) => {
+    e.preventDefault();
+    if (!arxivIdQuery.trim()) return;
+
+    try {
+      setArxivIdLoading(true);
+      setArxivIdError(null);
+      const paper = await fetchArxivPaperById(arxivIdQuery);
+
+      if (papers.some(existing => existing.url === paper.url)) {
+        setAddedPapers(prev => new Set(prev).add(paper.url));
+      }
+
+      setArxivIdResult(paper);
+    } catch (err) {
+      setArxivIdError('Failed to fetch paper: ' + (err.response?.data?.message || err.message));
+      setArxivIdResult(null);
+      console.error('Error fetching paper by arXiv ID:', err);
+    } finally {
+      setArxivIdLoading(false);
+    }
+  };
+
+  const clearArxivIdSearch = () => {
+    setArxivIdQuery('');
+    setArxivIdResult(null);
+    setArxivIdError(null);
+  };
+
   const handleRefreshPapers = async () => {
     await loadPapers();
 
     // After refreshing, check if there are search results and update addedPapers accordingly
-    if (arxivSearchResults.length > 0) {
+    const resultsToCheck = arxivIdResult ? [...arxivSearchResults, arxivIdResult] : arxivSearchResults;
+    if (resultsToCheck.length > 0) {
       const refreshedPapers = await getPapers(topicName);
       const existingPaperUrls = new Set(refreshedPapers.map(paper => paper.url));
-      const alreadyAddedUrls = arxivSearchResults
+      const alreadyAddedUrls = resultsToCheck
         .filter(result => existingPaperUrls.has(result.url))
         .map(result => result.url);
 
@@ -628,6 +716,7 @@ const PaperList = ({
     setShowArxivSearch(!showArxivSearch);
     if (showArxivSearch) {
       clearArxivSearch();
+      clearArxivIdSearch();
     }
   };
 
@@ -976,6 +1065,13 @@ const PaperList = ({
               </button>
               <button
                 type="button"
+                className={`add-paper-tab${addMode === 'id' ? ' active' : ''}`}
+                onClick={() => setAddMode('id')}
+              >
+                Search by arXiv ID
+              </button>
+              <button
+                type="button"
                 className={`add-paper-tab${addMode === 'url' ? ' active' : ''}`}
                 onClick={() => setAddMode('url')}
               >
@@ -996,6 +1092,57 @@ const PaperList = ({
 
             {addMode === 'manual' && (
               <AddManualPaperForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
+            )}
+
+            {addMode === 'id' && (
+              <div className="arxiv-search-container">
+                <form onSubmit={handleArxivIdSearch} className="arxiv-search-form">
+                  <div className="arxiv-search-controls">
+                    <input
+                      type="text"
+                      placeholder="Enter arXiv ID (e.g. 2305.12345)..."
+                      value={arxivIdQuery}
+                      onChange={(e) => setArxivIdQuery(e.target.value)}
+                      className="arxiv-search-input"
+                      disabled={arxivIdLoading}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!arxivIdQuery.trim() || arxivIdLoading}
+                      className="arxiv-search-button"
+                    >
+                      {arxivIdLoading ? 'Searching...' : 'Search'}
+                    </button>
+                    {(arxivIdQuery || arxivIdResult) && (
+                      <button
+                        type="button"
+                        onClick={clearArxivIdSearch}
+                        className="arxiv-clear-button"
+                      >
+                        Clear
+                      </button>
+                    )}
+                  </div>
+                </form>
+
+                {arxivIdError && (
+                  <div className="arxiv-search-error">
+                    {arxivIdError}
+                  </div>
+                )}
+
+                {arxivIdResult && (
+                  <div className="arxiv-search-results">
+                    <div className="arxiv-results-list">
+                      <ArxivResultItem
+                        paper={arxivIdResult}
+                        isAdded={addedPapers.has(arxivIdResult.url)}
+                        onAdd={handleAddPaper}
+                      />
+                    </div>
+                  </div>
+                )}
+              </div>
             )}
 
             {addMode === 'search' && (
@@ -1062,48 +1209,13 @@ const PaperList = ({
                 <h4>Search Results ({arxivSearchResults.length} papers found)</h4>
                 <div className="arxiv-results-list">
                   {arxivSearchResults.map((paper, index) => (
-                    <div key={index} className="arxiv-result-item">
-                      <div className="arxiv-paper-number-tag">
-                        {index + 1}
-                      </div>
-                      <div className="arxiv-paper-info">
-                        <div
-                          className="arxiv-paper-title"
-                          style={{
-                            color: addedPapers.has(paper.url) ? 'var(--color-text-secondary)' : 'var(--color-primary)',
-                            opacity: addedPapers.has(paper.url) ? 0.6 : 1
-                          }}
-                        >
-                          {paper.title}
-                        </div>
-                        <div>
-                          <span className="arxiv-paper-authors">{paper.authors}</span>
-                          <span className="arxiv-paper-year">{paper.year}</span>
-                          <a
-                            href={paper.url}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            className="arxiv-paper-link"
-                          >
-                            View on ArXiv
-                          </a>
-                        </div>
-                        {paper.abstract && (
-                          <div className="arxiv-paper-abstract">
-                            {paper.abstract.substring(0, 300)}
-                            {paper.abstract.length > 300 && '...'}
-                          </div>
-                        )}
-                      </div>
-                      <button
-                        onClick={() => handleAddPaper(paper)}
-                        className="arxiv-add-button"
-                        disabled={addedPapers.has(paper.url)}
-                        title={addedPapers.has(paper.url) ? "Already added" : "Add to this topic"}
-                      >
-                        {addedPapers.has(paper.url) ? 'Added' : 'Add'}
-                      </button>
-                    </div>
+                    <ArxivResultItem
+                      key={index}
+                      paper={paper}
+                      isAdded={addedPapers.has(paper.url)}
+                      onAdd={handleAddPaper}
+                      numberTag={index + 1}
+                    />
                   ))}
                 </div>
               </div>

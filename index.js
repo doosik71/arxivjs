@@ -1304,6 +1304,79 @@ async function searchArxiv(req, res) {
     }
 }
 
+// Decode the small set of HTML entities that appear in arXiv abs page meta tags.
+function decodeHtmlEntities(text) {
+    return text
+        .replace(/&amp;/g, '&')
+        .replace(/&lt;/g, '<')
+        .replace(/&gt;/g, '>')
+        .replace(/&quot;/g, '"')
+        .replace(/&#39;/g, "'");
+}
+
+function extractMetaContents(html, name) {
+    const regex = new RegExp(`<meta\\s+name="${name}"\\s+content="([^"]*)"`, 'g');
+    const values = [];
+    let match;
+    while ((match = regex.exec(html)) !== null) {
+        values.push(decodeHtmlEntities(match[1]));
+    }
+    return values;
+}
+
+// citation_author meta tags use "Last, First" order; the rest of the app
+// (arXiv Atom API results) uses "First Last", so normalize to match.
+function formatCitationAuthorName(name) {
+    const [last, first] = name.split(',').map((part) => part.trim());
+    return first ? `${first} ${last}` : name.trim();
+}
+
+/**
+ * Fetch paper metadata directly from an arXiv abs page.
+ * Used as a fallback when the export.arxiv.org search API is slow or fails.
+ */
+async function getPaperByArxivId(req, res) {
+    try {
+        const arxivId = (req.params.arxivId || '').trim();
+        if (!/^[0-9]{4}\.[0-9]{4,5}(v[0-9]+)?$/.test(arxivId)) {
+            return res.status(400).json({ message: 'Invalid arXiv ID format.' });
+        }
+
+        const absUrl = `https://arxiv.org/abs/${arxivId}`;
+        const response = await axios.get(absUrl, {
+            headers: { 'User-Agent': 'Mozilla/5.0' },
+            timeout: 10000
+        });
+        const html = response.data;
+
+        const titles = extractMetaContents(html, 'citation_title');
+        if (!titles.length) {
+            return res.status(404).json({ message: 'Paper not found.' });
+        }
+
+        const authors = extractMetaContents(html, 'citation_author').map(formatCitationAuthorName);
+        const dates = extractMetaContents(html, 'citation_date');
+        const abstracts = extractMetaContents(html, 'citation_abstract');
+
+        const paper = {
+            title: titles[0].trim(),
+            authors: authors.join(', '),
+            year: dates.length ? parseInt(dates[0].split('/')[0], 10) : new Date().getFullYear(),
+            url: absUrl,
+            abstract: (abstracts[0] || '').trim(),
+            source: 'arxiv'
+        };
+
+        res.json(paper);
+    } catch (error) {
+        console.log(error.message);
+        if (error.response && error.response.status === 404) {
+            return res.status(404).json({ message: 'Paper not found.' });
+        }
+        res.status(500).json({ message: 'Failed to fetch paper from arXiv.' });
+    }
+}
+
 async function getPaperSummary(req, res) {
     try {
         const { topicName, paperId } = req.params;
@@ -1646,6 +1719,7 @@ async function updateCitation(req, res) {
 app.get('/papers/:topicName/:paperId/update-citation', fetchAndUpdateCitation);
 app.post('/papers/:topicName/:paperId/citation', updateCitation);
 app.get('/search', searchArxiv);
+app.get('/arxiv-paper/:arxivId', getPaperByArxivId);
 app.get('/paper-summary/:topicName/:paperId', getPaperSummary);
 app.post('/chat/:topicName/:paperId', chatWithPaper);
 app.post('/summarize-and-save', summarizeAndSave);

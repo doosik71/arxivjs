@@ -116,6 +116,11 @@ export const searchArxivPapers = async (keyword, year, count = 100, sort = 'rele
   return response.data;
 };
 
+export const fetchArxivPaperById = async (arxivId) => {
+  const response = await api.get(`/arxiv-paper/${encodeURIComponent(arxivId.trim())}`);
+  return response.data;
+};
+
 export const savePaperToTopic = async (topicName, paper) => {
   const response = await api.post(`/papers/${encodeURIComponent(topicName)}`, { paper });
   return response.data;
