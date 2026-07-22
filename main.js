@@ -1,9 +1,15 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('path');
+const contextMenu = require('electron-context-menu');
 const { startServer } = require('./index.js'); // Import the server starter
 
 async function main() {
     const { server, port, hostname } = await startServer();
+
+    contextMenu({
+        showSaveImageAs: true,
+        showCopyImageAddress: true,
+    });
 
     function createWindow() {
         const mainWindow = new BrowserWindow({

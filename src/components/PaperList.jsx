@@ -534,16 +534,20 @@ const PaperList = ({
     }
   }, [lastSelectedPaperId, papers]);
 
-  const loadPapers = async () => {
+  const loadPapers = async (showLoading = true) => {
     try {
-      setLoading(true);
+      if (showLoading) {
+        setLoading(true);
+      }
       const data = await getPapers(topicName);
       setPapers(data);
     } catch (err) {
       setError('Failed to load papers');
       console.error('Error loading papers:', err);
     } finally {
-      setLoading(false);
+      if (showLoading) {
+        setLoading(false);
+      }
     }
   };
 
@@ -643,8 +647,9 @@ const PaperList = ({
       // Mark this paper as added to hide its Add button
       setAddedPapers(prev => new Set(prev).add(paper.url));
 
-      // Refresh the paper list above so the newly added paper shows up immediately
-      await loadPapers();
+      // Refresh the paper list above so the newly added paper shows up immediately,
+      // without flashing the full-page loading state (which would reset scroll position)
+      await loadPapers(false);
     } catch (err) {
       window.alert('Failed to add paper: ' + (err.response?.data?.message || err.message));
       console.error('Error adding paper:', err);
@@ -693,7 +698,7 @@ const PaperList = ({
   };
 
   const handleRefreshPapers = async () => {
-    await loadPapers();
+    await loadPapers(false);
 
     // After refreshing, check if there are search results and update addedPapers accordingly
     const resultsToCheck = arxivIdResult ? [...arxivSearchResults, arxivIdResult] : arxivSearchResults;
@@ -740,16 +745,8 @@ const PaperList = ({
     }
 
     try {
-      // Store current scroll position
-      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-
       await deletePaper(topicName, paperId);
-      await loadPapers(); // Reload the papers list
-
-      // Restore scroll position after a brief delay to allow for re-render
-      setTimeout(() => {
-        window.scrollTo(0, scrollPosition);
-      }, 50);
+      await loadPapers(false); // Reload the papers list without the full-page loading flash
     } catch (err) {
       window.alert('Failed to delete paper: ' + (err.response?.data?.message || err.message));
       console.error('Error deleting paper:', err);
@@ -790,20 +787,11 @@ const PaperList = ({
     const paperId = getPaperId(selectedPaper);
 
     try {
-      // Store current scroll position
-      const scrollPosition = window.pageYOffset || document.documentElement.scrollTop;
-
       await movePaper(topicName, targetTopicName, paperId);
-      await loadPapers(); // Reload the papers list
+      await loadPapers(false); // Reload the papers list without the full-page loading flash
 
       // After moving a paper, the topic counts change, so we should refresh the cache
       await loadAndPrepareTopics(true);
-
-
-      // Restore scroll position after a brief delay to allow for re-render
-      setTimeout(() => {
-        window.scrollTo(0, scrollPosition);
-      }, 50);
 
       setShowMoveModal(false);
       setSelectedPaper(null);

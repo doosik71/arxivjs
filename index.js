@@ -362,6 +362,11 @@ async function* streamGeminiGenerate(prompt) {
     const { provider } = getProviderOrThrow('gemini');
     const model = provider.client.getGenerativeModel({ model: provider.model });
     const result = await model.generateContentStream(prompt);
+    // result.stream and result.response are two tee'd branches of the same
+    // underlying stream; we only consume result.stream below, so swallow
+    // result.response's rejection here to avoid an unhandled promise
+    // rejection crashing the process when the stream fails to parse.
+    result.response.catch(() => { });
 
     for await (const chunk of result.stream) {
         const textChunk = chunk.text?.();
@@ -395,6 +400,8 @@ async function* streamGeminiChat(history, paperContext) {
     });
 
     const result = await chat.sendMessageStream(lastMessage.content);
+    // See streamGeminiGenerate above for why result.response must be caught here.
+    result.response.catch(() => { });
     for await (const chunk of result.stream) {
         const textChunk = chunk.text?.();
         if (textChunk) {
