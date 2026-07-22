@@ -158,7 +158,7 @@ const userPromptPath = path.join(dataPath, 'userprompt.txt');
 })();
 
 // Initialize express server.
-app.use(express.json());
+app.use(express.json({ limit: '50mb' }));
 app.use(express.static(path.join(__dirname, 'public')));
 
 // Configure CORS to allow ArxiView frontend access
