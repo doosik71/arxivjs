@@ -1934,6 +1934,15 @@ article h3:first-child {
   white-space: pre-wrap;
   font-size: 0.9rem;
   line-height: 1.5;
+  transition: background-color 0.3s ease;
+}
+
+.add-paper-summary-preview.is-summarizing {
+  background: rgba(120, 120, 120, 0.4);
+}
+
+.add-paper-summary-preview.is-complete {
+  background: rgba(120, 120, 120, 0.12);
 }
 
 /* Paper source badge (arxiv / pdf / manual) */

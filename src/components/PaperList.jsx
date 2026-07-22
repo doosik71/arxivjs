@@ -318,9 +318,11 @@ const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
         {isSummarizing ? 'Summarizing...' : 'Generate Summary'}
       </button>
 
-      {summary && (
+      {(isSummarizing || summary) && (
         <>
-          <div className="add-paper-summary-preview">{summary}</div>
+          <div className={`add-paper-summary-preview ${isSummarizing ? 'is-summarizing' : 'is-complete'}`}>
+            {summary || 'Summarizing...'}
+          </div>
           <input
             type="text"
             placeholder="Title..."
@@ -359,7 +361,7 @@ const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
           <button
             type="button"
             onClick={handleSave}
-            disabled={isSaving || !title.trim() || !authors.trim() || !year}
+            disabled={isSaving || isSummarizing || !title.trim() || !authors.trim() || !year}
             className="arxiv-add-button"
           >
             {isSaving ? 'Saving...' : 'Save Paper'}
