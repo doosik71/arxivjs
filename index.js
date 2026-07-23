@@ -1205,6 +1205,15 @@ async function deletePaper(req, res) {
                 throw error;
             }
         }
+        try {
+            // Cached full text (see writeCachedFullText) - left behind otherwise,
+            // which also blocks deleting the now-empty-looking topic folder.
+            await fs.unlink(getTextCachePath(req.params.topicName, req.params.paperId));
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
         res.json({ message: 'Paper deleted successfully.' });
     } catch (error) {
         res.status(500).json({ message: error.message });
@@ -1561,14 +1570,20 @@ async function chatWithPaper(req, res) {
 
 async function summarizeAndSave(req, res) {
     try {
-        const { paper, topicName, engine } = req.body;
+        const { paper, topicName, engine, text } = req.body;
         const fileName = getPaperStorageId(paper);
         const topicPath = getTopicPath(topicName);
 
         await fs.mkdir(topicPath, { recursive: true });
 
         const mdFilePath = path.join(topicPath, fileName + '.md');
-        const pdfText = await getFullText(paper, topicName, fileName);
+        // A caller-supplied text (from PaperDetail's manual text-entry choice)
+        // takes precedence over auto-fetching, and is cached the same way
+        // savePdfPaper caches it so later chat sessions reuse it too.
+        const pdfText = text ? text : await getFullText(paper, topicName, fileName);
+        if (text) {
+            await writeCachedFullText(topicName, fileName, text);
+        }
         const userPrompt = await fs.readFile(path.join(dataPath, 'userprompt.txt'), 'utf-8');
         const prompt = userPrompt.replace('{context}', pdfText);
         const generator = await streamSummary(engine, prompt);

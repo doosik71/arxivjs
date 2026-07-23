@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithPaper, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText } from '../api';
+import { getPaperSummary, getPaperHighlights, savePaperHighlights, chatWithPaper, generatePaperSummary, deletePaper, deletePaperSummary, updateCitationCount, fetchAndUpdateCitation, translateText, extractPdfTextFromFile } from '../api';
 import { parseMarkdownWithMath, extractTableOfContents } from '../utils/markdownRenderer';
 import { getSavedConfig } from '../utils/config';
 import { getPaperId } from '../utils/paperId';
@@ -405,6 +405,14 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   const [chatHistory, setChatHistory] = useState([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
+  // Text-source choice for non-arxiv papers, since a paper's url may not
+  // even point to a raw PDF - see the "no summary yet" section below.
+  const [textSource, setTextSource] = useState('url');
+  const [manualInputMethod, setManualInputMethod] = useState('upload');
+  const [manualFile, setManualFile] = useState(null);
+  const [manualPastedText, setManualPastedText] = useState('');
+  const [isExtractingText, setIsExtractingText] = useState(false);
+  const [textSourceError, setTextSourceError] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const [isDeletingSummary, setIsDeletingSummary] = useState(false);
   const [isEditingCitation, setIsEditingCitation] = useState(false);
@@ -514,6 +522,11 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     setIsTranslating(false);
     setHighlights([]);
     closeHighlightPopover();
+    setTextSource(initialPaper?.url ? 'url' : 'text');
+    setManualInputMethod('upload');
+    setManualFile(null);
+    setManualPastedText('');
+    setTextSourceError(null);
   }, [initialPaper]);
 
   useEffect(() => {
@@ -652,14 +665,14 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     }
   };
 
-  const handleGenerateSummary = async () => {
+  const handleGenerateSummary = async (manualText) => {
     try {
       setIsGeneratingSummary(true);
       setSummaryError(null);
       setHighlights([]);
       closeHighlightPopover();
 
-      const response = await generatePaperSummary(topicName, paper, selectedEngine);
+      const response = await generatePaperSummary(topicName, paper, selectedEngine, manualText);
 
       // Check if streaming is supported
       if (!response.body || !response.body.getReader) {
@@ -710,6 +723,44 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     } finally {
       setIsGeneratingSummary(false);
     }
+  };
+
+  // Entry point for the "no summary yet" button on non-arxiv papers: resolves
+  // whichever text source the user picked (fetch from url vs. provide text
+  // manually) before delegating to handleGenerateSummary.
+  const handleGenerateSummaryWithChosenSource = async () => {
+    if (textSource === 'url') {
+      await handleGenerateSummary();
+      return;
+    }
+
+    setTextSourceError(null);
+
+    let manualText = manualPastedText.trim();
+
+    if (manualInputMethod === 'upload') {
+      if (!manualFile) {
+        setTextSourceError('Please choose a PDF file first.');
+        return;
+      }
+
+      try {
+        setIsExtractingText(true);
+        manualText = await extractPdfTextFromFile(manualFile);
+      } catch (err) {
+        setTextSourceError('Failed to extract text from PDF: ' + (err.response?.data?.message || err.message));
+        return;
+      } finally {
+        setIsExtractingText(false);
+      }
+    }
+
+    if (!manualText) {
+      setTextSourceError('No text to summarize.');
+      return;
+    }
+
+    await handleGenerateSummary(manualText);
   };
 
   const handleClearChatHistory = () => {
@@ -1179,14 +1230,99 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
           ) : (
             <div className="no-summary">
               <p>No summary available yet.</p>
-              <button
-                onClick={handleGenerateSummary}
-                disabled={isGeneratingSummary}
-                className="summarize-button"
-                title={`Generate summary with ${engineLabel}`}
-              >
-                {`Generate Summary with ${engineLabel}`}
-              </button>
+              {paperSource === 'arxiv' ? (
+                <button
+                  onClick={() => handleGenerateSummary()}
+                  disabled={isGeneratingSummary}
+                  className="summarize-button"
+                  title={`Generate summary with ${engineLabel}`}
+                >
+                  {`Generate Summary with ${engineLabel}`}
+                </button>
+              ) : (
+                <div className="summary-text-source-chooser add-paper-form">
+                  {paper.url && (
+                    <div className="add-paper-method-toggle">
+                      <label>
+                        <input
+                          type="radio"
+                          name="summary-text-source"
+                          checked={textSource === 'url'}
+                          onChange={() => setTextSource('url')}
+                          disabled={isGeneratingSummary || isExtractingText}
+                        />
+                        Fetch text from URL
+                      </label>
+                      <label>
+                        <input
+                          type="radio"
+                          name="summary-text-source"
+                          checked={textSource === 'text'}
+                          onChange={() => setTextSource('text')}
+                          disabled={isGeneratingSummary || isExtractingText}
+                        />
+                        I'll provide the text
+                      </label>
+                    </div>
+                  )}
+
+                  {textSource === 'text' && (
+                    <>
+                      <div className="add-paper-method-toggle">
+                        <label>
+                          <input
+                            type="radio"
+                            name="summary-manual-input-method"
+                            checked={manualInputMethod === 'upload'}
+                            onChange={() => setManualInputMethod('upload')}
+                            disabled={isGeneratingSummary || isExtractingText}
+                          />
+                          Upload PDF file
+                        </label>
+                        <label>
+                          <input
+                            type="radio"
+                            name="summary-manual-input-method"
+                            checked={manualInputMethod === 'paste'}
+                            onChange={() => setManualInputMethod('paste')}
+                            disabled={isGeneratingSummary || isExtractingText}
+                          />
+                          Paste text
+                        </label>
+                      </div>
+
+                      {manualInputMethod === 'upload' ? (
+                        <input
+                          type="file"
+                          accept="application/pdf"
+                          onChange={(e) => setManualFile(e.target.files?.[0] || null)}
+                          disabled={isGeneratingSummary || isExtractingText}
+                        />
+                      ) : (
+                        <textarea
+                          placeholder="Paste paper text here..."
+                          value={manualPastedText}
+                          onChange={(e) => setManualPastedText(e.target.value)}
+                          className="add-paper-textarea"
+                          rows={6}
+                          disabled={isGeneratingSummary || isExtractingText}
+                        />
+                      )}
+                    </>
+                  )}
+
+                  {textSourceError && <div className="arxiv-search-error">{textSourceError}</div>}
+
+                  <button
+                    onClick={handleGenerateSummaryWithChosenSource}
+                    disabled={isGeneratingSummary || isExtractingText}
+                    className="summarize-button"
+                    title={`Generate summary with ${engineLabel}`}
+                  >
+                    {isExtractingText ? 'Extracting text...' : `Generate Summary with ${engineLabel}`}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </section>

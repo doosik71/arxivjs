@@ -126,7 +126,7 @@ export const savePaperToTopic = async (topicName, paper) => {
   return response.data;
 };
 
-export const generatePaperSummary = async (topicName, paper, engine) => {
+export const generatePaperSummary = async (topicName, paper, engine, text) => {
   const baseURL = api.defaults.baseURL || '';
   const url = `${baseURL}/summarize-and-save`;
 
@@ -138,7 +138,8 @@ export const generatePaperSummary = async (topicName, paper, engine) => {
     body: JSON.stringify({
       paper,
       topicName,
-      engine
+      engine,
+      text
     })
   });
 

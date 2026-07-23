@@ -6,17 +6,16 @@ import {
   savePaperToTopic,
   deletePaper,
   getTopics,
-  movePaper,
-  extractPdfTextFromFile,
-  summarizePdfText,
-  savePdfPaper
+  movePaper
 } from '../api';
 import TableOfContents from './TableOfContents';
 import { getPaperId, titlesLikelyMatch } from '../utils/paperId';
-import { getSavedConfig } from '../utils/config';
 import './PaperList.css';
 
 const SOURCE_LABELS = { arxiv: 'arXiv', pdf: 'PDF', manual: 'Manual' };
+
+// Mirrors the backend's own arXiv ID format check in getPaperByArxivId (index.js).
+const ARXIV_ID_REGEX = /^[0-9]{4}\.[0-9]{4,5}(v[0-9]+)?$/;
 
 const findExistingTitleMatch = (papers, title) => papers.find((paper) => titlesLikelyMatch(paper.title, title));
 
@@ -31,7 +30,10 @@ const confirmIfDuplicateTitle = (papers, title) => {
   );
 };
 
-const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
+// Collects only metadata (no PDF/text handling, no summary generation) -
+// summary text-source selection happens later in PaperDetail's Generate
+// Summary flow, since a paper's URL may not even point to a raw PDF.
+const AddManuallyForm = ({ topicName, existingPapers, onSaved }) => {
   const [title, setTitle] = useState('');
   const [authors, setAuthors] = useState('');
   const [year, setYear] = useState('');
@@ -42,7 +44,7 @@ const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim() || !authors.trim() || !year || !url.trim()) {
+    if (!title.trim() || !authors.trim() || !year) {
       return;
     }
 
@@ -54,13 +56,15 @@ const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
       setIsSaving(true);
       setError(null);
 
+      const trimmedUrl = url.trim();
       const paper = {
         title: title.trim(),
         authors: authors.trim(),
         year: parseInt(year, 10),
-        url: url.trim(),
+        url: trimmedUrl,
         abstract: abstract.trim(),
-        source: 'pdf'
+        // No URL means there's nothing to auto-fetch text from later.
+        source: trimmedUrl ? 'pdf' : 'manual'
       };
 
       await savePaperToTopic(topicName, paper);
@@ -80,15 +84,6 @@ const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
 
   return (
     <form onSubmit={handleSubmit} className="add-paper-form">
-      <input
-        type="url"
-        placeholder="PDF URL..."
-        value={url}
-        onChange={(e) => setUrl(e.target.value)}
-        className="add-paper-input"
-        disabled={isSaving}
-        required
-      />
       <input
         type="text"
         placeholder="Title..."
@@ -116,6 +111,14 @@ const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
         disabled={isSaving}
         required
       />
+      <input
+        type="url"
+        placeholder="URL (optional)..."
+        value={url}
+        onChange={(e) => setUrl(e.target.value)}
+        className="add-paper-input"
+        disabled={isSaving}
+      />
       <textarea
         placeholder="Abstract (optional)..."
         value={abstract}
@@ -129,246 +132,6 @@ const AddByUrlForm = ({ topicName, existingPapers, onSaved }) => {
         {isSaving ? 'Adding...' : 'Add Paper'}
       </button>
     </form>
-  );
-};
-
-const AddManualPaperForm = ({ topicName, existingPapers, onSaved }) => {
-  const [inputMethod, setInputMethod] = useState('upload');
-  const [file, setFile] = useState(null);
-  const [pastedText, setPastedText] = useState('');
-  const [title, setTitle] = useState('');
-  const [authors, setAuthors] = useState('');
-  const [year, setYear] = useState('');
-  const [url, setUrl] = useState('');
-  const [summary, setSummary] = useState('');
-  const [extractedText, setExtractedText] = useState('');
-  const [isSummarizing, setIsSummarizing] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
-  const [error, setError] = useState(null);
-  const selectedEngine = getSavedConfig().summaryEngine || 'gemini';
-
-  const resetAll = () => {
-    setFile(null);
-    setPastedText('');
-    setTitle('');
-    setAuthors('');
-    setYear('');
-    setUrl('');
-    setSummary('');
-    setExtractedText('');
-    setError(null);
-  };
-
-  const handleGenerateSummary = async () => {
-    setError(null);
-    setSummary('');
-
-    let text = pastedText.trim();
-
-    try {
-      setIsSummarizing(true);
-
-      if (inputMethod === 'upload') {
-        if (!file) {
-          setError('Please choose a PDF file first.');
-          return;
-        }
-        text = await extractPdfTextFromFile(file);
-      }
-
-      if (!text) {
-        setError('No text to summarize.');
-        return;
-      }
-      setExtractedText(text);
-
-      const response = await summarizePdfText(text, topicName, selectedEngine);
-
-      if (!response.body || !response.body.getReader) {
-        const plainText = await response.text();
-        setSummary(plainText);
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let summaryText = '';
-
-      try {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split('\n\n');
-
-          for (const line of lines) {
-            if (line.startsWith('data: ')) {
-              try {
-                const jsonData = line.substring(6).trim();
-                if (jsonData && jsonData !== '[DONE]') {
-                  const data = JSON.parse(jsonData);
-                  summaryText += data;
-                  setSummary(summaryText);
-                }
-              } catch (parseError) {
-                console.warn('Failed to parse chunk:', line);
-              }
-            }
-          }
-        }
-      } finally {
-        reader.releaseLock();
-      }
-    } catch (err) {
-      setError('Failed to generate summary: ' + (err.message || 'Unknown error'));
-      setSummary('');
-    } finally {
-      setIsSummarizing(false);
-    }
-  };
-
-  const handleSave = async () => {
-    if (!title.trim() || !authors.trim() || !year || !summary) {
-      return;
-    }
-
-    if (!confirmIfDuplicateTitle(existingPapers, title)) {
-      return;
-    }
-
-    try {
-      setIsSaving(true);
-      setError(null);
-
-      const paper = {
-        title: title.trim(),
-        authors: authors.trim(),
-        year: parseInt(year, 10),
-        abstract: '',
-        source: 'manual'
-      };
-      if (url.trim()) {
-        paper.url = url.trim();
-      }
-
-      await savePdfPaper(paper, summary, topicName, extractedText);
-      resetAll();
-      onSaved();
-    } catch (err) {
-      setError('Failed to save paper: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setIsSaving(false);
-    }
-  };
-
-  const canGenerate = inputMethod === 'upload' ? Boolean(file) : Boolean(pastedText.trim());
-
-  return (
-    <div className="add-paper-form">
-      <div className="add-paper-method-toggle">
-        <label>
-          <input
-            type="radio"
-            name="manual-input-method"
-            checked={inputMethod === 'upload'}
-            onChange={() => setInputMethod('upload')}
-            disabled={isSummarizing}
-          />
-          Upload PDF file
-        </label>
-        <label>
-          <input
-            type="radio"
-            name="manual-input-method"
-            checked={inputMethod === 'paste'}
-            onChange={() => setInputMethod('paste')}
-            disabled={isSummarizing}
-          />
-          Paste text
-        </label>
-      </div>
-
-      {inputMethod === 'upload' ? (
-        <input
-          type="file"
-          accept="application/pdf"
-          onChange={(e) => setFile(e.target.files?.[0] || null)}
-          disabled={isSummarizing}
-        />
-      ) : (
-        <textarea
-          placeholder="Paste PDF text here..."
-          value={pastedText}
-          onChange={(e) => setPastedText(e.target.value)}
-          className="add-paper-textarea"
-          rows={6}
-          disabled={isSummarizing}
-        />
-      )}
-
-      {error && <div className="arxiv-search-error">{error}</div>}
-
-      <button
-        type="button"
-        onClick={handleGenerateSummary}
-        disabled={isSummarizing || !canGenerate}
-        className="arxiv-search-button"
-      >
-        {isSummarizing ? 'Summarizing...' : 'Generate Summary'}
-      </button>
-
-      {(isSummarizing || summary) && (
-        <>
-          <div className={`add-paper-summary-preview ${isSummarizing ? 'is-summarizing' : 'is-complete'}`}>
-            {summary || 'Summarizing...'}
-          </div>
-          <input
-            type="text"
-            placeholder="Title..."
-            value={title}
-            onChange={(e) => setTitle(e.target.value)}
-            className="add-paper-input"
-            disabled={isSaving}
-            required
-          />
-          <input
-            type="text"
-            placeholder="Authors..."
-            value={authors}
-            onChange={(e) => setAuthors(e.target.value)}
-            className="add-paper-input"
-            disabled={isSaving}
-            required
-          />
-          <input
-            type="number"
-            placeholder="Year..."
-            value={year}
-            onChange={(e) => setYear(e.target.value)}
-            className="add-paper-input add-paper-input-year"
-            disabled={isSaving}
-            required
-          />
-          <input
-            type="url"
-            placeholder="Reference URL (optional)..."
-            value={url}
-            onChange={(e) => setUrl(e.target.value)}
-            className="add-paper-input"
-            disabled={isSaving}
-          />
-          <button
-            type="button"
-            onClick={handleSave}
-            disabled={isSaving || isSummarizing || !title.trim() || !authors.trim() || !year}
-            className="arxiv-add-button"
-          >
-            {isSaving ? 'Saving...' : 'Save Paper'}
-          </button>
-        </>
-      )}
-    </div>
   );
 };
 
@@ -483,14 +246,11 @@ const PaperList = ({
   const [arxivSearchLoading, setArxivSearchLoading] = useState(false);
   const [arxivSearchError, setArxivSearchError] = useState(null);
   const [showArxivSearch, setShowArxivSearch] = useState(false);
-  const [addMode, setAddMode] = useState('search'); // 'search' | 'id' | 'url' | 'manual'
+  const [addMode, setAddMode] = useState('search'); // 'search' | 'manual'
   const [addedPapers, setAddedPapers] = useState(new Set());
 
-  // Search by arXiv ID states
-  const [arxivIdQuery, setArxivIdQuery] = useState('');
+  // Single-paper result when the search query matches arXiv ID format
   const [arxivIdResult, setArxivIdResult] = useState(null);
-  const [arxivIdLoading, setArxivIdLoading] = useState(false);
-  const [arxivIdError, setArxivIdError] = useState(null);
 
   // Move paper states
   const [showMoveModal, setShowMoveModal] = useState(false);
@@ -608,14 +368,42 @@ const PaperList = ({
     setPaperMinCitations(0);
   };
 
-  // ArXiv search functions
+  // ArXiv search functions.
+  // If the query matches arXiv ID format (e.g. 2305.12345 or 2305.12345v2),
+  // fetch that single paper directly instead of running a keyword search -
+  // mirrors the format check in the backend's getPaperByArxivId.
   const handleArxivSearch = async (e) => {
     e.preventDefault();
     if (!arxivSearchQuery.trim()) return;
 
+    const trimmedQuery = arxivSearchQuery.trim();
+
+    if (ARXIV_ID_REGEX.test(trimmedQuery)) {
+      try {
+        setArxivSearchLoading(true);
+        setArxivSearchError(null);
+        setArxivSearchResults([]);
+        const paper = await fetchArxivPaperById(trimmedQuery);
+
+        if (papers.some(existing => existing.url === paper.url)) {
+          setAddedPapers(prev => new Set(prev).add(paper.url));
+        }
+
+        setArxivIdResult(paper);
+      } catch (err) {
+        setArxivSearchError('Failed to fetch paper: ' + (err.response?.data?.message || err.message));
+        setArxivIdResult(null);
+        console.error('Error fetching paper by arXiv ID:', err);
+      } finally {
+        setArxivSearchLoading(false);
+      }
+      return;
+    }
+
     try {
       setArxivSearchLoading(true);
       setArxivSearchError(null);
+      setArxivIdResult(null);
       const results = await searchArxivPapers(arxivSearchQuery, arxivSearchYear, arxivSearchCount);
 
       // Check which papers already exist in the current topic
@@ -663,40 +451,9 @@ const PaperList = ({
     setArxivSearchYear('');
     setArxivSearchCount(100);
     setArxivSearchResults([]);
+    setArxivIdResult(null);
     setArxivSearchError(null);
     setAddedPapers(new Set());
-  };
-
-  // Search by arXiv ID functions.
-  // Fetches paper metadata directly from the arXiv abs page instead of the
-  // export.arxiv.org search API, which is sometimes slow or fails to respond.
-  const handleArxivIdSearch = async (e) => {
-    e.preventDefault();
-    if (!arxivIdQuery.trim()) return;
-
-    try {
-      setArxivIdLoading(true);
-      setArxivIdError(null);
-      const paper = await fetchArxivPaperById(arxivIdQuery);
-
-      if (papers.some(existing => existing.url === paper.url)) {
-        setAddedPapers(prev => new Set(prev).add(paper.url));
-      }
-
-      setArxivIdResult(paper);
-    } catch (err) {
-      setArxivIdError('Failed to fetch paper: ' + (err.response?.data?.message || err.message));
-      setArxivIdResult(null);
-      console.error('Error fetching paper by arXiv ID:', err);
-    } finally {
-      setArxivIdLoading(false);
-    }
-  };
-
-  const clearArxivIdSearch = () => {
-    setArxivIdQuery('');
-    setArxivIdResult(null);
-    setArxivIdError(null);
   };
 
   const handleRefreshPapers = async () => {
@@ -723,7 +480,6 @@ const PaperList = ({
     setShowArxivSearch(!showArxivSearch);
     if (showArxivSearch) {
       clearArxivSearch();
-      clearArxivIdSearch();
     }
   };
 
@@ -846,6 +602,11 @@ const PaperList = ({
   const filteredTopics = availableTopics.filter(topic =>
     topic.name.toLowerCase().includes(topicFilter.toLowerCase())
   );
+
+  // Live (not just on-submit) check so the Year/Count filters can be
+  // disabled as soon as the query looks like an arXiv ID - they don't
+  // apply to an ID lookup.
+  const isArxivIdQuery = ARXIV_ID_REGEX.test(arxivSearchQuery.trim());
 
 
   if (loading) {
@@ -1055,84 +816,15 @@ const PaperList = ({
               </button>
               <button
                 type="button"
-                className={`add-paper-tab${addMode === 'id' ? ' active' : ''}`}
-                onClick={() => setAddMode('id')}
-              >
-                Search by arXiv ID
-              </button>
-              <button
-                type="button"
-                className={`add-paper-tab${addMode === 'url' ? ' active' : ''}`}
-                onClick={() => setAddMode('url')}
-              >
-                Add by PDF URL
-              </button>
-              <button
-                type="button"
                 className={`add-paper-tab${addMode === 'manual' ? ' active' : ''}`}
                 onClick={() => setAddMode('manual')}
               >
-                Add PDF or Text
+                Add Manually
               </button>
             </div>
 
-            {addMode === 'url' && (
-              <AddByUrlForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
-            )}
-
             {addMode === 'manual' && (
-              <AddManualPaperForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
-            )}
-
-            {addMode === 'id' && (
-              <div className="arxiv-search-container">
-                <form onSubmit={handleArxivIdSearch} className="arxiv-search-form">
-                  <div className="arxiv-search-controls">
-                    <input
-                      type="text"
-                      placeholder="Enter arXiv ID (e.g. 2305.12345)..."
-                      value={arxivIdQuery}
-                      onChange={(e) => setArxivIdQuery(e.target.value)}
-                      className="arxiv-search-input"
-                      disabled={arxivIdLoading}
-                    />
-                    <button
-                      type="submit"
-                      disabled={!arxivIdQuery.trim() || arxivIdLoading}
-                      className="arxiv-search-button"
-                    >
-                      {arxivIdLoading ? 'Searching...' : 'Search'}
-                    </button>
-                    {(arxivIdQuery || arxivIdResult) && (
-                      <button
-                        type="button"
-                        onClick={clearArxivIdSearch}
-                        className="arxiv-clear-button"
-                      >
-                        Clear
-                      </button>
-                    )}
-                  </div>
-                </form>
-
-                {arxivIdError && (
-                  <div className="arxiv-search-error">
-                    {arxivIdError}
-                  </div>
-                )}
-
-                {arxivIdResult && (
-                  <div className="arxiv-search-results">
-                    <div className="arxiv-results-list">
-                      <ArxivResultItem
-                        paper={arxivIdResult}
-                        isAdded={addedPapers.has(arxivIdResult.url)}
-                        onAdd={handleAddPaper}
-                      />
-                    </div>
-                  </div>
-                )}
-              </div>
+              <AddManuallyForm topicName={topicName} existingPapers={papers} onSaved={handleRefreshPapers} />
             )}
 
             {addMode === 'search' && (
@@ -1141,7 +833,7 @@ const PaperList = ({
               <div className="arxiv-search-controls">
                 <input
                   type="text"
-                  placeholder="Enter search keywords..."
+                  placeholder="Enter search keywords or an arXiv ID (e.g. 2305.12345)..."
                   value={arxivSearchQuery}
                   onChange={(e) => setArxivSearchQuery(e.target.value)}
                   className="arxiv-search-input"
@@ -1151,7 +843,8 @@ const PaperList = ({
                   value={arxivSearchYear}
                   onChange={(e) => setArxivSearchYear(e.target.value)}
                   className="arxiv-year-select"
-                  disabled={arxivSearchLoading}
+                  disabled={arxivSearchLoading || isArxivIdQuery}
+                  title={isArxivIdQuery ? "Not used for an arXiv ID lookup" : undefined}
                 >
                   <option value="">All Years</option>
                   {generateYearOptions().map(year => (
@@ -1162,7 +855,8 @@ const PaperList = ({
                   value={arxivSearchCount}
                   onChange={(e) => setArxivSearchCount(parseInt(e.target.value))}
                   className="arxiv-count-select"
-                  disabled={arxivSearchLoading}
+                  disabled={arxivSearchLoading || isArxivIdQuery}
+                  title={isArxivIdQuery ? "Not used for an arXiv ID lookup" : undefined}
                 >
                   <option value={50}>50 papers</option>
                   <option value={100}>100 papers</option>
@@ -1176,7 +870,7 @@ const PaperList = ({
                 >
                   {arxivSearchLoading ? 'Searching...' : 'Search'}
                 </button>
-                {(arxivSearchQuery || arxivSearchResults.length > 0) && (
+                {(arxivSearchQuery || arxivSearchResults.length > 0 || arxivIdResult) && (
                   <button
                     type="button"
                     onClick={clearArxivSearch}
@@ -1191,6 +885,18 @@ const PaperList = ({
             {arxivSearchError && (
               <div className="arxiv-search-error">
                 {arxivSearchError}
+              </div>
+            )}
+
+            {arxivIdResult && (
+              <div className="arxiv-search-results">
+                <div className="arxiv-results-list">
+                  <ArxivResultItem
+                    paper={arxivIdResult}
+                    isAdded={addedPapers.has(arxivIdResult.url)}
+                    onAdd={handleAddPaper}
+                  />
+                </div>
               </div>
             )}
 
