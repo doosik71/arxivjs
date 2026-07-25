@@ -50,7 +50,6 @@
     "pdfjs-dist": "^5.3.93",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "react-router-dom": "^7.6.3",
     "xml2js": "^0.6.2",
     "yargs-parser": "^21.1.1"
   },
@@ -62,7 +61,6 @@
     "cross-env": "^7.0.3",
     "electron": "^41.2.0",
     "electron-builder": "^26.0.12",
-    "electron-packager": "^17.1.2",
     "vite": "^7.0.4",
     "wait-on": "^8.0.3"
   },
