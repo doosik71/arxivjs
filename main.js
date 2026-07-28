@@ -1,10 +1,22 @@
-const { app, BrowserWindow } = require('electron');
+const { app, BrowserWindow, Menu } = require('electron');
 const path = require('path');
 const contextMenu = require('electron-context-menu');
 const { startServer } = require('./index.js'); // Import the server starter
 
+// Only one process should host the server; a second launch just opens
+// another window against the already-running instance.
+const gotTheLock = app.requestSingleInstanceLock();
+
+if (!gotTheLock) {
+    app.quit();
+} else {
+    main().catch(console.error);
+}
+
 async function main() {
     const { server, port, hostname } = await startServer();
+
+    console.log(`Server running at http://${hostname}:${port}`)
 
     contextMenu({
         showSaveImageAs: true,
@@ -22,14 +34,38 @@ async function main() {
             },
         });
 
-        // The server is now running, load the URL
+        // All windows share the single server started above.
         mainWindow.loadURL(`http://${hostname}:${port}`);
-
-        console.log(`Server running at http://${hostname}:${port}`)
 
         // Open the DevTools.
         // mainWindow.webContents.openDevTools();
     }
+
+    const isMac = process.platform === 'darwin';
+    const menu = Menu.buildFromTemplate([
+        ...(isMac ? [{ role: 'appMenu' }] : []),
+        {
+            label: 'File',
+            submenu: [
+                {
+                    label: 'New Window',
+                    accelerator: 'CmdOrCtrl+N',
+                    click: () => createWindow(),
+                },
+                { type: 'separator' },
+                isMac ? { role: 'close' } : { role: 'quit' },
+            ],
+        },
+        { role: 'editMenu' },
+        { role: 'viewMenu' },
+        { role: 'windowMenu' },
+    ]);
+    Menu.setApplicationMenu(menu);
+
+    // A second launch of the app arrives here instead of starting its own server.
+    app.on('second-instance', () => {
+        createWindow();
+    });
 
     app.whenReady().then(() => {
         createWindow();
@@ -48,5 +84,3 @@ async function main() {
         });
     });
 }
-
-main().catch(console.error);
