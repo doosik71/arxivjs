@@ -1,4 +1,5 @@
 /.env
+/.vscode
 /arxivjsdata
 /dist/
 /node_modules/
