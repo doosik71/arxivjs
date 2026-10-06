@@ -17,6 +17,15 @@ function slugifyPaperTitle(title) {
     .replace(/^_+|_+$/g, '');
 }
 
+const PAPER_SOURCES = ['arxiv', 'pdf', 'manual'];
+
+// Same as index.js: a paper JSON with no `source` field predates the field
+// and came from arXiv, so it is treated as arxiv.
+function normalizePaperSource(paper) {
+  const source = typeof paper?.source === 'string' ? paper.source.trim().toLowerCase() : '';
+  return PAPER_SOURCES.includes(source) ? source : 'arxiv';
+}
+
 function ensureOllamaConfigured() {
   if (!OLLAMA_API_URL || !OLLAMA_MODEL) {
     throw new Error('OLLAMA_API_URL and OLLAMA_MODEL must be set in .env to run update_summary.js');
@@ -54,7 +63,7 @@ async function readPaperMetadata(paperPath) {
   return paper;
 }
 
-async function getPdfTextFromUrl(arxivAbsUrl, topicPath, paper) {
+async function getPdfTextFromUrl(paperUrl, topicPath, paper) {
   const fileName = slugifyPaperTitle(paper?.title);
   if (!fileName) {
     throw new Error('Paper title is required to build the PDF text cache filename.');
@@ -73,7 +82,13 @@ async function getPdfTextFromUrl(arxivAbsUrl, topicPath, paper) {
     }
   }
 
-  const pdfUrl = arxivAbsUrl.replace('/abs/', '/pdf/');
+  // Mirrors getFullText in index.js: only arXiv abs urls map to a pdf url;
+  // 'pdf' urls are already direct, and 'manual' urls are reference-only.
+  const source = normalizePaperSource(paper);
+  if (source === 'manual') {
+    throw new Error('No extractable full text is available for this manual paper.');
+  }
+  const pdfUrl = source === 'arxiv' ? paperUrl.replace('/abs/', '/pdf/') : paperUrl;
   const response = await axios.get(pdfUrl, { responseType: 'arraybuffer' });
   const data = await pdfParser(response.data);
   const pdfText = data.text;

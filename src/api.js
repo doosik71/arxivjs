@@ -121,8 +121,10 @@ export const fetchArxivPaperById = async (arxivId) => {
   return response.data;
 };
 
-export const savePaperToTopic = async (topicName, paper) => {
-  const response = await api.post(`/papers/${encodeURIComponent(topicName)}`, { paper });
+// paperId is only needed when the title has no letters or digits to slug
+// (see resolveNewPaperId in index.js); otherwise the server derives it.
+export const savePaperToTopic = async (topicName, paper, paperId) => {
+  const response = await api.post(`/papers/${encodeURIComponent(topicName)}`, { paper, paperId });
   return response.data;
 };
 

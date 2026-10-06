@@ -9,7 +9,7 @@ import {
   movePaper
 } from '../api';
 import TableOfContents from './TableOfContents';
-import { getPaperId, titlesLikelyMatch } from '../utils/paperId';
+import { getPaperId, isValidPaperId, slugifyPaperTitle, titlesLikelyMatch } from '../utils/paperId';
 import './PaperList.css';
 
 const SOURCE_LABELS = { arxiv: 'arXiv', pdf: 'PDF', manual: 'Manual' };
@@ -39,13 +39,30 @@ const AddManuallyForm = ({ topicName, existingPapers, onSaved }) => {
   const [year, setYear] = useState('');
   const [url, setUrl] = useState('');
   const [abstract, setAbstract] = useState('');
+  const [paperId, setPaperId] = useState('');
   const [isSaving, setIsSaving] = useState(false);
   const [error, setError] = useState(null);
+
+  // A title with no ASCII letters or digits (e.g. Korean only) has no slug to
+  // name its files with, so the user has to supply the paper ID instead.
+  const needsPaperId = title.trim() !== '' && slugifyPaperTitle(title) === '';
+  const trimmedPaperId = paperId.trim();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!title.trim() || !authors.trim() || !year) {
       return;
+    }
+
+    if (needsPaperId) {
+      if (!isValidPaperId(trimmedPaperId)) {
+        setError('Paper ID must use only lowercase a-z, 0-9, and single _ between them (e.g. my_paper_2024).');
+        return;
+      }
+      if (existingPapers.some((existing) => getPaperId(existing) === trimmedPaperId)) {
+        setError(`Paper ID "${trimmedPaperId}" is already used in this topic.`);
+        return;
+      }
     }
 
     if (!confirmIfDuplicateTitle(existingPapers, title)) {
@@ -67,13 +84,14 @@ const AddManuallyForm = ({ topicName, existingPapers, onSaved }) => {
         source: trimmedUrl ? 'pdf' : 'manual'
       };
 
-      await savePaperToTopic(topicName, paper);
+      await savePaperToTopic(topicName, paper, needsPaperId ? trimmedPaperId : undefined);
 
       setTitle('');
       setAuthors('');
       setYear('');
       setUrl('');
       setAbstract('');
+      setPaperId('');
       onSaved();
     } catch (err) {
       setError('Failed to add paper: ' + (err.response?.data?.message || err.message));
@@ -93,6 +111,18 @@ const AddManuallyForm = ({ topicName, existingPapers, onSaved }) => {
         disabled={isSaving}
         required
       />
+      {needsPaperId && (
+        <input
+          type="text"
+          placeholder="Paper ID (file name: a-z, 0-9, _)..."
+          title="The title has no letters or digits to build a file name from. Enter one using only lowercase a-z, 0-9, and _."
+          value={paperId}
+          onChange={(e) => setPaperId(e.target.value)}
+          className="add-paper-input"
+          disabled={isSaving}
+          required
+        />
+      )}
       <input
         type="text"
         placeholder="Authors..."

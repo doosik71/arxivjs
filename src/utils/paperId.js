@@ -4,6 +4,9 @@ export const slugifyPaperTitle = (title) => String(title || '')
   .replace(/_+/g, '_')
   .replace(/^_+|_+$/g, '');
 
+// Mirrors the backend's isValidPaperId (index.js).
+export const isValidPaperId = (paperId) => paperId !== '' && slugifyPaperTitle(paperId) === paperId;
+
 export const getPaperId = (paper) => {
   if (paper?.id) {
     return paper.id;

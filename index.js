@@ -54,6 +54,32 @@ function getPaperStorageId(paper) {
     return slugifyPaperTitle(paper?.title);
 }
 
+// A user-entered paperId must already be in slug form, so it names files the
+// same way a title slug would.
+function isValidPaperId(paperId) {
+    return typeof paperId === 'string' && paperId !== '' && slugifyPaperTitle(paperId) === paperId;
+}
+
+// Storage id for a paper being saved for the first time. A title with no
+// ASCII letters or digits (e.g. Korean only) slugs to '', which would create
+// a file literally named ".json" - in that case the caller must supply a
+// paperId. Returns null when no usable id is available.
+function resolveNewPaperId(paper, requestedPaperId) {
+    const storageId = getPaperStorageId(paper);
+    if (storageId) {
+        return storageId;
+    }
+
+    return isValidPaperId(requestedPaperId) ? requestedPaperId : null;
+}
+
+function sendPaperIdRequired(res) {
+    return res.status(400).json({
+        code: 'PAPER_ID_REQUIRED',
+        message: 'The title has no letters or digits to build a file name from. Please enter a paper ID using only a-z, 0-9, and _.'
+    });
+}
+
 const PAPER_SOURCES = ['arxiv', 'pdf', 'manual'];
 
 // A paper JSON with no `source` field predates this field and was only ever
@@ -497,10 +523,12 @@ async function streamGeneratorToSse(res, generator) {
     return fullText;
 }
 
+// Uses <id>.bak, the same backup name deletePaperSummary uses, so a paper has
+// a single summary backup slot.
 async function backupSummaryFile(summaryPath) {
     try {
         await fs.access(summaryPath);
-        await fs.copyFile(summaryPath, `${summaryPath}.bak`);
+        await fs.copyFile(summaryPath, summaryPath.replace(/\.md$/, '.bak'));
     } catch (error) {
         if (error.code !== 'ENOENT') {
             throw error;
@@ -1013,7 +1041,7 @@ async function getCitationCount(paper) {
 
 async function savePaper(req, res) {
     try {
-        const { paper } = req.body;
+        const { paper, paperId } = req.body;
         const topicName = req.params.topicName;
 
         // Sanitize title and authors
@@ -1025,7 +1053,12 @@ async function savePaper(req, res) {
         }
         paper.source = normalizePaperSource(paper);
 
-        const fileName = getPaperStorageId(paper) + '.json';
+        const storageId = resolveNewPaperId(paper, paperId);
+        if (!storageId) {
+            return sendPaperIdRequired(res);
+        }
+
+        const fileName = storageId + '.json';
         const paperPath = path.join(getTopicPath(topicName), fileName);
 
         // Save paper without citation count first.
@@ -1063,6 +1096,63 @@ async function savePaper(req, res) {
     }
 }
 
+/**
+ * Moves a paper's .txt full-text cache alongside its .json. Both topics hold
+ * text for the same paperId, so when the target already has one and
+ * replaceExisting is false the source copy is dropped instead. The cache must
+ * not be left behind: for 'manual' papers it is the only full-text source.
+ */
+async function moveTextCacheFile(oldTxtPath, newTxtPath, replaceExisting) {
+    if (!replaceExisting) {
+        let targetHasText = true;
+        try {
+            await fs.access(newTxtPath);
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+            targetHasText = false;
+        }
+
+        if (targetHasText) {
+            try {
+                await fs.unlink(oldTxtPath);
+            } catch (error) {
+                if (error.code !== 'ENOENT') {
+                    throw error;
+                }
+            }
+            return;
+        }
+    }
+
+    try {
+        await fs.rename(oldTxtPath, newTxtPath);
+    } catch (error) {
+        if (error.code !== 'ENOENT') {
+            throw error;
+        }
+    }
+}
+
+/**
+ * Deletes a paper's summary backup (<id>.bak, plus the legacy <id>.md.bak that
+ * older versions wrote on regeneration) in the topic it is leaving. They are
+ * not carried over, and left behind they would keep that topic folder from
+ * being deleted.
+ */
+async function deleteSummaryBackupFiles(topicPath, paperId) {
+    for (const backupName of [paperId + '.md.bak', paperId + '.bak']) {
+        try {
+            await fs.unlink(path.join(topicPath, backupName));
+        } catch (error) {
+            if (error.code !== 'ENOENT') {
+                throw error;
+            }
+        }
+    }
+}
+
 async function movePaper(req, res) {
     try {
         const { newTopicName } = req.body;
@@ -1074,6 +1164,8 @@ async function movePaper(req, res) {
         const newMdPath = path.join(newTopicPath, req.params.paperId + '.md');
         const oldHltPath = path.join(oldTopicPath, req.params.paperId + '.hlt');
         const newHltPath = path.join(newTopicPath, req.params.paperId + '.hlt');
+        const oldTxtPath = getTextCachePath(req.params.topicName, req.params.paperId);
+        const newTxtPath = getTextCachePath(newTopicName, req.params.paperId);
 
         // Check if paper already exists in target topic
         try {
@@ -1136,6 +1228,9 @@ async function movePaper(req, res) {
                     }
                 }
 
+                await moveTextCacheFile(oldTxtPath, newTxtPath, true);
+                await deleteSummaryBackupFiles(oldTopicPath, req.params.paperId);
+
                 res.json({ message: 'Paper moved successfully. Newer version replaced existing paper.' });
             } else {
                 // Existing paper is newer or same date, just delete the moving paper
@@ -1154,6 +1249,8 @@ async function movePaper(req, res) {
                         throw error;
                     }
                 }
+                await moveTextCacheFile(oldTxtPath, newTxtPath, false);
+                await deleteSummaryBackupFiles(oldTopicPath, req.params.paperId);
                 res.json({ message: 'Paper not moved. Existing paper in target topic is newer or same date.' });
             }
         } catch (error) {
@@ -1176,6 +1273,9 @@ async function movePaper(req, res) {
                         throw hltError;
                     }
                 }
+
+                await moveTextCacheFile(oldTxtPath, newTxtPath, true);
+                await deleteSummaryBackupFiles(oldTopicPath, req.params.paperId);
 
                 res.json({ message: 'Paper moved successfully.' });
             } else {
@@ -1625,7 +1725,12 @@ async function addPaperByUrl(req, res) {
             source: 'arxiv'
         };
 
-        const fileName = getPaperStorageId(paper) + '.json';
+        const storageId = resolveNewPaperId(paper);
+        if (!storageId) {
+            return sendPaperIdRequired(res);
+        }
+
+        const fileName = storageId + '.json';
         const topicPath = getTopicPath(topicName);
         const filePath = path.join(topicPath, fileName);
 
@@ -1829,7 +1934,7 @@ async function fetchPdfFromUrl(req, res) {
 
 async function savePdfPaper(req, res) {
     try {
-        const { paper, summary, topicName, text } = req.body;
+        const { paper, summary, topicName, text, paperId } = req.body;
 
         if (!paper || !summary || !topicName) {
             return res.status(400).json({ message: 'Missing required data: paper, summary, or topicName' });
@@ -1860,7 +1965,10 @@ async function savePdfPaper(req, res) {
         // Title-slug filename, matching getPaperStorageId's convention used
         // by the arxiv-originated save pathway (savePaper) - not the old
         // base64(url) scheme this endpoint used to use.
-        const fileName = getPaperStorageId(paper);
+        const fileName = resolveNewPaperId(paper, paperId);
+        if (!fileName) {
+            return sendPaperIdRequired(res);
+        }
         const jsonFilePath = path.join(topicPath, fileName + '.json');
         const mdFilePath = path.join(topicPath, fileName + '.md');
 
