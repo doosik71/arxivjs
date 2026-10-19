@@ -48,8 +48,7 @@
     "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
-    "xml2js": "^0.6.2",
-    "yargs-parser": "^21.1.1"
+    "xml2js": "^0.6.2"
   },
   "devDependencies": {
     "@types/react": "^19.1.8",
@@ -70,7 +69,6 @@
     },
     "files": [
       "dist/**/*",
-      "client/electron/**/*",
       "public/**/*",
       "index.js",
       "main.js",
@@ -108,7 +106,6 @@
           ]
         }
       ],
-      "icon": "client/electron/icon.icns",
       "category": "public.app-category.productivity"
     },
     "linux": {
@@ -126,7 +123,7 @@
           ]
         }
       ],
-      "icon": "client/electron/icon.png",
+      "icon": "assets/icon.png",
       "category": "Office"
     },
     "nsis": {

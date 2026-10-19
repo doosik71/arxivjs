@@ -14,7 +14,6 @@ ArxivJS is a single-package full-stack app: an Express 5 server (`index.js`) ser
 - `update_summary.js`: batch CLI that generates missing summaries with Ollama (`npm run update-summary`).
 - `update_citatation.js`: batch CLI that refreshes citation counts via OpenAlex / Crossref.
 - `migrate_arxivjsdata.js`: one-off migration to the title-slug file naming.
-- `client/electron/`: legacy Electron files from the pre-merge ArxiView app; not referenced by current code.
 
 ## Commands
 
