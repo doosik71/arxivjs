@@ -25,7 +25,7 @@ export default defineConfig(({ mode }) => {
     build: {
       outDir: 'public',
       assetsDir: 'assets',
-      emptyOutDir: false,
+      emptyOutDir: true,
       rollupOptions: {
         output: {
           manualChunks: undefined

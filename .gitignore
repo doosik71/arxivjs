@@ -8,8 +8,6 @@
 /arxiview/node_modules/
 /release/
 /temp
-/public/assets/index-*.js
-/public/assets/index-*.css
-/public/index.html
+/public/
 /git_commit_message.txt
 /PROMPTS.md
