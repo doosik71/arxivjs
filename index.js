@@ -6,6 +6,7 @@ const axios = require('axios');
 const xml2js = require('xml2js');
 const multer = require('multer');
 const { GoogleGenerativeAI } = require('@google/generative-ai');
+const { Anthropic } = require('@anthropic-ai/sdk');
 const { marked } = require('marked');
 const pdfParser = require('pdf-parse');
 require('dotenv').config();
@@ -16,6 +17,10 @@ const { app: electronApp, dialog } = require('electron');
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL?.trim();
 const OLLAMA_API_URL = process.env.OLLAMA_API_URL?.trim()?.replace(/\/+$/, '');
+const CLAUDE_MODEL = process.env.CLAUDE_MODEL?.trim() || 'claude-opus-5-5';
+const ANTHROPIC_API_KEY = process.env.ANTHROPIC_API_KEY?.trim();
+// Required only for API keys that are not scoped to a workspace.
+const ANTHROPIC_WORKSPACE_ID = process.env.ANTHROPIC_WORKSPACE_ID?.trim();
 
 const OPENALEX_API_URL = 'https://api.openalex.org/works';
 const CROSSREF_API_URL = 'https://api.crossref.org/works';
@@ -35,6 +40,16 @@ const llmProviders = {
         name: 'ollama',
         model: OLLAMA_MODEL,
         apiUrl: OLLAMA_API_URL
+    } : null,
+    claude: ANTHROPIC_API_KEY ? {
+        name: 'claude',
+        model: CLAUDE_MODEL,
+        client: new Anthropic({
+            apiKey: ANTHROPIC_API_KEY,
+            defaultHeaders: ANTHROPIC_WORKSPACE_ID
+                ? { 'anthropic-workspace-id': ANTHROPIC_WORKSPACE_ID }
+                : undefined
+        })
     } : null
 };
 
@@ -147,7 +162,7 @@ function failStartup(message) {
 }
 
 if (getAvailableLlmEngines().length === 0) {
-    failStartup('Neither Gemini nor Ollama is configured. Please set GEMINI_API_KEY or both OLLAMA_API_URL and OLLAMA_MODEL in your .env file.');
+    failStartup('No LLM engine is configured. Please set GEMINI_API_KEY, ANTHROPIC_API_KEY, or both OLLAMA_API_URL and OLLAMA_MODEL in your .env file.');
 }
 
 // Initialize arxivjsdata folder.
@@ -482,12 +497,65 @@ async function* streamOllamaChat(history, paperContext) {
     }
 }
 
+async function* streamClaudeMessages(params) {
+    const { provider } = getProviderOrThrow('claude');
+    // The server-side fallback re-runs the request on another model when the
+    // safety classifier declines it, so a false positive does not end the turn.
+    const stream = provider.client.beta.messages.stream({
+        model: provider.model,
+        max_tokens: 64000,
+        betas: ['server-side-fallback-2026-07-01'],
+        fallbacks: 'default',
+        ...params
+    });
+
+    for await (const event of stream) {
+        if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
+            yield event.delta.text;
+        }
+    }
+
+    // Throwing after the stream keeps callers such as summarizeAndSave from
+    // saving a truncated or refused response.
+    const finalMessage = await stream.finalMessage();
+    if (finalMessage.stop_reason === 'max_tokens') {
+        throw new Error('Claude response was truncated (max_tokens reached).');
+    }
+    if (finalMessage.stop_reason === 'refusal') {
+        throw new Error('Claude declined to answer this request.');
+    }
+}
+
+function streamClaudeGenerate(prompt) {
+    return streamClaudeMessages({
+        messages: [{ role: 'user', content: prompt }]
+    });
+}
+
+function streamClaudeChat(history, paperContext) {
+    return streamClaudeMessages({
+        // Cache the paper context so follow-up chat turns reuse it.
+        system: [{
+            type: 'text',
+            text: `You are a helpful assistant. The user is asking questions about a research paper. Use the following context to answer their questions:\n\n${paperContext}`,
+            cache_control: { type: 'ephemeral' }
+        }],
+        messages: history.map((entry) => ({
+            role: entry.role,
+            content: entry.content
+        }))
+    });
+}
+
+const engineHandlers = {
+    gemini: { generate: streamGeminiGenerate, chat: streamGeminiChat },
+    ollama: { generate: streamOllamaGenerate, chat: streamOllamaChat },
+    claude: { generate: streamClaudeGenerate, chat: streamClaudeChat }
+};
+
 async function generateSingleResponse(engine, prompt) {
-    const resolvedEngine = resolveEngine(engine);
     const chunks = [];
-    const generator = resolvedEngine === 'ollama'
-        ? streamOllamaGenerate(prompt)
-        : streamGeminiGenerate(prompt);
+    const generator = await streamSummary(engine, prompt);
 
     for await (const chunk of generator) {
         chunks.push(chunk);
@@ -497,17 +565,11 @@ async function generateSingleResponse(engine, prompt) {
 }
 
 async function streamSummary(engine, prompt) {
-    const resolvedEngine = resolveEngine(engine);
-    return resolvedEngine === 'ollama'
-        ? streamOllamaGenerate(prompt)
-        : streamGeminiGenerate(prompt);
+    return engineHandlers[resolveEngine(engine)].generate(prompt);
 }
 
 async function streamChat(engine, history, paperContext) {
-    const resolvedEngine = resolveEngine(engine);
-    return resolvedEngine === 'ollama'
-        ? streamOllamaChat(history, paperContext)
-        : streamGeminiChat(history, paperContext);
+    return engineHandlers[resolveEngine(engine)].chat(history, paperContext);
 }
 
 async function streamGeneratorToSse(res, generator) {

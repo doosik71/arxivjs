@@ -334,6 +334,9 @@ const getEngineLabel = (engine) => {
   if (engine === 'gemini') {
     return 'Gemini';
   }
+  if (engine === 'claude') {
+    return 'Claude';
+  }
   return engine || 'AI';
 };
 

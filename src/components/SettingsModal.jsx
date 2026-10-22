@@ -15,6 +15,9 @@ const formatEngineLabel = (engine) => {
   if (engine === 'ollama') {
     return 'Ollama';
   }
+  if (engine === 'claude') {
+    return 'Claude';
+  }
   return engine;
 };
 

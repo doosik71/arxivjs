@@ -23,12 +23,18 @@ npm install
 
 Create a `.env` file in the project root.
 
-You can enable Gemini, Ollama, or both:
+You can enable any combination of Gemini, Claude, and Ollama:
 
 ```ini
 # Optional: Gemini
 GEMINI_API_KEY=YOUR_API_KEY
 GEMINI_MODEL=gemini-2.5-flash
+
+# Optional: Claude (defaults to claude-opus-5-5)
+ANTHROPIC_API_KEY=YOUR_API_KEY
+CLAUDE_MODEL=claude-opus-5-5
+# Required only when the API key is not scoped to a workspace
+ANTHROPIC_WORKSPACE_ID=YOUR_WORKSPACE_ID
 
 # Optional: Ollama
 OLLAMA_API_URL=http://localhost:11434/
@@ -40,11 +46,13 @@ SEMANTICSCHOLAR_API_KEY=YOUR_API_KEY
 
 Notes:
 
-- If both Gemini and Ollama are configured, the app lets you choose the active AI engine in the settings modal.
+- If more than one engine is configured, the app lets you choose the active AI engine in the settings modal. Gemini is the default when it is configured.
 - If only one engine is configured, only that engine is shown and enabled.
-- The server exits at startup only when neither Gemini nor Ollama is configured.
+- The server exits at startup only when no engine is configured.
 
 You can create a Gemini API key at <https://aistudio.google.com/apikey> and enable the `Generative Language API` in Google Cloud.
+
+You can create a Claude API key at <https://platform.claude.com/>. Set `CLAUDE_MODEL=claude-sonnet-5-5` for a lower-cost model.
 
 To use Ollama, install and run Ollama locally, then pull the model you want to use. Example:
 
@@ -102,7 +110,7 @@ Here is the paper content:
 
 - arXiv integration for search and paper import
 - Topic-based paper organization
-- Multi-engine AI support with Gemini and Ollama
+- Multi-engine AI support with Gemini, Claude, and Ollama
 - Paper summary generation
 - Abstract translation to Korean
 - Paper chat with streaming responses

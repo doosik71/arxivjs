@@ -8,7 +8,7 @@ Guidance for Claude Code when working in this repository. See `README.md` for th
 
 ArxivJS is a single-package full-stack app: an Express 5 server (`index.js`) serves a React 19 + Vite client built into `public/`, and the same server is embedded in an Electron desktop app (`main.js`).
 
-- `index.js`: all API routes, arXiv search, AI routing (Gemini / Ollama), PDF text extraction (`pdf-parse`), citation lookup, and file-based storage. Exports `startServer()`.
+- `index.js`: all API routes, arXiv search, AI routing (Gemini / Claude / Ollama), PDF text extraction (`pdf-parse`), citation lookup, and file-based storage. Exports `startServer()`.
 - `main.js`, `preload.js`: Electron entry point; calls `startServer()` and loads the served page in a `BrowserWindow`.
 - `src/`: React client. `App.jsx` switches between `topics`, `papers` and `paper-detail` views with `useState` (no router). All HTTP calls go through `src/api.js`.
 - `update_summary.js`: batch CLI that generates missing summaries with Ollama (`npm run update-summary`).
@@ -33,8 +33,8 @@ npm run dist:win     # package with electron-builder (also dist:mac, dist:linux)
 
 ## Configuration
 
-- `.env` (see `.env.sample`): `GEMINI_API_KEY`, `GEMINI_MODEL`, `OLLAMA_API_URL`, `OLLAMA_MODEL`, `SEMANTICSCHOLAR_API_KEY`, plus optional `OPENALEX_API_KEY` and `CROSSREF_MAILTO`.
-- Startup exits if neither Gemini nor Ollama is configured, or if `arxivjsdata/userprompt.txt` is missing. The prompt template must contain `{context}`.
+- `.env` (see `.env.sample`): `GEMINI_API_KEY`, `GEMINI_MODEL`, `ANTHROPIC_API_KEY`, `CLAUDE_MODEL`, `ANTHROPIC_WORKSPACE_ID` (only for keys not scoped to a workspace), `OLLAMA_API_URL`, `OLLAMA_MODEL`, `SEMANTICSCHOLAR_API_KEY`, plus optional `OPENALEX_API_KEY` and `CROSSREF_MAILTO`.
+- Startup exits if none of Gemini, Claude, or Ollama is configured, or if `arxivjsdata/userprompt.txt` is missing. The prompt template must contain `{context}`.
 
 ## Data Storage
 
