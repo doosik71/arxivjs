@@ -700,6 +700,18 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
           const lines = chunk.split('\n\n');
 
           for (const line of lines) {
+            // The server reports failures after streaming has started as an
+            // `event: error` block; throw so the catch below logs and shows it.
+            if (line.startsWith('event: error')) {
+              const errorData = line.split('\n').find(l => l.startsWith('data: '))?.substring(6);
+              let message = errorData;
+              try {
+                message = JSON.parse(errorData);
+              } catch (e) {
+                // Keep the raw text if it is not JSON.
+              }
+              throw new Error(message || 'Unknown server error');
+            }
             if (line.startsWith('data: ')) {
               try {
                 const jsonData = line.substring(6).trim();

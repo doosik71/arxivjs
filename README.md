@@ -23,6 +23,8 @@ npm install
 
 Create a `.env` file in the project root.
 
+The packaged desktop app (installer or portable exe) does not read the project root. It looks for `.env` in the app's user data folder first (`%APPDATA%\ArxivJS\.env` on Windows), then in the folder that contains the executable.
+
 You can enable any combination of Gemini, Claude, and Ollama:
 
 ```ini

@@ -1,6 +1,7 @@
 const express = require('express');
 const app = express();
 const fs = require('fs').promises;
+const { existsSync } = require('fs');
 const path = require('path');
 const axios = require('axios');
 const xml2js = require('xml2js');
@@ -9,10 +10,22 @@ const { GoogleGenerativeAI } = require('@google/generative-ai');
 const { Anthropic } = require('@anthropic-ai/sdk');
 const { marked } = require('marked');
 const pdfParser = require('pdf-parse');
-require('dotenv').config();
 
 // Initialize electron application.
 const { app: electronApp, dialog } = require('electron');
+
+// A packaged app runs with an unrelated cwd (an install folder, or a temp
+// extraction folder for the portable build), so look for .env in userData
+// first and next to the executable second. Earlier files take precedence.
+const envPaths = electronApp
+    ? [
+        path.join(electronApp.getPath('userData'), '.env'),
+        path.join(process.env.PORTABLE_EXECUTABLE_DIR || path.dirname(process.execPath), '.env'),
+        // `npm start` runs the electron binary from node_modules; keep the project .env working.
+        ...(electronApp.isPackaged ? [] : [path.join(process.cwd(), '.env'), path.join(__dirname, '.env')])
+    ]
+    : [path.join(process.cwd(), '.env'), path.join(__dirname, '.env')];
+require('dotenv').config({ path: [...new Set(envPaths)] });
 
 const GEMINI_MODEL = process.env.GEMINI_MODEL || 'gemini-2.5-flash';
 const OLLAMA_MODEL = process.env.OLLAMA_MODEL?.trim();
@@ -152,9 +165,9 @@ function getDefaultLlmEngine() {
     return availableEngines[0] || null;
 }
 
-function failStartup(message) {
+function failStartup(message, title = 'LLM Configuration Error') {
     if (electronApp) {
-        dialog.showErrorBox('LLM Configuration Error', message);
+        dialog.showErrorBox(title, message);
     } else {
         console.error(`Error: ${message}`);
     }
@@ -162,39 +175,29 @@ function failStartup(message) {
 }
 
 if (getAvailableLlmEngines().length === 0) {
-    failStartup('No LLM engine is configured. Please set GEMINI_API_KEY, ANTHROPIC_API_KEY, or both OLLAMA_API_URL and OLLAMA_MODEL in your .env file.');
+    const searchedEnvPaths = [...new Set(envPaths)];
+    const foundEnvPaths = searchedEnvPaths.filter(p => existsSync(p));
+    const envStatus = foundEnvPaths.length
+        ? `Loaded .env file(s):\n${foundEnvPaths.map(p => `  - ${p}`).join('\n')}`
+        : `No .env file was found. Save your .env file in one of these locations (earlier ones take precedence):\n${searchedEnvPaths.map(p => `  - ${p}`).join('\n')}`;
+    failStartup(`No LLM engine is configured. Please set GEMINI_API_KEY, ANTHROPIC_API_KEY, or both OLLAMA_API_URL and OLLAMA_MODEL in your .env file.\n\n${envStatus}`);
 }
 
 // Initialize arxivjsdata folder.
 const dataPath = electronApp ? path.join(electronApp.getPath('userData'), 'arxivjsdata') : path.join(__dirname, 'arxivjsdata');
 
-if (electronApp) {
-    try {
-        fs.mkdir(dataPath, { recursive: true });
-    } catch (e) {
-        // console.log("arxivjsdata dir already exists");
-    }
-} else {
-    try {
-        fs.mkdir(dataPath, { recursive: true });
-    } catch (e) {
-        // console.log("arxivjsdata dir already exists");
-    }
-}
-
 // Check userprompt.txt file.
 const userPromptPath = path.join(dataPath, 'userprompt.txt');
 (async () => {
     try {
+        await fs.mkdir(dataPath, { recursive: true });
+    } catch (error) {
+        failStartup(`Could not create the "arxivjsdata" data folder:\n  - ${dataPath}\n\n${error.message}`, 'Data Folder Error');
+    }
+    try {
         await fs.access(userPromptPath);
     } catch (error) {
-        const errorMessage = `"userprompt.txt" file is missing. Please check if the file "userprompt.txt" exists in ${dataPath}.`;
-        if (electronApp) {
-            dialog.showErrorBox('User Prompt Missing', errorMessage);
-        } else {
-            console.error(`Error: ${errorMessage}`);
-        }
-        process.exit(1);
+        failStartup(`"userprompt.txt" file is missing. Save the file in the arxivjsdata data folder:\n  - ${userPromptPath}\n\nData folder: ${dataPath}`, 'User Prompt Missing');
     }
 })();
 
@@ -373,6 +376,13 @@ function writeSseChunk(res, chunk) {
     if (chunk) {
         res.write(`data: ${JSON.stringify(chunk)}\n\n`);
     }
+}
+
+// Once the SSE headers are sent the status can no longer become 500, so an
+// error raised mid-stream (e.g. the LLM API rejecting the request) is sent as
+// a named event for the client to surface.
+function writeSseError(res, message) {
+    res.write(`event: error\ndata: ${JSON.stringify(message)}\n\n`);
 }
 
 async function* parseOllamaNdjson(stream) {
@@ -1754,11 +1764,12 @@ async function summarizeAndSave(req, res) {
         await backupSummaryFile(mdFilePath);
         await fs.writeFile(mdFilePath, summaryContent);
     } catch (error) {
-        console.error('Error in /summarize-and-save:', error);
+        console.error(`Error in /summarize-and-save (engine: ${req.body?.engine || 'default'}):`, error);
 
         if (!res.headersSent) {
             res.status(500).json({ message: error.message });
         } else {
+            writeSseError(res, error.message);
             res.end();
         }
     }
@@ -1956,10 +1967,11 @@ async function summarizePdfText(req, res) {
         await streamGeneratorToSse(res, generator);
 
     } catch (error) {
-        console.error('PDF text summarization error:', error);
+        console.error(`PDF text summarization error (engine: ${req.body?.engine || 'default'}):`, error);
         if (!res.headersSent) {
-            res.status(500).json({ message: 'Failed to summarize PDF text' });
+            res.status(500).json({ message: `Failed to summarize PDF text: ${error.message}` });
         } else {
+            writeSseError(res, error.message);
             res.end();
         }
     }
