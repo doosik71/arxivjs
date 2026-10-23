@@ -325,6 +325,18 @@ const applyHighlightsRecursively = (node, highlights, keyPrefix = 'node') => {
   return React.cloneElement(node, { ...node.props, key: node.key ?? keyPrefix }, children);
 };
 
+// Parses the summary inside its own component so a parse or highlight error is
+// caught by the surrounding ErrorBoundary instead of unmounting PaperDetail.
+const SummaryContent = React.memo(({ summaryText, highlights }) => {
+  if (!summaryText) return null;
+  const parsedSummary = parseMarkdownWithMath(summaryText);
+  if (!highlights.length) {
+    return parsedSummary;
+  }
+
+  return parsedSummary.map((node, index) => applyHighlightsRecursively(node, highlights, `summary-${index}`));
+});
+
 const isElectronApp = typeof window !== 'undefined' && Boolean(window.electron);
 
 const getEngineLabel = (engine) => {
@@ -607,6 +619,11 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
   }, [summary, onTocUpdate]);
 
   useEffect(() => {
+    // MathJax replaces DOM nodes React still owns, so typesetting while chunks
+    // are streaming in breaks React's next update. Typeset once it finishes.
+    if (isGeneratingSummary) {
+      return;
+    }
     if (summaryRef.current && window.MathJax) {
       window.MathJax.typesetPromise([summaryRef.current]).catch((err) => {
         console.error('MathJax rendering error:', err);
@@ -1012,16 +1029,6 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
     );
   };
 
-  const formatSummary = (summaryText) => {
-    if (!summaryText) return null;
-    const parsedSummary = parseMarkdownWithMath(summaryText);
-    if (!highlights.length) {
-      return parsedSummary;
-    }
-
-    return parsedSummary.map((node, index) => applyHighlightsRecursively(node, highlights, `summary-${index}`));
-  };
-
   const activeHighlight = findHighlightByText(highlights, highlightPopover.text);
   const summaryRenderKey = buildHighlightRenderKey(effectivePaperId, highlights);
 
@@ -1206,8 +1213,8 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                     onMouseUp={handleSummaryMouseUp}
                     onClick={handleSummaryClick}
                   >
-                    <ErrorBoundary>
-                      {formatSummary(summary)}
+                    <ErrorBoundary resetKey={summary}>
+                      <SummaryContent summaryText={summary} highlights={highlights} />
                     </ErrorBoundary>
                   </main>
                 </div>
@@ -1237,8 +1244,8 @@ const PaperDetail = ({ paper: initialPaper, paperId, topicName, onBackToPapers, 
                 onMouseUp={handleSummaryMouseUp}
                 onClick={handleSummaryClick}
               >
-                <ErrorBoundary>
-                  {formatSummary(summary)}
+                <ErrorBoundary resetKey={summary}>
+                  <SummaryContent summaryText={summary} highlights={highlights} />
                 </ErrorBoundary>
               </main>
             </div>

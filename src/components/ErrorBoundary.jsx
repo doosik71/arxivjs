@@ -19,6 +19,17 @@ class ErrorBoundary extends React.Component {
   }
 
   /**
+   * Clear the error when `resetKey` changes, so content that is still
+   * streaming in gets another chance on its next update.
+   * @param {object} prevProps - The previous props.
+   */
+  componentDidUpdate(prevProps) {
+    if (this.state.hasError && prevProps.resetKey !== this.props.resetKey) {
+      this.setState({ hasError: false, error: null });
+    }
+  }
+
+  /**
    * You can also log the error to an error reporting service.
    * @param {Error} error - The error that was thrown.
    * @param {object} errorInfo - An object with a componentStack key.
@@ -40,6 +51,7 @@ class ErrorBoundary extends React.Component {
               {this.state.error.toString()}
             </pre>
           )}
+          {this.props.fallbackAction}
         </div>
       );
     }

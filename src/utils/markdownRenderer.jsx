@@ -267,8 +267,12 @@ const parseHTMLToReact = (htmlContent) => {
     // For other elements, just pass through
     const props = { key };
 
-    // Copy attributes
+    // Copy attributes. Raw HTML in LLM output can carry attributes React
+    // rejects (a string `style`, `ref`) or that should never run (`on*`).
     for (let attr of element.attributes) {
+      if (attr.name === 'style' || attr.name === 'ref' || attr.name === 'key' || attr.name.startsWith('on')) {
+        continue;
+      }
       if (attr.name === 'class') {
         props.className = attr.value;
       } else {

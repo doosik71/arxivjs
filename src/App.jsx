@@ -6,6 +6,7 @@ import TableOfContents from './components/TableOfContents';
 import ThemeSelector from './components/ThemeSelector';
 import Footer from './components/Footer';
 import SettingsModal from './components/SettingsModal';
+import ErrorBoundary from './components/ErrorBoundary';
 import { applyTheme, getStoredTheme } from './utils/themes';
 import { getRuntimeConfig } from './api';
 import { getSelectedSummaryEngine, saveConfig } from './utils/config';
@@ -142,7 +143,19 @@ const App = () => {
       </header>
 
       <main className="container">
-        {renderCurrentView()}
+        {/* Keeps a render error in one view from blanking the whole app. The
+            view's own back links are gone in the fallback, so offer one here;
+            navigating changes resetKey and clears the error. */}
+        <ErrorBoundary
+          resetKey={`${currentView}:${selectedTopic}:${selectedPaperId}`}
+          fallbackAction={
+            <button type="button" onClick={handleBackToTopics}>
+              Back to Topics
+            </button>
+          }
+        >
+          {renderCurrentView()}
+        </ErrorBoundary>
       </main>
 
       <Footer />
