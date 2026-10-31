@@ -45,7 +45,7 @@
     "electron-context-menu": "3.6.1",
     "express": "^5.1.0",
     "marked": "^16.0.0",
-    "multer": "^2.4.0",
+    "multer": "^2.5.0",
     "pdf-parse": "^1.1.1",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
